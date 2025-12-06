@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>AidTracker Route Map</title>
+
+<!-- Leaflet -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<!-- Leaflet Routing Machine -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.css" />
+<script src="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js"></script>
+
+<!-- Tailwind -->
+<script src="https://cdn.tailwindcss.com"></script>
+
+<style>
+html, body { height: 100%; margin: 0; }
+#map { height: 100vh; width: 100%; }
+.pulse { width: 16px; height: 16px; background: #1380ff; border: 2px solid white; border-radius: 50%; box-shadow: 0 0 8px rgba(19,128,255,0.8); position: relative; }
+.pulse::after { content: ""; position: absolute; top: 50%; left: 50%; width: 20px; height: 20px; border-radius: 50%; background: rgba(19,128,255,0.3); transform: translate(-50%, -50%); animation: pulse 1.5s infinite ease-out; }
+@keyframes pulse { 0% { transform: translate(-50%, -50%) scale(0.8); opacity: 0.8; } 70% { transform: translate(-50%, -50%) scale(2); opacity: 0; } 100% { transform: translate(-50%, -50%) scale(0.8); opacity: 0; } }
+.btn { position: absolute; z-index: 1000; background: white; border-radius: 8px; padding: 8px 12px; box-shadow: 0 2px 6px rgba(0,0,0,0.3); font-weight: 600; cursor: pointer; transition: all 0.2s ease; }
+.btn:hover { background: #f0f0f0; }
+.way-btn { bottom: 20px; left: 50%; transform: translateX(-50%); }
+</style>
+</head>
+
+<body>
+<div id="map"></div>
+<button id="statusBtn" class="btn way-btn">🚑 Active</button>
+
+<script>
+const report = JSON.parse(localStorage.getItem("selectedReport"));
+if (!report) {
+  alert("No report data found.");
+  window.location.href = "notification.html";
+}
+
+const map = L.map("map").setView([report.latitude, report.longitude], 14);
+L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, attribution: "&copy; OpenStreetMap" }).addTo(map);
+
+const reportMarker = L.marker([report.latitude, report.longitude]).addTo(map);
+reportMarker.bindPopup(`<b>${report.type?.toUpperCase() || "UNKNOWN"}</b><br>Reported at: ${report.timestamp}<br>Lat: ${report.latitude.toFixed(4)}, Lng: ${report.longitude.toFixed(4)}`).openPopup();
+
+let userMarker;
+let routingControl;
+const btn = document.getElementById("statusBtn");
+let responded = false;
+const DIST_THRESHOLD = 20; // meters to auto mark responded
+
+function distanceMeters(lat1, lon1, lat2, lon2) {
+  const R = 6371e3; // meters
+  const φ1 = lat1*Math.PI/180, φ2 = lat2*Math.PI/180;
+  const Δφ = (lat2-lat1)*Math.PI/180, Δλ = (lon2-lon1)*Math.PI/180;
+  const a = Math.sin(Δφ/2)**2 + Math.cos(φ1)*Math.cos(φ2)*Math.sin(Δλ/2)**2;
+  return 2*R*Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+// Automatically mark On the Way when responder moves
+function markOnTheWay() {
+  btn.innerText = "🟢 On the Way";
+  localStorage.setItem("reportStatusUpdate", JSON.stringify({
+    id: report.id || report._id || String(report.timestamp),
+    statusText: "Responder On the Way",
+    remove: false,
+    random: Math.random()
+  }));
+}
+
+// Automatically mark Responded when within threshold
+function markResponded() {
+  if (responded) return;
+  responded = true;
+  btn.innerText = "✅ Responded";
+  window.location.href = "index.html";
+
+  localStorage.setItem("reportStatusUpdate", JSON.stringify({
+    id: report.id || report._id || String(report.timestamp),
+    statusText: "Responded",
+    remove: true,
+    random: Math.random()
+  }));
+}
+
+// Geolocation tracking
+if (navigator.geolocation) {
+  navigator.geolocation.watchPosition(pos => {
+    const { latitude, longitude } = pos.coords;
+
+    if (!userMarker) {
+      userMarker = L.marker([latitude, longitude], { icon: L.divIcon({ html: '<div class="pulse"></div>' }) }).addTo(map);
+      markOnTheWay(); // mark On the Way as soon as we have location
+    } else {
+      userMarker.setLatLng([latitude, longitude]);
+    }
+
+    if (routingControl) map.removeControl(routingControl);
+    routingControl = L.Routing.control({
+      waypoints: [L.latLng(latitude, longitude), L.latLng(report.latitude, report.longitude)],
+      routeWhileDragging: false,
+      addWaypoints: false,
+      draggableWaypoints: false,
+      show: false,
+      lineOptions: { styles: [{ color: "#1380ff", weight: 5, opacity: 0.8 }] },
+      createMarker: () => null
+    }).addTo(map);
+
+    if (!responded && distanceMeters(latitude, longitude, report.latitude, report.longitude) <= DIST_THRESHOLD) {
+      markResponded();
+    }
+
+  }, err => alert("Please enable GPS to view your location."));
+} else {
+  alert("Geolocation not supported by your browser.");
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Route View - AidTracker</title>
+<!-- Leaflet for maps and routing -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<!-- Leaflet Routing Machine -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css" />
+<script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
+<style>
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  background: linear-gradient(135deg, #001f3f, #003366);
+  background-attachment: fixed;
+  color: white;
+  min-height: 100vh;
+}
+
+.header {
+  background: rgba(0, 31, 63, 0.9);
+  color: #ffd700;
+  padding: 15px 20px;
+  font-size: 22px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 2px solid #ffd700;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  margin-bottom: 20px;
+}
+
+.back-btn {
+  background: rgba(255, 215, 0, 0.1);
+  border: 1px solid rgba(255, 215, 0, 0.5);
+  color: #ffd700;
+  padding: 10px 20px;
+  border-radius: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.back-btn:hover {
+  background: rgba(255, 215, 0, 0.2);
+  transform: translateY(-2px);
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px 40px;
+}
+
+.route-container {
+  display: grid;
+  grid-template-columns: 1fr 350px;
+  gap: 20px;
+  min-height: 600px;
+}
+
+#map {
+  width: 100%;
+  height: 600px;
+  border-radius: 12px;
+  border: 2px solid #ffd700;
+  overflow: hidden;
+}
+
+.route-sidebar {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border-radius: 12px;
+  padding: 20px;
+  border: 1px solid rgba(255, 215, 0, 0.3);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  overflow-y: auto;
+}
+
+.route-sidebar h2 {
+  color: #ffd700;
+  font-size: 20px;
+  font-weight: 700;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.route-info {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 8px;
+  padding: 15px;
+  margin-bottom: 20px;
+}
+
+.route-info-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.route-info-item:last-child {
+  border-bottom: none;
+}
+
+.route-info-label {
+  color: #ffd700;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.route-info-value {
+  color: white;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.route-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.control-btn {
+  background: #ffd700;
+  color: #001f3f;
+  border: none;
+  padding: 12px;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.control-btn:hover {
+  background: #ffed4e;
+  transform: translateY(-2px);
+}
+
+.control-btn.secondary {
+  background: transparent;
+  border: 1px solid #ffd700;
+  color: #ffd700;
+}
+
+.control-btn.secondary:hover {
+  background: rgba(255, 215, 0, 0.1);
+}
+
+.loading {
+  text-align: center;
+  padding: 100px 20px;
+  color: #ffd700;
+  font-size: 18px;
+}
+
+.loading-spinner {
+  border: 4px solid rgba(255, 255, 255, 0.1);
+  border-left-color: #ffd700;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 20px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.instructions-list {
+  max-height: 300px;
+  overflow-y: auto;
+  margin-top: 15px;
+}
+
+.instruction-item {
+  padding: 10px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 6px;
+  margin-bottom: 8px;
+  font-size: 13px;
+  border-left: 3px solid #ffd700;
+}
+
+@media (max-width: 768px) {
+  .route-container {
+    grid-template-columns: 1fr;
+  }
+  
+  #map {
+    height: 400px;
+  }
+}
+</style>
+</head>
+<body>
+  <div class="header">
+    <button class="back-btn" onclick="goBack()">
+      <i class="fas fa-arrow-left"></i> Back to Notifications
+    </button>
+    <span>🗺️ Route View</span>
+    <div style="width: 60px;"></div>
+  </div>
+
+  <div class="container">
+    <div id="loading" class="loading">
+      <div class="loading-spinner"></div>
+      <span>Loading route information...</span>
+    </div>
+
+    <div id="routeView" style="display: none;">
+      <div class="route-container">
+        <div id="map"></div>
+        
+        <div class="route-sidebar">
+          <h2><i class="fas fa-route"></i> Route Information</h2>
+          
+          <div class="route-info">
+            <div class="route-info-item">
+              <span class="route-info-label">Incident ID:</span>
+              <span id="incidentId" class="route-info-value">--</span>
+            </div>
+            <div class="route-info-item">
+              <span class="route-info-label">Destination:</span>
+              <span id="destination" class="route-info-value">--</span>
+            </div>
+            <div class="route-info-item">
+              <span class="route-info-label">Distance:</span>
+              <span id="distance" class="route-info-value">-- km</span>
+            </div>
+            <div class="route-info-item">
+              <span class="route-info-label">Estimated Time:</span>
+              <span id="time" class="route-info-value">-- minutes</span>
+            </div>
+          </div>
+          
+          <div>
+            <h3 style="color: #ffd700; font-size: 16px; margin-bottom: 10px;">
+              <i class="fas fa-map-marker-alt"></i> Your Location
+            </h3>
+            <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+              <input type="text" id="startLocation" placeholder="Enter starting location" style="
+                flex: 1;
+                padding: 10px;
+                border-radius: 8px;
+                background: rgba(0,0,0,0.3);
+                border: 1px solid rgba(255,215,0,0.5);
+                color: white;
+                font-size: 14px;
+                outline: none;
+              ">
+              <button onclick="getUserLocation()" class="control-btn secondary" style="width: auto;">
+                <i class="fas fa-crosshairs"></i>
+              </button>
+            </div>
+          </div>
+          
+          <div id="instructionsContainer" style="display: none;">
+            <h3 style="color: #ffd700; font-size: 16px; margin-bottom: 10px;">
+              <i class="fas fa-list-ol"></i> Route Instructions
+            </h3>
+            <div id="instructionsList" class="instructions-list"></div>
+          </div>
+          
+          <div class="route-controls">
+            <button onclick="calculateRoute()" class="control-btn">
+              <i class="fas fa-route"></i> Calculate Route
+            </button>
+            <button onclick="centerOnIncident()" class="control-btn secondary">
+              <i class="fas fa-bullseye"></i> Center on Incident
+            </button>
+            <button onclick="toggleRouteLine()" class="control-btn secondary">
+              <i class="fas fa-draw-polygon"></i> Toggle Route Line
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Font Awesome -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+
+  <script>
+  let map = null;
+  let routingControl = null;
+  let routeLine = null;
+  let incidentMarker = null;
+  let userMarker = null;
+  let currentLocation = null;
+  let incidentData = null;
+
+  const defaultStartLocation = {
+    lat: 12.4048,
+    lng: 121.9829,
+    name: "MDRRMO Headquarters"
+  };
+
+  function goBack() {
+    window.location.href = "notification.html";
+  }
+
+  function loadRouteData() {
+    const routeData = sessionStorage.getItem('routeData');
+    
+    if (!routeData) {
+      document.getElementById('loading').innerHTML = `
+        <div style="text-align: center; padding: 100px 20px;">
+          <i class="fas fa-exclamation-triangle" style="font-size: 48px; color: #ff6b6b; margin-bottom: 20px;"></i>
+          <h3 style="color: #ff6b6b; margin-bottom: 10px;">No Route Data Found</h3>
+          <p style="color: #fff8dc;">Please select an incident from the notifications page.</p>
+          <button onclick="goBack()" class="control-btn" style="margin-top: 20px;">
+            <i class="fas fa-arrow-left"></i> Go to Notifications
+          </button>
+        </div>
+      `;
+      return false;
+    }
+    
+    incidentData = JSON.parse(routeData);
+    document.getElementById('incidentId').textContent = incidentData.reportId ? '#' + incidentData.reportId.substring(0, 8) + '...' : 'N/A';
+    
+    return true;
+  }
+
+  function initMap() {
+    if (!incidentData) return;
+    
+    // Initialize map centered on incident location
+    map = L.map('map').setView([incidentData.lat, incidentData.lng], 15);
+    
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '© OpenStreetMap contributors'
+    }).addTo(map);
+    
+    // Add incident marker
+    const incidentIcon = L.divIcon({
+      html: '<div style="background-color: #e74c3c; width: 40px; height: 40px; border-radius: 50%; border: 3px solid white; box-shadow: 0 0 15px rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; color: white; font-size: 16px;"><i class="fas fa-exclamation-triangle"></i></div>',
+      className: 'incident-marker',
+      iconSize: [46, 46],
+      iconAnchor: [23, 23]
+    });
+    
+    incidentMarker = L.marker([incidentData.lat, incidentData.lng], { icon: incidentIcon })
+      .addTo(map)
+      .bindPopup(`
+        <div style="font-family: 'Segoe UI', sans-serif; min-width: 200px;">
+          <h3 style="color: #e74c3c; margin-bottom: 5px; font-size: 16px;"><i class="fas fa-exclamation-triangle"></i> INCIDENT LOCATION</h3>
+          <p style="color: #333; margin: 5px 0; font-size: 14px;">Coordinates: ${incidentData.lat.toFixed(6)}, ${incidentData.lng.toFixed(6)}</p>
+          <p style="color: #333; margin: 5px 0; font-size: 14px;">Report ID: ${incidentData.reportId ? '#' + incidentData.reportId.substring(0, 8) + '...' : 'N/A'}</p>
+        </div>
+      `);
+    
+    // Add start location marker
+    const startIcon = L.divIcon({
+      html: '<div style="background-color: #2ecc71; width: 40px; height: 40px; border-radius: 50%; border: 3px solid white; box-shadow: 0 0 15px rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; color: white; font-size: 16px;"><i class="fas fa-flag"></i></div>',
+      className: 'start-marker',
+      iconSize: [46, 46],
+      iconAnchor: [23, 23]
+    });
+    
+    L.marker([defaultStartLocation.lat, defaultStartLocation.lng], { icon: startIcon })
+      .addTo(map)
+      .bindPopup(`<b>Starting Point</b><br>${defaultStartLocation.name}`);
+    
+    // Show the route view
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('routeView').style.display = 'block';
+    
+    // Get address for display
+    getAddressFromCoordinates(incidentData.lat, incidentData.lng).then(address => {
+      document.getElementById('destination').textContent = address;
+    });
+  }
+
+  function getUserLocation() {
+    if (!navigator.geolocation) {
+      alert('Geolocation is not supported by your browser.');
+      return;
+    }
+    
+    document.getElementById('startLocation').placeholder = 'Getting your location...';
+    
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const lat = position.coords.latitude;
+        const lng = position.coords.longitude;
+        
+        currentLocation = { lat, lng };
+        defaultStartLocation.lat = lat;
+        defaultStartLocation.lng = lng;
+        defaultStartLocation.name = 'My Current Location';
+        
+        document.getElementById('startLocation').value = 'My Current Location';
+        document.getElementById('startLocation').placeholder = 'Enter starting location';
+        
+        // Update or add user marker
+        if (userMarker) {
+          map.removeLayer(userMarker);
+        }
+        
+        const userIcon = L.divIcon({
+          html: '<div style="background-color: #3498db; width: 40px; height: 40px; border-radius: 50%; border: 3px solid white; box-shadow: 0 0 15px rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; color: white; font-size: 16px;"><i class="fas fa-user"></i></div>',
+          className: 'user-marker',
+          iconSize: [46, 46],
+          iconAnchor: [23, 23]
+        });
+        
+        userMarker = L.marker([lat, lng], { icon: userIcon })
+          .addTo(map)
+          .bindPopup('<b>Your Current Location</b><br>Starting point for navigation');
+        
+        // Auto-calculate route if incident location exists
+        if (incidentData) {
+          setTimeout(() => {
+            calculateRoute();
+          }, 500);
+        }
+      },
+      (error) => {
+        console.error('Geolocation error:', error);
+        alert('Unable to get your location. Using default starting point.');
+        document.getElementById('startLocation').placeholder = 'Enter starting location';
+      }
+    );
+  }
+
+  function calculateRoute() {
+    if (!map || !incidentData) return;
+    
+    // Clear existing route
+    if (routingControl) {
+      map.removeControl(routingControl);
+      routingControl = null;
+    }
+    
+    // Clear existing line
+    if (routeLine) {
+      map.removeLayer(routeLine);
+      routeLine = null;
+    }
+    
+    // Get start location from input or use default
+    const startName = document.getElementById('startLocation').value.trim() || defaultStartLocation.name;
+    
+    // Calculate route using OSRM
+    routingControl = L.Routing.control({
+      waypoints: [
+        L.latLng(defaultStartLocation.lat, defaultStartLocation.lng),
+        L.latLng(incidentData.lat, incidentData.lng)
+      ],
+      routeWhileDragging: false,
+      showAlternatives: false,
+      lineOptions: {
+        styles: [
+          {
+            color: '#ffd700',
+            opacity: 0.8,
+            weight: 6
+          }
+        ]
+      },
+      createMarker: function(i, waypoint, n) {
+        // Don't create default markers
+        return null;
+      },
+      router: L.Routing.osrmv1({
+        serviceUrl: 'https://router.project-osrm.org/route/v1',
+        profile: 'driving'
+      })
+    }).addTo(map);
+    
+    // Listen for route found event
+    routingControl.on('routesfound', function(e) {
+      const routes = e.routes;
+      const summary = routes[0].summary;
+      
+      // Update route info
+      document.getElementById('distance').textContent = (summary.totalDistance / 1000).toFixed(2) + ' km';
+      document.getElementById('time').textContent = Math.round(summary.totalTime / 60) + ' minutes';
+      
+      // Store the route line for toggling
+      routeLine = routes[0].coordinates;
+      
+      // Show instructions
+      showInstructions(routes[0].instructions);
+      
+      // Fit route to map
+      const bounds = e.routes[0].bounds;
+      map.fitBounds(bounds, { padding: [50, 50] });
+    });
+    
+    routingControl.on('routingerror', function(e) {
+      console.error('Routing error:', e.error);
+      alert('Error calculating route. Please try again or use a different starting location.');
+    });
+  }
+
+  function showInstructions(instructions) {
+    const instructionsList = document.getElementById('instructionsList');
+    instructionsList.innerHTML = '';
+    
+    document.getElementById('instructionsContainer').style.display = 'block';
+    
+    instructions.forEach((instruction, index) => {
+      const item = document.createElement('div');
+      item.className = 'instruction-item';
+      item.innerHTML = `
+        <div style="font-weight: bold; color: #ffd700; margin-bottom: 3px;">Step ${index + 1}</div>
+        <div style="color: white; font-size: 12px;">${instruction.text}</div>
+        <div style="color: #3498db; font-size: 11px; margin-top: 3px;">${instruction.distance} m • ${Math.round(instruction.time/60)} min</div>
+      `;
+      instructionsList.appendChild(item);
+    });
+  }
+
+  function centerOnIncident() {
+    if (map && incidentData) {
+      map.setView([incidentData.lat, incidentData.lng], 15);
+      incidentMarker.openPopup();
+    }
+  }
