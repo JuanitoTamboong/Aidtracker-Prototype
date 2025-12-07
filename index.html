@@ -863,6 +863,9 @@
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd3dmVweHVwb3h5eXlkbmlzdWxiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ4MDE4ODcsImV4cCI6MjA4MDM3Nzg4N30.Ku9SXTAKNMvHilgEpxj5HcVA-0TPt4ziuEq0Irao5Qc';
     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
+    // OpenCage API Key
+    const OPENCAGE_API_KEY = '0a78fbd8bcd74be398f210b34682c77c';
+
     // Map Initialization (centered on Odiongan, Romblon)
     const map = L.map("map").setView([12.4048, 121.9829], 15);
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
@@ -889,10 +892,61 @@
       }
     };
 
-    // ============ SIMPLIFIED LOCATION HANDLING ============
-    // Get location name from database data ONLY (no API calls)
-    function getLocationName(reportData) {
-      // Use database location if available
+    // ============ OPENCAGE GEOCODING FUNCTIONS ============
+    
+    // Cache for geocoded addresses to avoid repeated API calls
+    const addressCache = new Map();
+    
+    async function coordinatesToAddress(lat, lng) {
+      try {
+        // Check cache first
+        const cacheKey = `${lat.toFixed(6)},${lng.toFixed(6)}`;
+        if (addressCache.has(cacheKey)) {
+          return addressCache.get(cacheKey);
+        }
+        
+        const url = `https://api.opencagedata.com/geocode/v1/json?q=${lat}+${lng}&key=${OPENCAGE_API_KEY}&language=en&pretty=1&no_annotations=1&limit=1`;
+        
+        const response = await fetch(url);
+        const data = await response.json();
+        
+        if (data.results && data.results.length > 0) {
+          const result = data.results[0];
+          const addressData = {
+            formatted: result.formatted,
+            components: result.components,
+            fullDetails: result
+          };
+          
+          // Store in cache
+          addressCache.set(cacheKey, addressData);
+          return addressData;
+        }
+        return null;
+      } catch (error) {
+        console.error('OpenCage geocoding error:', error);
+        return null;
+      }
+    }
+    
+    async function getReadableAddress(lat, lng) {
+      try {
+        const result = await coordinatesToAddress(lat, lng);
+        
+        if (result && result.formatted) {
+          return result.formatted;
+        }
+        
+        // Fallback: Show coordinates if geocoding fails
+        return `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+      } catch {
+        return `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+      }
+    }
+
+    // ============ LOCATION HANDLING WITH OPENCAGE ============
+    async function getLocationName(reportData) {
+      // Try to get address from database first
       if (reportData.location_name && reportData.location_name.trim()) {
         return reportData.location_name.trim();
       }
@@ -905,12 +959,19 @@
         return reportData.address.trim();
       }
       
-      // If coordinates exist but no location name, show coordinates
+      // If coordinates exist, use OpenCage to get address
       const lat = parseFloat(reportData.latitude);
       const lng = parseFloat(reportData.longitude);
       
       if (!isNaN(lat) && !isNaN(lng)) {
-        return `Coordinates: ${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+        try {
+          // Get readable address from coordinates
+          const address = await getReadableAddress(lat, lng);
+          return address;
+        } catch {
+          // Fallback to coordinates
+          return `Coordinates: ${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+        }
       }
       
       return 'Location not specified';
@@ -1017,6 +1078,9 @@
       const statusText = status.charAt(0).toUpperCase() + status.slice(1);
       const photoUrl = getPhotoUrl(report);
       
+      // Get coordinates display
+      const coordinates = `${report.latitude.toFixed(6)}, ${report.longitude.toFixed(6)}`;
+      
       const popupContent = `
         <div style="
           font-family: 'Segoe UI', sans-serif;
@@ -1049,6 +1113,9 @@
             </div>
             <div style="color: #222; font-size: 14px; line-height: 1.4;">
               ${report.location}
+            </div>
+            <div style="color: #777; font-size: 11px; margin-top: 3px;">
+              <i class="fas fa-crosshairs"></i> ${coordinates}
             </div>
           </div>
           
@@ -1209,8 +1276,8 @@
         allReports = [];
         
         if (data && data.length > 0) {
-          // Process each report
-          allReports = data.map(report => {
+          // Process each report with OpenCage geocoding
+          const reportPromises = data.map(async (report) => {
             // Determine incident type
             let incidentType = 'motor_accident';
             const dbType = (report.type || '').toString().toLowerCase().trim();
@@ -1219,8 +1286,23 @@
             else if (dbType.includes('assault') || dbType.includes('crime')) incidentType = 'assault_crime';
             else if (dbType.includes('motor') || dbType.includes('accident') || dbType === 'accident') incidentType = 'motor_accident';
             
-            // Get location from database
-            const location = getLocationName(report);
+            // Get location using OpenCage
+            const lat = parseFloat(report.latitude);
+            const lng = parseFloat(report.longitude);
+            let location = 'Location not specified';
+            
+            if (!isNaN(lat) && !isNaN(lng)) {
+              try {
+                location = await getReadableAddress(lat, lng);
+              } catch (error) {
+                console.warn(`Failed to geocode ${lat}, ${lng}:`, error);
+                location = `Coordinates: ${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+              }
+            } else if (report.location_name && report.location_name.trim()) {
+              location = report.location_name.trim();
+            } else if (report.location && report.location.trim()) {
+              location = report.location.trim();
+            }
             
             const reporterName = report.reporter || report.reporter_name || report.name || report.reporter_email || 'Anonymous';
             const photoUrl = getPhotoUrl(report);
@@ -1232,14 +1314,17 @@
               reporter_name: reporterName,
               created_at: report.created_at || new Date().toISOString(),
               status: (report.status || 'pending').toLowerCase(),
-              latitude: parseFloat(report.latitude),
-              longitude: parseFloat(report.longitude),
+              latitude: lat,
+              longitude: lng,
               description: report.description || report.details || report.incident_details || '',
               photo_url: photoUrl,
               photo: report.photo || report.photo_url || report.image_url || null,
               original_data: report
             };
           });
+          
+          // Wait for all geocoding to complete
+          allReports = await Promise.all(reportPromises);
           
           // Apply initial filters
           applyFilters();
@@ -1426,8 +1511,13 @@
               </div>
             </td>
             <td>
-              <div style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${report.location}">
+              <div style="max-width: 200px;" title="${report.location}">
                 ${report.location}
+                ${report.latitude && report.longitude ? `
+                  <div style="font-size: 11px; color: #ffd700; opacity: 0.7; margin-top: 3px;">
+                    <i class="fas fa-crosshairs"></i> ${report.latitude.toFixed(4)}, ${report.longitude.toFixed(4)}
+                  </div>
+                ` : ''}
               </div>
             </td>
             <td>${report.reporter_name}</td>
@@ -1530,7 +1620,7 @@
 
     // ============ INITIALIZATION ============
     document.addEventListener('DOMContentLoaded', () => {
-      console.log('🚀 AidTracker Dashboard Initializing...');
+      console.log('🚀 AidTracker Dashboard Initializing with OpenCage Geocoding...');
       
       // Load REAL data on page load
       loadReports();

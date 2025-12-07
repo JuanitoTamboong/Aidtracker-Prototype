@@ -5,21 +5,15 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>AidTracker Notifications</title>
 <script src="https://cdn.tailwindcss.com"></script>
-<!-- Font Awesome for icons -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-<!-- Supabase Client -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<!-- Leaflet for maps and routing -->
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<!-- Leaflet Routing Machine -->
 <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css" />
 <script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
-<!-- Fullscreen control for Leaflet -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet.fullscreen@2.4.0/Control.FullScreen.css" />
 <script src="https://cdn.jsdelivr.net/npm/leaflet.fullscreen@2.4.0/Control.FullScreen.min.js"></script>
 <style>
-/* === Background Gradient === */
 body {
   margin: 0;
   font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
@@ -29,7 +23,6 @@ body {
   min-height: 100vh;
 }
 
-/* === Glass Morphism === */
 .glass {
   background: rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(10px);
@@ -39,7 +32,6 @@ body {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
-/* === Header === */
 .header {
   background: rgba(0, 31, 63, 0.9);
   color: #ffd700;
@@ -73,14 +65,12 @@ body {
   transform: translateY(-2px);
 }
 
-/* === Container === */
 .container {
   max-width: 800px;
   margin: 0 auto;
   padding: 0 20px 40px;
 }
 
-/* === Notification Card === */
 .notification-card {
   background: rgba(255, 255, 255, 0.08);
   border-radius: 12px;
@@ -96,7 +86,6 @@ body {
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
 }
 
-/* === Incident Type Badge === */
 .incident-type {
   display: inline-block;
   padding: 6px 12px;
@@ -122,7 +111,6 @@ body {
   color: #9b59b6;
 }
 
-/* === Reporter Info === */
 .reporter-info {
   display: flex;
   align-items: center;
@@ -160,7 +148,6 @@ body {
   opacity: 0.8;
 }
 
-/* === Details Grid === */
 .details-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
@@ -191,7 +178,6 @@ body {
   color: #fff;
 }
 
-/* === Status Badge === */
 .status-badge {
   display: inline-block;
   padding: 6px 12px;
@@ -216,7 +202,6 @@ body {
   color: #2ecc71;
 }
 
-/* === Action Buttons === */
 .action-buttons {
   display: flex;
   gap: 10px;
@@ -287,7 +272,6 @@ body {
   transform: translateY(-2px);
 }
 
-/* === Loading State === */
 .loading {
   text-align: center;
   padding: 50px;
@@ -297,7 +281,7 @@ body {
 
 .loading-spinner {
   border: 4px solid rgba(255, 255, 255, 0.1);
-  border-left-color = #ffd700;
+  border-left-color: #ffd700;
   border-radius: 50%;
   width: 40px;
   height: 40px;
@@ -315,7 +299,6 @@ body {
   to { opacity: 1; transform: translateY(0); }
 }
 
-/* === No Reports Message === */
 .no-reports {
   text-align: center;
   padding: 60px 20px;
@@ -329,7 +312,6 @@ body {
   margin-bottom: 20px;
 }
 
-/* === Modal Styles === */
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -449,7 +431,6 @@ body {
   background: rgba(255, 215, 0, 0.1);
 }
 
-/* === Responders Grid in Modal === */
 .responders-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
@@ -532,7 +513,6 @@ body {
   color: #2ecc71;
 }
 
-/* === Quick Route Map === */
 .route-map-container {
   height: 400px;
   border-radius: 10px;
@@ -572,75 +552,6 @@ body {
   font-size: 14px;
 }
 
-/* === Respondent Name Display === */
-.respondent-display {
-  background: rgba(255, 215, 0, 0.1);
-  border: 1px solid rgba(255, 215, 0, 0.3);
-  border-radius: 8px;
-  padding: 10px;
-  margin-top: 10px;
-}
-
-.respondent-name {
-  font-size: 14px;
-  font-weight: 600;
-  color: #ffd700;
-  display: flex;
-  align-items: center;
-  gap: 5px;
-}
-
-/* === Input Group for Responders === */
-.input-group {
-  margin-bottom: 15px;
-}
-
-.input-row {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 10px;
-  align-items: center;
-}
-
-.input-row input {
-  flex: 1;
-}
-
-.remove-btn {
-  background: rgba(231, 76, 60, 0.2);
-  color: #e74c3c;
-  border: 1px solid rgba(231, 76, 60, 0.5);
-  border-radius: 6px;
-  padding: 8px 12px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.remove-btn:hover {
-  background: rgba(231, 76, 60, 0.3);
-}
-
-.add-responder-btn {
-  background: rgba(46, 204, 113, 0.2);
-  color: #2ecc71;
-  border: 1px solid rgba(46, 204, 113, 0.5);
-  border-radius: 8px;
-  padding: 10px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  width: 100%;
-}
-
-.add-responder-btn:hover {
-  background: rgba(46, 204, 113, 0.3);
-}
-
-/* === Quick Route Button === */
 .quick-route-btn {
   background: #3498db;
   color: white;
@@ -664,7 +575,6 @@ body {
   transform: translateY(-2px);
 }
 
-/* === Fullscreen Map Styles === */
 .fullscreen-map-container {
   position: fixed;
   top: 0;
@@ -714,7 +624,6 @@ body {
   height: 100%;
 }
 
-/* === Map Controls === */
 .map-controls {
   position: absolute;
   top: 80px;
@@ -745,7 +654,6 @@ body {
   transform: translateY(-2px);
 }
 
-/* === Custom Responder Input === */
 .custom-responder-input {
   background: rgba(0, 0, 0, 0.2);
   border: 1px solid rgba(255, 215, 0, 0.3);
@@ -762,7 +670,6 @@ body {
   font-weight: 600;
 }
 
-/* === Responsive Design === */
 @media (max-width: 768px) {
   .header {
     font-size: 18px;
@@ -822,7 +729,6 @@ body {
 </head>
 
 <body>
-  <!-- Header -->
   <div class="header">
     <button class="back-btn" onclick="goBack()">
       <i class="fas fa-arrow-left"></i> Home
@@ -831,7 +737,6 @@ body {
     <div style="width: 60px;"></div>
   </div>
 
-  <!-- Main Container -->
   <div class="container">
     <div id="status" class="loading">
       <div class="loading-spinner"></div>
@@ -841,7 +746,6 @@ body {
     <div id="notificationList"></div>
   </div>
 
-  <!-- Fullscreen Map Container -->
   <div id="fullscreenMapContainer" class="fullscreen-map-container">
     <div class="fullscreen-header">
       <div style="display: flex; align-items: center; gap: 10px;">
@@ -868,7 +772,6 @@ body {
     </div>
   </div>
 
-  <!-- Responders Modal -->
   <div id="respondersModal" class="modal-overlay">
     <div class="modal-content glass">
       <div class="modal-header">
@@ -893,9 +796,7 @@ body {
         <div class="modal-section-title">
           <i class="fas fa-user-shield"></i> Available Responder Units
         </div>
-        <div class="responders-grid" id="respondersGrid">
-          <!-- Responders will be populated by JavaScript -->
-        </div>
+        <div class="responders-grid" id="respondersGrid"></div>
       </div>
       
       <div class="modal-section">
@@ -904,12 +805,10 @@ body {
         </div>
         <div class="custom-responder-input">
           <label for="responderName">Responder Name</label>
-          <input type="text" id="responderName" class="modal-input" placeholder="Enter responder name (e.g., Juan Dela Cruz)">
+          <input type="text" id="responderName" class="modal-input" placeholder="Enter responder name">
           
           <label for="responderContact">Contact Number</label>
-          <input type="text" id="responderContact" class="modal-input" placeholder="Enter contact number (e.g., 0912-345-6789)">
-          
-          <!-- REMOVED THE DUPLICATE UNIT DROPDOWN HERE -->
+          <input type="text" id="responderContact" class="modal-input" placeholder="Enter contact number">
         </div>
       </div>
       
@@ -931,7 +830,6 @@ body {
     </div>
   </div>
 
-  <!-- Quick Route Modal -->
   <div id="quickRouteModal" class="modal-overlay">
     <div class="modal-content glass">
       <div class="modal-header">
@@ -984,7 +882,6 @@ body {
     </div>
   </div>
 
-  <!-- Resolve Incident Modal -->
   <div id="resolveModal" class="modal-overlay">
     <div class="modal-content glass">
       <div class="modal-header">
@@ -1031,7 +928,6 @@ body {
       </div>
     </div>
   </div>
-
 <script>
 // ============ GLOBAL VARIABLES ============
 let currentReportId = null;
@@ -1042,12 +938,10 @@ let routeMap = null;
 let fullscreenMap = null;
 let routeLine = null;
 let assignedRespondersList = [];
-let userCurrentLocation = null; // Store user's current location
+let userCurrentLocation = null;
 
-// OpenRouteService API Key from your image
 const OPENROUTE_API_KEY = 'eyJvcmciOiI1YjNjZTM1OTc4NTExMTAwMDFjZjYyNDgiLCJpZCI6ImJjYzMxOGQ0MGYwMTQ3YTBhZDJlNWU3ZDkxOGNhNGJiIiwiaCI6Im11cm11cjY0In0=';
 
-// Simplified responders data
 const defaultRespondersData = [
   { 
     id: 'mdrrmo', 
@@ -1072,17 +966,16 @@ const defaultRespondersData = [
   }
 ];
 
-// ============ INITIALIZATION ============
-// Supabase Configuration
 const SUPABASE_URL = 'https://gwvepxupoxyyydnisulb.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd3dmVweHVwb3h5eXlkbmlzdWxiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ4MDE4ODcsImV4cCI6MjA4MDM3Nzg4N30.Ku9SXTAKNMvHilgEpxj5HcVA-0TPt4ziuEq0Irao5Qc';
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-// Get user's current location
+// ============ HELPER FUNCTIONS ============
 async function getUserLocation() {
   return new Promise((resolve, reject) => {
     if (!navigator.geolocation) {
-      reject(new Error('Geolocation not supported'));
+      userCurrentLocation = { lat: 12.4048, lng: 121.9829 };
+      resolve(userCurrentLocation);
       return;
     }
     
@@ -1094,265 +987,18 @@ async function getUserLocation() {
         };
         resolve(userCurrentLocation);
       },
-      (error) => {
-        console.warn('Geolocation error:', error);
-        // Fallback to default location in Romblon
-        userCurrentLocation = {
-          lat: 12.4048,
-          lng: 121.9829
-        };
+      () => {
+        userCurrentLocation = { lat: 12.4048, lng: 121.9829 };
         resolve(userCurrentLocation);
       }
     );
   });
 }
 
-// ============ OPENROUTESERVICE ROUTE FUNCTIONS ============
-async function getRouteFromOpenRouteService(startLat, startLng, endLat, endLng) {
-  try {
-    // Format coordinates as per OpenRouteService documentation
-    const start = `${startLng},${startLat}`;
-    const end = `${endLng},${endLat}`;
-    
-    const url = `https://api.openrouteservice.org/v2/directions/driving-car?api_key=${OPENROUTE_API_KEY}&start=${start}&end=${end}`;
-    
-    console.log('Fetching route from OpenRouteService:', url);
-    
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json, application/geo+json, application/gpx+xml, img/png; charset=utf-8'
-      }
-    });
-    
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('OpenRouteService error response:', errorText);
-      throw new Error(`OpenRouteService API error: ${response.status} - ${errorText}`);
-    }
-    
-    const data = await response.json();
-    console.log('Route data received:', data);
-    
-    if (!data.features || data.features.length === 0) {
-      throw new Error('No route found');
-    }
-    
-    return data;
-    
-  } catch (error) {
-    console.error('Error fetching route from OpenRouteService:', error);
-    throw error;
-  }
-}
-
-function displayOpenRouteServiceRoute(map, routeData, startLat, startLng, endLat, endLng) {
-  if (!routeData || !routeData.features || routeData.features.length === 0) {
-    console.warn('No route data to display');
-    return null;
-  }
-  
-  // Get coordinates from OpenRouteService (they are in [lng, lat] format)
-  const coordinates = routeData.features[0].geometry.coordinates;
-  const latLngs = coordinates.map(coord => [coord[1], coord[0]]); // Convert to [lat, lng]
-  
-  // Get route summary
-  const summary = routeData.features[0].properties.segments[0];
-  const distance = (summary.distance / 1000).toFixed(2); // Convert to km
-  const duration = Math.round(summary.duration / 60); // Convert to minutes
-  
-  // Create the road route polyline
-  const routePolyline = L.polyline(latLngs, {
-    color: '#ffd700',
-    weight: 6,
-    opacity: 0.9,
-    lineCap: 'round',
-    lineJoin: 'round',
-    dashArray: null // Solid line for road route
-  }).addTo(map);
-  
-  // Add markers for start and end
-  addRouteMarkers(map, startLat, startLng, endLat, endLng, distance, duration);
-  
-  // Fit map to show the entire route
-  const bounds = L.latLngBounds(latLngs);
-  map.fitBounds(bounds, { padding: [50, 50] });
-  
-  return {
-    polyline: routePolyline,
-    distance: distance,
-    duration: duration,
-    coordinates: latLngs
-  };
-}
-
-function addRouteMarkers(map, startLat, startLng, endLat, endLng, distance, duration) {
-  // Clear existing markers
-  if (map.routeMarkers) {
-    map.routeMarkers.forEach(marker => map.removeLayer(marker));
-  }
-  
-  map.routeMarkers = [];
-  
-  // Start marker (Responder's current location)
-  const startIcon = L.divIcon({
-    html: '<div style="background-color: #3498db; width: 36px; height: 36px; border-radius: 50%; border: 3px solid white; box-shadow: 0 0 15px rgba(52, 152, 219, 0.7); display: flex; align-items: center; justify-content: center; color: white; font-size: 14px;"><i class="fas fa-user-shield"></i></div>',
-    className: 'route-start-marker',
-    iconSize: [42, 42],
-    iconAnchor: [21, 21]
-  });
-  
-  const startMarker = L.marker([startLat, startLng], { icon: startIcon })
-    .addTo(map)
-    .bindPopup(`
-      <div style="color: #001f3f; font-weight: bold;">
-        <i class="fas fa-user-shield" style="color: #3498db;"></i> RESPONDER LOCATION
-      </div>
-      <div style="margin-top: 5px; font-size: 14px;">
-        <strong>Your current location</strong><br>
-        <strong>Distance to incident:</strong> ${distance} km<br>
-        <strong>Estimated time:</strong> ${duration} minutes
-      </div>
-    `);
-  
-  map.routeMarkers.push(startMarker);
-  
-  // End marker (incident location)
-  const endIcon = L.divIcon({
-    html: '<div style="background-color: #e74c3c; width: 40px; height: 40px; border-radius: 50%; border: 3px solid white; box-shadow: 0 0 15px rgba(231, 76, 60, 0.7); display: flex; align-items: center; justify-content: center; color: white; font-size: 16px;"><i class="fas fa-exclamation-triangle"></i></div>',
-    className: 'route-end-marker',
-    iconSize: [46, 46],
-    iconAnchor: [23, 23]
-  });
-  
-  const endMarker = L.marker([endLat, endLng], { icon: endIcon })
-    .addTo(map)
-    .bindPopup(`
-      <div style="color: #001f3f; font-weight: bold;">
-        <i class="fas fa-exclamation-triangle" style="color: #e74c3c;"></i> EMERGENCY INCIDENT
-      </div>
-      <div style="margin-top: 5px; font-size: 14px;">
-        <strong>Distance from you:</strong> ${distance} km<br>
-        <strong>Estimated travel time:</strong> ${duration} minutes<br>
-        <strong>Assigned units:</strong> ${assignedRespondersList.length > 0 ? assignedRespondersList.join(', ') : 'None'}
-      </div>
-    `)
-    .openPopup();
-  
-  map.routeMarkers.push(endMarker);
-}
-
-async function calculateRealRoadRoute(startLat, startLng, endLat, endLng, map, isFullscreen = false) {
-  try {
-    // Show loading state
-    if (isFullscreen) {
-      L.popup()
-        .setLatLng([(startLat + endLat) / 2, (startLng + endLng) / 2])
-        .setContent('<div style="color: #001f3f;">Calculating road route via OpenRouteService...</div>')
-        .openOn(map);
-    } else {
-      document.getElementById('routeStatus').textContent = 'Calculating road route...';
-    }
-    
-    // Get route from OpenRouteService
-    const routeData = await getRouteFromOpenRouteService(startLat, startLng, endLat, endLng);
-    
-    // Display route on map
-    const routeInfo = displayOpenRouteServiceRoute(map, routeData, startLat, startLng, endLat, endLng);
-    
-    if (routeInfo) {
-      // Update route info display
-      if (!isFullscreen) {
-        document.getElementById('routeStatus').textContent = 'Route Calculated';
-        document.getElementById('routeDistance').textContent = routeInfo.distance + ' km';
-        document.getElementById('routeTime').textContent = routeInfo.duration + ' minutes';
-      } else {
-        // Show success popup in fullscreen mode
-        L.popup()
-          .setLatLng([(startLat + endLat) / 2, (startLng + endLng) / 2])
-          .setContent(`
-            <div style="font-weight: bold; color: #001f3f;">
-              <i class="fas fa-route" style="color: #ffd700;"></i> ROAD ROUTE CALCULATED
-            </div>
-            <div style="margin-top: 5px; font-size: 14px;">
-              <strong>Distance:</strong> ${routeInfo.distance} km<br>
-              <strong>Estimated Time:</strong> ${routeInfo.duration} minutes<br>
-              <strong>Route Type:</strong> Real Road Route
-            </div>
-          `)
-          .openOn(map);
-      }
-      
-      return routeInfo;
-    }
-    
-  } catch (error) {
-    console.error('Error calculating real road route:', error);
-    
-    // Fallback to straight line with road-like appearance
-    return calculateSimulatedRoute(startLat, startLng, endLat, endLng, map, isFullscreen);
-  }
-}
-
-function calculateSimulatedRoute(startLat, startLng, endLat, endLng, map, isFullscreen = false) {
-  // Create a simple straight line with road-like appearance
-  const coordinates = [
-    [startLat, startLng],
-    [endLat, endLng]
-  ];
-  
-  const distance = calculateDistance(startLat, startLng, endLat, endLng);
-  const duration = Math.round(distance * 3); // Assume 3 minutes per km for road travel
-  
-  // Create route line
-  const routePolyline = L.polyline(coordinates, {
-    color: '#ffd700',
-    weight: 5,
-    opacity: 0.8,
-    lineCap: 'round',
-    lineJoin: 'round',
-    dashArray: '10, 5'
-  }).addTo(map);
-  
-  // Add markers
-  addRouteMarkers(map, startLat, startLng, endLat, endLng, distance.toFixed(2), duration);
-  
-  // Fit bounds
-  const bounds = L.latLngBounds(coordinates);
-  map.fitBounds(bounds, { padding: [50, 50] });
-  
-  // Update display
-  if (!isFullscreen) {
-    document.getElementById('routeStatus').textContent = 'Direct Route';
-    document.getElementById('routeDistance').textContent = distance.toFixed(2) + ' km';
-    document.getElementById('routeTime').textContent = duration + ' minutes';
-  }
-  
-  return {
-    polyline: routePolyline,
-    distance: distance.toFixed(2),
-    duration: duration,
-    coordinates: coordinates
-  };
-}
-
-function calculateDistance(lat1, lon1, lat2, lon2) {
-  const R = 6371;
-  const dLat = (lat2 - lat1) * Math.PI / 180;
-  const dLon = (lon2 - lon1) * Math.PI / 180;
-  const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
-            Math.sin(dLon/2) * Math.sin(dLon/2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-  return R * c;
-}
-
-// Go back to home
 function goBack() {
   window.location.href = "index.html";
 }
 
-// ============ MODAL FUNCTIONS ============
 function openModal(modalId) {
   document.getElementById(modalId).style.display = 'flex';
   
@@ -1360,10 +1006,6 @@ function openModal(modalId) {
     setTimeout(() => {
       initRouteMap();
     }, 100);
-  }
-  
-  if (modalId === 'respondersModal') {
-    // Removed the duplicate unit dropdown logic since we removed the dropdown
   }
 }
 
@@ -1388,7 +1030,7 @@ function closeModal(modalId) {
   }
 }
 
-// ============ FULLSCREEN MAP FUNCTIONS ============
+// ============ MAP FUNCTIONS ============
 function openFullscreenMap() {
   if (!currentReportData) return;
   
@@ -1413,7 +1055,6 @@ function closeFullscreenMap() {
 function initFullscreenMap() {
   if (!currentReportData || !document.getElementById('fullscreenMap')) return;
   
-  // Get user location or use incident location as center
   const centerLat = userCurrentLocation ? userCurrentLocation.lat : currentReportData.latitude;
   const centerLng = userCurrentLocation ? userCurrentLocation.lng : currentReportData.longitude;
   
@@ -1431,9 +1072,8 @@ function initFullscreenMap() {
     }
   }));
   
-  // Add incident marker
   const incidentIcon = L.divIcon({
-    html: '<div style="background-color: #e74c3c; width: 40px; height: 40px; border-radius: 50%; border: 3px solid white; box-shadow: 0 0 15px rgba(231, 76, 60, 0.7); display: flex; align-items: center; justify-content: center; color: white; font-size: 18px;"><i class="fas fa-exclamation-triangle"></i></div>',
+    html: '<div style="background-color: #e74c3c; width: 40px; height: 40px; border-radius: 50%; border: 3px solid white; display: flex; align-items: center; justify-content: center; color: white; font-size: 18px;"><i class="fas fa-exclamation-triangle"></i></div>',
     iconSize: [46, 46],
     iconAnchor: [23, 23]
   });
@@ -1452,10 +1092,9 @@ function initFullscreenMap() {
     `)
     .openPopup();
   
-  // Add user location marker if available
   if (userCurrentLocation) {
     const userIcon = L.divIcon({
-      html: '<div style="background-color: #3498db; width: 36px; height: 36px; border-radius: 50%; border: 3px solid white; box-shadow: 0 0 15px rgba(52, 152, 219, 0.7); display: flex; align-items: center; justify-content: center; color: white; font-size: 14px;"><i class="fas fa-user-shield"></i></div>',
+      html: '<div style="background-color: #3498db; width: 36px; height: 36px; border-radius: 50%; border: 3px solid white; display: flex; align-items: center; justify-content: center; color: white; font-size: 14px;"><i class="fas fa-user-shield"></i></div>',
       iconSize: [42, 42],
       iconAnchor: [21, 21]
     });
@@ -1474,33 +1113,189 @@ function initFullscreenMap() {
   }
 }
 
+function initRouteMap() {
+  if (!currentReportData || !document.getElementById('routeMap')) return;
+  
+  const centerLat = userCurrentLocation ? userCurrentLocation.lat : currentReportData.latitude;
+  const centerLng = userCurrentLocation ? userCurrentLocation.lng : currentReportData.longitude;
+  
+  routeMap = L.map('routeMap').setView([centerLat, centerLng], 13);
+  
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+    attribution: '© OpenStreetMap contributors'
+  }).addTo(routeMap);
+  
+  const destIcon = L.divIcon({
+    html: '<div style="background-color: #e74c3c; width: 32px; height: 32px; border-radius: 50%; border: 3px solid white; display: flex; align-items: center; justify-content: center; color: white; font-size: 14px;"><i class="fas fa-exclamation-triangle"></i></div>',
+    iconSize: [38, 38],
+    iconAnchor: [19, 19]
+  });
+  
+  L.marker([currentReportData.latitude, currentReportData.longitude], { icon: destIcon })
+    .addTo(routeMap)
+    .bindPopup(`
+      <b>Incident Location</b><br>
+      Emergency site requiring response<br>
+      ${assignedRespondersList.length > 0 ? 'Assigned: ' + assignedRespondersList.join(', ') : 'No responders assigned'}
+    `)
+    .openPopup();
+  
+  if (userCurrentLocation) {
+    const startIcon = L.divIcon({
+      html: '<div style="background-color: #3498db; width: 28px; height: 28px; border-radius: 50%; border: 3px solid white; display: flex; align-items: center; justify-content: center; color: white; font-size: 12px;"><i class="fas fa-user-shield"></i></div>',
+      iconSize: [34, 34],
+      iconAnchor: [17, 17]
+    });
+    
+    L.marker([userCurrentLocation.lat, userCurrentLocation.lng], { icon: startIcon })
+      .addTo(routeMap)
+      .bindPopup('<b>Your Current Location</b><br>Responder position');
+  }
+}
+
 async function calculateDirectRoute() {
   if (!fullscreenMap || !currentReportData) return;
   
-  // Clear existing route
   if (fullscreenMap._routeLine) {
     fullscreenMap.removeLayer(fullscreenMap._routeLine);
   }
   
-  // Clear existing markers
   if (fullscreenMap.routeMarkers) {
     fullscreenMap.routeMarkers.forEach(marker => fullscreenMap.removeLayer(marker));
     fullscreenMap.routeMarkers = [];
   }
   
-  // Get user's current location (or use default if not available)
   const startLocation = userCurrentLocation || { lat: 12.4048, lng: 121.9829 };
   const startLat = startLocation.lat;
   const startLng = startLocation.lng;
   const endLat = currentReportData.latitude;
   const endLng = currentReportData.longitude;
   
-  // Calculate real road route using OpenRouteService
-  const routeInfo = await calculateRealRoadRoute(startLat, startLng, endLat, endLng, fullscreenMap, true);
-  
-  if (routeInfo) {
-    fullscreenMap._routeLine = routeInfo.polyline;
+  try {
+    const start = `${startLng},${startLat}`;
+    const end = `${endLng},${endLat}`;
+    
+    const url = `https://api.openrouteservice.org/v2/directions/driving-car?api_key=${OPENROUTE_API_KEY}&start=${start}&end=${end}`;
+    
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json, application/geo+json, application/gpx+xml, img/png; charset=utf-8'
+      }
+    });
+    
+    if (response.ok) {
+      const data = await response.json();
+      
+      if (data.features && data.features.length > 0) {
+        const coordinates = data.features[0].geometry.coordinates;
+        const latLngs = coordinates.map(coord => [coord[1], coord[0]]);
+        
+        const summary = data.features[0].properties.segments[0];
+        const distance = (summary.distance / 1000).toFixed(2);
+        const duration = Math.round(summary.duration / 60);
+        
+        const routePolyline = L.polyline(latLngs, {
+          color: '#ffd700',
+          weight: 6,
+          opacity: 0.9,
+          lineCap: 'round',
+          lineJoin: 'round'
+        }).addTo(fullscreenMap);
+        
+        fullscreenMap._routeLine = routePolyline;
+        
+        addRouteMarkersToFullscreen(startLat, startLng, endLat, endLng, distance, duration);
+        
+        const bounds = L.latLngBounds(latLngs);
+        fullscreenMap.fitBounds(bounds, { padding: [50, 50] });
+      }
+    }
+  } catch {
+    calculateSimpleRoute(fullscreenMap, startLat, startLng, endLat, endLng);
   }
+}
+
+function addRouteMarkersToFullscreen(startLat, startLng, endLat, endLng, distance, duration) {
+  if (fullscreenMap.routeMarkers) {
+    fullscreenMap.routeMarkers.forEach(marker => fullscreenMap.removeLayer(marker));
+  }
+  
+  fullscreenMap.routeMarkers = [];
+  
+  const startIcon = L.divIcon({
+    html: '<div style="background-color: #3498db; width: 36px; height: 36px; border-radius: 50%; border: 3px solid white; display: flex; align-items: center; justify-content: center; color: white; font-size: 14px;"><i class="fas fa-user-shield"></i></div>',
+    iconSize: [42, 42],
+    iconAnchor: [21, 21]
+  });
+  
+  const startMarker = L.marker([startLat, startLng], { icon: startIcon })
+    .addTo(fullscreenMap)
+    .bindPopup(`
+      <div style="color: #001f3f; font-weight: bold;">
+        <i class="fas fa-user-shield" style="color: #3498db;"></i> RESPONDER LOCATION
+      </div>
+      <div style="margin-top: 5px; font-size: 14px;">
+        <strong>Your current location</strong><br>
+        <strong>Distance to incident:</strong> ${distance} km<br>
+        <strong>Estimated time:</strong> ${duration} minutes
+      </div>
+    `);
+  
+  fullscreenMap.routeMarkers.push(startMarker);
+  
+  const endIcon = L.divIcon({
+    html: '<div style="background-color: #e74c3c; width: 40px; height: 40px; border-radius: 50%; border: 3px solid white; display: flex; align-items: center; justify-content: center; color: white; font-size: 16px;"><i class="fas fa-exclamation-triangle"></i></div>',
+    iconSize: [46, 46],
+    iconAnchor: [23, 23]
+  });
+  
+  const endMarker = L.marker([endLat, endLng], { icon: endIcon })
+    .addTo(fullscreenMap)
+    .bindPopup(`
+      <div style="color: #001f3f; font-weight: bold;">
+        <i class="fas fa-exclamation-triangle" style="color: #e74c3c;"></i> EMERGENCY INCIDENT
+      </div>
+      <div style="margin-top: 5px; font-size: 14px;">
+        <strong>Distance from you:</strong> ${distance} km<br>
+        <strong>Estimated travel time:</strong> ${duration} minutes<br>
+        <strong>Assigned units:</strong> ${assignedRespondersList.length > 0 ? assignedRespondersList.join(', ') : 'None'}
+      </div>
+    `)
+    .openPopup();
+  
+  fullscreenMap.routeMarkers.push(endMarker);
+}
+
+function calculateSimpleRoute(map, startLat, startLng, endLat, endLng) {
+  const coordinates = [[startLat, startLng], [endLat, endLng]];
+  
+  const R = 6371;
+  const dLat = (endLat - startLat) * Math.PI / 180;
+  const dLon = (endLng - startLng) * Math.PI / 180;
+  const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+            Math.cos(startLat * Math.PI / 180) * Math.cos(endLat * Math.PI / 180) * 
+            Math.sin(dLon/2) * Math.sin(dLon/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  const distance = R * c;
+  const duration = Math.round(distance * 3);
+  
+  const routePolyline = L.polyline(coordinates, {
+    color: '#ffd700',
+    weight: 5,
+    opacity: 0.8,
+    lineCap: 'round',
+    lineJoin: 'round',
+    dashArray: '10, 5'
+  }).addTo(map);
+  
+  addRouteMarkersToFullscreen(startLat, startLng, endLat, endLng, distance.toFixed(2), duration);
+  
+  const bounds = L.latLngBounds(coordinates);
+  map.fitBounds(bounds, { padding: [50, 50] });
+  
+  map._routeLine = routePolyline;
 }
 
 function locateUserOnMap() {
@@ -1509,14 +1304,12 @@ function locateUserOnMap() {
   if (userCurrentLocation) {
     fullscreenMap.setView([userCurrentLocation.lat, userCurrentLocation.lng], 16);
     
-    // Add/update user marker
     const userIcon = L.divIcon({
-      html: '<div style="background-color: #9b59b6; width: 32px; height: 32px; border-radius: 50%; border: 3px solid white; box-shadow: 0 0 15px rgba(155, 89, 182, 0.7); display: flex; align-items: center; justify-content: center; color: white; font-size: 14px;"><i class="fas fa-user"></i></div>',
+      html: '<div style="background-color: #9b59b6; width: 32px; height: 32px; border-radius: 50%; border: 3px solid white; display: flex; align-items: center; justify-content: center; color: white; font-size: 14px;"><i class="fas fa-user"></i></div>',
       iconSize: [38, 38],
       iconAnchor: [19, 19]
     });
     
-    // Remove existing user marker if any
     if (fullscreenMap.userMarker) {
       fullscreenMap.removeLayer(fullscreenMap.userMarker);
     }
@@ -1534,35 +1327,8 @@ function locateUserOnMap() {
       `)
       .openPopup();
   } else {
-    // Try to get location
     getUserLocation().then(location => {
       fullscreenMap.setView([location.lat, location.lng], 16);
-      
-      const userIcon = L.divIcon({
-        html: '<div style="background-color: #9b59b6; width: 32px; height: 32px; border-radius: 50%; border: 3px solid white; box-shadow: 0 0 15px rgba(155, 89, 182, 0.7); display: flex; align-items: center; justify-content: center; color: white; font-size: 14px;"><i class="fas fa-user"></i></div>',
-        iconSize: [38, 38],
-        iconAnchor: [19, 19]
-      });
-      
-      if (fullscreenMap.userMarker) {
-        fullscreenMap.removeLayer(fullscreenMap.userMarker);
-      }
-      
-      fullscreenMap.userMarker = L.marker([location.lat, location.lng], { icon: userIcon })
-        .addTo(fullscreenMap)
-        .bindPopup(`
-          <div style="color: #001f3f; font-weight: bold; font-size: 14px;">
-            <i class="fas fa-user" style="color: #9b59b6;"></i> YOUR CURRENT LOCATION
-          </div>
-          <div style="margin-top: 5px; font-size: 12px;">
-            Latitude: ${location.lat.toFixed(6)}<br>
-            Longitude: ${location.lng.toFixed(6)}
-          </div>
-        `)
-        .openPopup();
-    }).catch(error => {
-      console.error('Failed to get location:', error);
-      alert('Unable to get your location. Please ensure location services are enabled.');
     });
   }
 }
@@ -1586,7 +1352,97 @@ function showIncidentDetails() {
     .openOn(fullscreenMap);
 }
 
-// ============ GET TABLE COLUMNS ============
+async function showRouteOnMap() {
+  if (!routeMap || !currentReportData) return;
+  
+  if (routeLine) {
+    routeMap.removeLayer(routeLine);
+    routeLine = null;
+  }
+  
+  if (routeMap.routeMarkers) {
+    routeMap.routeMarkers.forEach(marker => routeMap.removeLayer(marker));
+    routeMap.routeMarkers = [];
+  }
+  
+  const startLocation = userCurrentLocation || { lat: 12.4048, lng: 121.9829 };
+  const startLat = startLocation.lat;
+  const startLng = startLocation.lng;
+  const endLat = currentReportData.latitude;
+  const endLng = currentReportData.longitude;
+  
+  try {
+    const start = `${startLng},${startLat}`;
+    const end = `${endLng},${endLat}`;
+    
+    const url = `https://api.openrouteservice.org/v2/directions/driving-car?api_key=${OPENROUTE_API_KEY}&start=${start}&end=${end}`;
+    
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json, application/geo+json, application/gpx+xml, img/png; charset=utf-8'
+      }
+    });
+    
+    if (response.ok) {
+      const data = await response.json();
+      
+      if (data.features && data.features.length > 0) {
+        const coordinates = data.features[0].geometry.coordinates;
+        const latLngs = coordinates.map(coord => [coord[1], coord[0]]);
+        
+        const summary = data.features[0].properties.segments[0];
+        const distance = (summary.distance / 1000).toFixed(2);
+        const duration = Math.round(summary.duration / 60);
+        
+        routeLine = L.polyline(latLngs, {
+          color: '#ffd700',
+          weight: 6,
+          opacity: 0.9,
+          lineCap: 'round',
+          lineJoin: 'round'
+        }).addTo(routeMap);
+        
+        document.getElementById('routeStatus').textContent = 'Route Calculated';
+        document.getElementById('routeDistance').textContent = distance + ' km';
+        document.getElementById('routeTime').textContent = duration + ' minutes';
+        
+        const bounds = L.latLngBounds(latLngs);
+        routeMap.fitBounds(bounds, { padding: [50, 50] });
+      }
+    }
+  } catch {
+    const coordinates = [[startLat, startLng], [endLat, endLng]];
+    
+    const R = 6371;
+    const dLat = (endLat - startLat) * Math.PI / 180;
+    const dLon = (endLng - startLng) * Math.PI / 180;
+    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+              Math.cos(startLat * Math.PI / 180) * Math.cos(endLat * Math.PI / 180) * 
+              Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    const distance = R * c;
+    const duration = Math.round(distance * 3);
+    
+    routeLine = L.polyline(coordinates, {
+      color: '#ffd700',
+      weight: 5,
+      opacity: 0.8,
+      lineCap: 'round',
+      lineJoin: 'round',
+      dashArray: '10, 5'
+    }).addTo(routeMap);
+    
+    document.getElementById('routeStatus').textContent = 'Direct Route';
+    document.getElementById('routeDistance').textContent = distance.toFixed(2) + ' km';
+    document.getElementById('routeTime').textContent = duration + ' minutes';
+    
+    const bounds = L.latLngBounds(coordinates);
+    routeMap.fitBounds(bounds, { padding: [50, 50] });
+  }
+}
+
+// ============ MAIN FUNCTIONS ============
 async function getTableColumns() {
   try {
     const { data, error } = await supabase
@@ -1601,58 +1457,38 @@ async function getTableColumns() {
       return true;
     }
     return false;
-  } catch (error) {
-    console.error('Error getting table columns:', error);
-    tableColumns = ['id', 'type', 'latitude', 'longitude', 'reporter', 'status', 'created_at'];
+  } catch {
+    tableColumns = ['id', 'type', 'latitude', 'longitude', 'reporter', 'status', 'created_at', 'assigned_responders', 'assigned_unit', 'contact'];
     return false;
   }
 }
 
-// ============ SAFE UPDATE FUNCTION ============
-async function safeUpdateReport(reportId, updates) {
-  try {
-    const safeUpdates = {};
-    
-    if (tableColumns.length === 0) {
-      await getTableColumns();
-    }
-    
-    Object.keys(updates).forEach(key => {
-      if (tableColumns.includes(key)) {
-        safeUpdates[key] = updates[key];
-      }
-    });
-    
-    if (Object.keys(safeUpdates).length === 0) {
-      safeUpdates.status = updates.status || 'pending';
-    }
-    
-    const { error } = await supabase
-      .from('reports')
-      .update(safeUpdates)
-      .eq('id', reportId);
-    
-    if (error) throw error;
-    
-    return { success: true };
-  } catch (error) {
-    console.error('Error updating report:', error);
-    return { success: false, error };
-  }
-}
-
-// ============ DATA LOADING ============
 async function loadReports() {
   const statusEl = document.getElementById('status');
   const container = document.getElementById('notificationList');
   
   try {
+    await getTableColumns();
+    
+    // Always try to get all three responder columns
+    const selectQuery = 'id, type, latitude, longitude, reporter, status, created_at, assigned_responders, assigned_unit, contact';
+    
     const { data, error } = await supabase
       .from('reports')
-      .select('*')
+      .select(selectQuery)
       .order('created_at', { ascending: false });
     
-    if (error) throw error;
+    if (error) {
+      // If error, try without the new columns
+      const { data: simpleData, error: simpleError } = await supabase
+        .from('reports')
+        .select('id, type, latitude, longitude, reporter, status, created_at')
+        .order('created_at', { ascending: false });
+      
+      if (simpleError) throw simpleError;
+      
+      data = simpleData;
+    }
     
     if (!data || data.length === 0) {
       statusEl.innerHTML = `
@@ -1673,12 +1509,12 @@ async function loadReports() {
     }
     
   } catch (error) {
-    console.error('❌ Error loading reports:', error);
+    console.error('Error loading reports:', error);
     statusEl.innerHTML = `
       <div class="no-reports">
         <i class="fas fa-exclamation-triangle"></i>
         <h3 style="font-size: 24px; color: #ff6b6b; margin-bottom: 10px;">Error Loading Reports</h3>
-        <p style="color: #fff8dc; opacity: 0.8;">${error.message}</p>
+        <p style="color: #fff8dc; opacity: 0.8;">Unable to load reports. Please try again.</p>
         <button onclick="loadReports()" style="
           margin-top: 20px;
           padding: 10px 20px;
@@ -1696,7 +1532,6 @@ async function loadReports() {
   }
 }
 
-// ============ RENDER NOTIFICATION CARD ============
 function renderNotificationCard(report) {
   const container = document.getElementById('notificationList');
   
@@ -1732,7 +1567,7 @@ function renderNotificationCard(report) {
   let statusClass = 'status-pending';
   let statusText = 'Pending';
   
-  if (status === 'investigating') {
+  if (status === 'investigating' || status === 'assigned') {
     statusClass = 'status-investigating';
     statusText = 'Investigating';
   } else if (status === 'resolved') {
@@ -1740,27 +1575,42 @@ function renderNotificationCard(report) {
     statusText = 'Resolved';
   }
   
+  // Get responder data from separate columns
   const assignedResponders = report.assigned_responders || '';
-  const hasAssignedResponders = assignedResponders.trim() !== '';
+  const assignedUnit = report.assigned_unit || '';
+  const contact = report.contact || '';
+  
+  let displayText = '';
+  if (assignedResponders) {
+    displayText = assignedResponders;
+    if (assignedUnit) {
+      displayText += ` (${assignedUnit})`;
+    }
+    if (contact) {
+      displayText += ` - ${contact}`;
+    }
+  }
+  
+  const hasAssignedResponders = displayText.trim() !== '';
   
   const card = document.createElement('div');
   card.className = 'notification-card glass';
   card.dataset.reportId = report.id;
-  card.dataset.assignedResponders = assignedResponders;
+  card.dataset.assignedResponders = displayText;
   
   let actionButtonsHTML = '';
   if (status === 'pending') {
     actionButtonsHTML = `
-      <button class="responders-btn" onclick="openRespondersModal('${report.id}', '${reporterName}')">
+      <button class="responders-btn" onclick="openRespondersModal('${report.id}', '${reporterName.replace(/'/g, "\\'")}')">
         <i class="fas fa-users"></i> ASSIGN RESPONDERS
       </button>
       <button class="view-btn" onclick="viewOnMap(${report.latitude}, ${report.longitude})">
         <i class="fas fa-map-marker-alt"></i> VIEW ON MAP
       </button>
     `;
-  } else if (status === 'investigating') {
+  } else if (status === 'investigating' || status === 'assigned') {
     actionButtonsHTML = `
-      <button class="quick-route-btn" onclick="openQuickRouteModal('${report.id}', ${report.latitude}, ${report.longitude}, '${assignedResponders}')">
+      <button class="quick-route-btn" onclick="openQuickRouteModal('${report.id}', ${report.latitude}, ${report.longitude}, '${displayText.replace(/'/g, "\\'")}')">
         <i class="fas fa-route"></i> NAVIGATE TO INCIDENT
       </button>
       <button class="resolve-btn" onclick="openResolveModal('${report.id}')">
@@ -1817,7 +1667,7 @@ function renderNotificationCard(report) {
         <span style="color: #ffd700; font-size: 12px; font-weight: bold;">ASSIGNED RESPONDERS:</span>
       </div>
       <div id="assignedRespondersDisplay-${report.id}" style="color: white; font-size: 14px; font-weight: 600;">
-        ${hasAssignedResponders ? assignedResponders : 'No responders assigned yet'}
+        ${hasAssignedResponders ? displayText : 'No responders assigned yet'}
       </div>
     </div>
     
@@ -1834,7 +1684,6 @@ function renderNotificationCard(report) {
   container.appendChild(card);
 }
 
-// ============ RESPONDERS MODAL FUNCTIONS ============
 function openRespondersModal(reportId, reporterName) {
   currentReportId = reportId;
   
@@ -1878,64 +1727,92 @@ async function assignResponders() {
   const responderContact = document.getElementById('responderContact').value.trim();
   const notes = document.getElementById('responderNotes').value.trim();
   
-  let assignedUnits = [];
+  let assignedRespondersList = [];
+  let assignedUnit = '';
+  let contact = '';
   
-  // Add selected default responders
+  // Process selected default responders
   selectedResponders.forEach(id => {
     const responder = defaultRespondersData.find(r => r.id === id);
     if (responder) {
-      assignedUnits.push(`${responder.name} (${responder.unit})`);
+      assignedRespondersList.push(responder.name);
+      if (!assignedUnit) {
+        assignedUnit = responder.unit;
+      }
     }
   });
   
-  // Add custom responder if name is provided
+  // Process custom responder
   if (responderName) {
-    const contactInfo = responderContact ? ` - ${responderContact}` : '';
-    // For custom responders, we'll assign them as "Other" unit
-    assignedUnits.push(`${responderName} (Other)${contactInfo}`);
+    assignedRespondersList.push(responderName);
+    contact = responderContact || '';
+    if (!assignedUnit) {
+      assignedUnit = 'Custom Unit';
+    }
   }
   
-  if (assignedUnits.length === 0) {
+  if (assignedRespondersList.length === 0) {
     alert('Please select at least one responder or add a custom responder.');
     return;
   }
   
   try {
-    const assignedRespondersText = assignedUnits.join(', ');
-    assignedRespondersList = assignedUnits;
+    const assignedRespondersText = assignedRespondersList.join(', ');
     
+    // Prepare update data for all three columns
     const updateData = {
       status: 'investigating',
-      assigned_responders: assignedRespondersText
+      updated_at: new Date().toISOString(),
+      assigned_responders: assignedRespondersText,
+      assigned_unit: assignedUnit,
+      contact: contact
     };
     
+    // Add notes if available
     if (notes) {
       if (tableColumns.includes('responder_notes')) {
         updateData.responder_notes = notes;
+      } else if (tableColumns.includes('notes')) {
+        updateData.notes = notes;
       } else if (tableColumns.includes('description')) {
         updateData.description = notes;
       }
     }
     
-    const result = await safeUpdateReport(currentReportId, updateData);
+    // Update the report in Supabase
+    const { error } = await supabase
+      .from('reports')
+      .update(updateData)
+      .eq('id', currentReportId);
     
-    if (!result.success) {
-      throw result.error;
+    if (error) throw error;
+    
+    // Format display text
+    let displayText = assignedRespondersText;
+    if (assignedUnit) {
+      displayText += ` (${assignedUnit})`;
+    }
+    if (contact) {
+      displayText += ` - ${contact}`;
     }
     
-    alert(`✅ ${assignedUnits.length} responder(s) assigned successfully!\n\nAssigned: ${assignedRespondersText}\nIncident: #${currentReportId}`);
+    alert(`✅ ${assignedRespondersList.length} responder(s) assigned successfully!\n\nAssigned: ${displayText}\nIncident: #${currentReportId.substring(0, 8)}`);
     
+    // Update the card display
     const card = document.querySelector(`[data-report-id="${currentReportId}"]`);
     if (card) {
-      const displayElement = card.querySelector(`#assignedRespondersDisplay-${currentReportId}`);
+      const displayElement = document.querySelector(`#assignedRespondersDisplay-${currentReportId}`);
       if (displayElement) {
-        displayElement.textContent = assignedRespondersText;
+        displayElement.textContent = displayText;
       }
       
+      card.dataset.assignedResponders = displayText;
+      
+      // Update action buttons
       const actionButtons = card.querySelector('.action-buttons');
       if (actionButtons) {
         actionButtons.innerHTML = `
-          <button class="quick-route-btn" onclick="openQuickRouteModal('${currentReportId}', ${currentReportData ? currentReportData.latitude : 0}, ${currentReportData ? currentReportData.longitude : 0}, '${assignedRespondersText}')">
+          <button class="quick-route-btn" onclick="openQuickRouteModal('${currentReportId}', null, null, '${displayText.replace(/'/g, "\\'")}')">
             <i class="fas fa-route"></i> NAVIGATE TO INCIDENT
           </button>
           <button class="resolve-btn" onclick="openResolveModal('${currentReportId}')">
@@ -1944,6 +1821,7 @@ async function assignResponders() {
         `;
       }
       
+      // Update status badge
       const statusBadge = card.querySelector('.status-badge');
       if (statusBadge) {
         statusBadge.className = 'status-badge status-investigating';
@@ -1951,8 +1829,17 @@ async function assignResponders() {
       }
     }
     
+    // Close modal and reset
     closeModal('respondersModal');
-    loadReports();
+    selectedResponders = [];
+    document.getElementById('responderName').value = '';
+    document.getElementById('responderContact').value = '';
+    document.getElementById('responderNotes').value = '';
+    
+    // Reload reports to show updated data
+    setTimeout(() => {
+      loadReports();
+    }, 1000);
     
   } catch (error) {
     console.error('Error assigning responders:', error);
@@ -1960,25 +1847,35 @@ async function assignResponders() {
   }
 }
 
-// ============ QUICK ROUTE FUNCTIONS ============
 function openQuickRouteModal(reportId, latitude, longitude, assignedResponders = '') {
   currentReportId = reportId;
-  currentReportData = { latitude, longitude };
+  
+  // If coordinates aren't provided, we'll get them from the database
+  if (!latitude || !longitude) {
+    supabase
+      .from('reports')
+      .select('latitude, longitude')
+      .eq('id', reportId)
+      .single()
+      .then(({ data, error }) => {
+        if (data) {
+          currentReportData = data;
+          document.getElementById('routeDestination').textContent = `Coordinates: ${data.latitude.toFixed(4)}, ${data.longitude.toFixed(4)}`;
+        }
+      });
+  } else {
+    currentReportData = { latitude, longitude };
+    document.getElementById('routeDestination').textContent = `Coordinates: ${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
+  }
   
   if (assignedResponders) {
-    assignedRespondersList = assignedResponders.split(',').map(r => r.trim()).filter(r => r);
+    assignedRespondersList = [assignedResponders];
   } else {
     const card = document.querySelector(`[data-report-id="${reportId}"]`);
     if (card && card.dataset.assignedResponders) {
-      assignedRespondersList = card.dataset.assignedResponders.split(',').map(r => r.trim()).filter(r => r);
+      assignedRespondersList = [card.dataset.assignedResponders];
     }
   }
-  
-  getAddressFromCoordinates(latitude, longitude).then(address => {
-    document.getElementById('routeDestination').textContent = address;
-  }).catch(() => {
-    document.getElementById('routeDestination').textContent = `Coordinates: ${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
-  });
   
   const assignedUnitsText = assignedRespondersList.length > 0 
     ? assignedRespondersList.join(', ')
@@ -1990,88 +1887,6 @@ function openQuickRouteModal(reportId, latitude, longitude, assignedResponders =
   openModal('quickRouteModal');
 }
 
-function initRouteMap() {
-  if (!currentReportData || !document.getElementById('routeMap')) return;
-  
-  // Get user location or use incident location as center
-  const centerLat = userCurrentLocation ? userCurrentLocation.lat : currentReportData.latitude;
-  const centerLng = userCurrentLocation ? userCurrentLocation.lng : currentReportData.longitude;
-  
-  routeMap = L.map('routeMap').setView([centerLat, centerLng], 13);
-  
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    maxZoom: 19,
-    attribution: '© OpenStreetMap contributors'
-  }).addTo(routeMap);
-  
-  // Add destination marker (incident location)
-  const destIcon = L.divIcon({
-    html: '<div style="background-color: #e74c3c; width: 32px; height: 32px; border-radius: 50%; border: 3px solid white; box-shadow: 0 0 10px rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; color: white; font-size: 14px;"><i class="fas fa-exclamation-triangle"></i></div>',
-    iconSize: [38, 38],
-    iconAnchor: [19, 19]
-  });
-  
-  L.marker([currentReportData.latitude, currentReportData.longitude], { icon: destIcon })
-    .addTo(routeMap)
-    .bindPopup(`
-      <b>Incident Location</b><br>
-      Emergency site requiring response<br>
-      ${assignedRespondersList.length > 0 ? 'Assigned: ' + assignedRespondersList.join(', ') : 'No responders assigned'}
-    `)
-    .openPopup();
-  
-  // Add user location marker if available
-  if (userCurrentLocation) {
-    const startIcon = L.divIcon({
-      html: '<div style="background-color: #3498db; width: 28px; height: 28px; border-radius: 50%; border: 3px solid white; box-shadow: 0 0 10px rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; color: white; font-size: 12px;"><i class="fas fa-user-shield"></i></div>',
-      iconSize: [34, 34],
-      iconAnchor: [17, 17]
-    });
-    
-    L.marker([userCurrentLocation.lat, userCurrentLocation.lng], { icon: startIcon })
-      .addTo(routeMap)
-      .bindPopup('<b>Your Current Location</b><br>Responder position');
-  }
-}
-
-async function showRouteOnMap() {
-  if (!routeMap || !currentReportData) return;
-  
-  // Clear existing route
-  if (routeLine) {
-    routeMap.removeLayer(routeLine);
-    routeLine = null;
-  }
-  
-  // Clear existing markers
-  if (routeMap.routeMarkers) {
-    routeMap.routeMarkers.forEach(marker => routeMap.removeLayer(marker));
-    routeMap.routeMarkers = [];
-  }
-  
-  // Get user's current location (or use default if not available)
-  const startLocation = userCurrentLocation || { lat: 12.4048, lng: 121.9829 };
-  const startLat = startLocation.lat;
-  const startLng = startLocation.lng;
-  const endLat = currentReportData.latitude;
-  const endLng = currentReportData.longitude;
-  
-  // Calculate real road route using OpenRouteService
-  const routeInfo = await calculateRealRoadRoute(startLat, startLng, endLat, endLng, routeMap, false);
-  
-  if (routeInfo) {
-    routeLine = routeInfo.polyline;
-    
-    // Update assigned units display
-    const assignedUnitsText = assignedRespondersList.length > 0 
-      ? assignedRespondersList.join(', ')
-      : 'No responders assigned';
-    
-    document.getElementById('assignedUnits').textContent = assignedUnitsText;
-  }
-}
-
-// ============ RESOLVE INCIDENT FUNCTIONS ============
 function openResolveModal(reportId) {
   currentReportId = reportId;
   document.getElementById('resolveIncidentId').textContent = reportId ? '#' + reportId.substring(0, 12) : 'N/A';
@@ -2089,29 +1904,38 @@ async function resolveIncident() {
   
   try {
     const updateData = {
-      status: 'resolved'
+      status: 'resolved',
+      updated_at: new Date().toISOString()
     };
     
-    if (tableColumns.includes('resolution_notes')) {
-      updateData.resolution_notes = notes;
-    } else if (tableColumns.includes('description')) {
-      updateData.description = notes + ' - Resolution status: ' + status;
+    if (notes) {
+      if (tableColumns.includes('description')) {
+        updateData.description = notes + ' - Resolution status: ' + status;
+      } else if (tableColumns.includes('notes')) {
+        updateData.notes = notes + ' - Resolution status: ' + status;
+      } else if (tableColumns.includes('resolution_notes')) {
+        updateData.resolution_notes = notes;
+      }
     }
     
     if (tableColumns.includes('resolution_status')) {
       updateData.resolution_status = status;
     }
     
-    const result = await safeUpdateReport(currentReportId, updateData);
+    const { error } = await supabase
+      .from('reports')
+      .update(updateData)
+      .eq('id', currentReportId);
     
-    if (!result.success) {
-      throw result.error;
-    }
+    if (error) throw error;
     
-    alert(`✅ Incident marked as resolved!\n\nIncident: #${currentReportId}\nResolution: ${getResolutionStatusText(status)}`);
+    alert(`✅ Incident marked as resolved!\n\nIncident: #${currentReportId.substring(0, 8)}`);
     
     closeModal('resolveModal');
-    loadReports();
+    
+    setTimeout(() => {
+      loadReports();
+    }, 500);
     
   } catch (error) {
     console.error('Error resolving incident:', error);
@@ -2119,40 +1943,10 @@ async function resolveIncident() {
   }
 }
 
-function getResolutionStatusText(status) {
-  const statuses = {
-    'resolved': 'Resolved - Situation Under Control',
-    'assisted': 'Assisted - Provided Necessary Aid',
-    'transported': 'Transported - Patient Transported to Hospital',
-    'handed_over': 'Handed Over - Transferred to Other Agency',
-    'false_alarm': 'False Alarm - No Action Required'
-  };
-  return statuses[status] || status;
-}
-
-// ============ HELPER FUNCTIONS ============
-async function getAddressFromCoordinates(lat, lng) {
-  try {
-    const apiKey = '0a78fbd8bcd74be398f210b34682c77c';
-    const url = `https://api.opencagedata.com/geocode/v1/json?q=${lat}+${lng}&key=${apiKey}&language=en&pretty=1`;
-    
-    const response = await fetch(url);
-    if (!response.ok) throw new Error('Geocoding failed');
-    
-    const data = await response.json();
-    if (!data.results || data.results.length === 0) throw new Error('No address found');
-    
-    return data.results[0].formatted;
-  } catch (error) {
-    console.warn('Reverse geocoding failed:', error);
-    return `Coordinates: ${lat.toFixed(6)}, ${lng.toFixed(6)}`;
-  }
-}
-
 function viewOnMap(latitude, longitude) {
   if (latitude && longitude) {
     sessionStorage.setItem('viewLocation', JSON.stringify({ lat: latitude, lng: longitude }));
-    window.location.href = 'index.html';
+    window.location.href = "view-report.html?id=" + encodeURIComponent(sessionStorage.getItem('viewReportId') || '');
   } else {
     alert('Location coordinates not available.');
   }
@@ -2160,19 +1954,12 @@ function viewOnMap(latitude, longitude) {
 
 // ============ INITIALIZATION ============
 document.addEventListener('DOMContentLoaded', async () => {
-  // Get user location on page load
   await getUserLocation();
-  
-  // Get table columns
   await getTableColumns();
-  
-  // Load reports
   loadReports();
   
-  // Auto-refresh every 30 seconds
   setInterval(loadReports, 30000);
   
-  // Set up event listeners for modal buttons
   document.getElementById('confirmRespondersBtn').onclick = assignResponders;
   document.getElementById('confirmResolveBtn').onclick = resolveIncident;
 });
