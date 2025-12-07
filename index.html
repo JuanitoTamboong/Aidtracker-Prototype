@@ -97,6 +97,22 @@
       margin-top: 5px;
     }
 
+    /* === Realtime Indicator === */
+    .realtime-indicator {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: var(--success-green);
+      margin-left: 10px;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.6; }
+    }
+
     /* === Type Filter Buttons === */
     .type-filters {
       display: flex;
@@ -309,6 +325,11 @@
       transform: translateY(-2px);
     }
 
+    .refresh-btn:disabled {
+      opacity: 0.7;
+      cursor: not-allowed;
+    }
+
     .table-container {
       overflow-x: auto;
       border-radius: 12px;
@@ -484,12 +505,6 @@
       animation: pulse 2s infinite;
     }
 
-    @keyframes pulse {
-      0% { opacity: 1; }
-      50% { opacity: 0.7; }
-      100% { opacity: 1; }
-    }
-
     /* === Animations === */
     @keyframes fadeIn {
       from { opacity: 0; transform: translateY(15px); }
@@ -498,6 +513,16 @@
 
     .glass, #map, .stat-card, tr {
       animation: fadeIn 0.5s ease-out;
+    }
+
+    /* === New Report Animation === */
+    .new-report {
+      animation: highlightNew 1s ease-out;
+    }
+
+    @keyframes highlightNew {
+      0% { background-color: rgba(255, 215, 0, 0.3); }
+      100% { background-color: transparent; }
     }
 
     /* === Toast Notification === */
@@ -517,6 +542,40 @@
       align-items: center;
       gap: 12px;
       animation: fadeIn 0.3s ease-out;
+    }
+
+    /* === Connection Status === */
+    .connection-status {
+      position: fixed;
+      bottom: 20px;
+      left: 20px;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      backdrop-filter: blur(10px);
+      animation: slideIn 0.3s ease;
+    }
+
+    @keyframes slideIn {
+      from { transform: translateX(-100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+
+    .connection-connected {
+      background: rgba(34, 197, 94, 0.2);
+      color: #86efac;
+      border: 1px solid rgba(34, 197, 94, 0.4);
+    }
+
+    .connection-disconnected {
+      background: rgba(239, 68, 68, 0.2);
+      color: #fca5a5;
+      border: 1px solid rgba(239, 68, 68, 0.4);
     }
 
     /* === Responsive Design === */
@@ -712,6 +771,12 @@
     </div>
   </div>
 
+  <!-- Connection Status Indicator -->
+  <div id="connectionStatus" class="connection-status" style="display: none;">
+    <i class="fas fa-circle"></i>
+    <span>Connected</span>
+  </div>
+
   <div class="container">
     <!-- Header -->
     <header class="glass">
@@ -720,7 +785,11 @@
           <i class="fas fa-hands-helping"></i>
         </div>
         <div>
-          <div class="title">Aid<span>Tracker</span></div>
+          <div class="title">Aid<span>Tracker</span> 
+            <span class="realtime-indicator">
+              <i class="fas fa-broadcast-tower"></i> LIVE
+            </span>
+          </div>
           <div class="subtitle">Emergency Response & Incident Management System</div>
         </div>
       </div>
@@ -825,8 +894,8 @@
           <i class="fas fa-list-alt"></i> Active Reports
           <span id="tableFilterInfo"></span>
         </div>
-        <button class="refresh-btn" onclick="loadReports()">
-          <i class="fas fa-sync-alt"></i> Refresh Data
+        <button class="refresh-btn" onclick="manualRefresh()" id="refreshBtn">
+          <i class="fas fa-sync-alt"></i> Refresh
         </button>
       </div>
       
@@ -858,10 +927,16 @@
 
   <script>
     // ============ CONFIGURATION ============
-    // Supabase Configuration
+    // Supabase Configuration with Realtime enabled
     const SUPABASE_URL = 'https://gwvepxupoxyyydnisulb.supabase.co';
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd3dmVweHVwb3h5eXlkbmlzdWxiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ4MDE4ODcsImV4cCI6MjA4MDM3Nzg4N30.Ku9SXTAKNMvHilgEpxj5HcVA-0TPt4ziuEq0Irao5Qc';
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+      realtime: {
+        params: {
+          eventsPerSecond: 10
+        }
+      }
+    });
 
     // OpenCage API Key
     const OPENCAGE_API_KEY = '0a78fbd8bcd74be398f210b34682c77c';
@@ -892,14 +967,37 @@
       }
     };
 
+    // ============ GLOBAL VARIABLES ============
+    let markers = [];
+    let allReports = [];
+    let filteredReports = [];
+    let currentFilter = 'all';
+    let realtimeSubscription = null;
+    let addressCache = new Map();
+    let isInitialLoad = true;
+
+    // ============ CONNECTION STATUS ============
+    function updateConnectionStatus(connected) {
+      const statusEl = document.getElementById('connectionStatus');
+      if (connected) {
+        statusEl.innerHTML = '<i class="fas fa-circle"></i> Realtime Connected';
+        statusEl.className = 'connection-status connection-connected';
+        statusEl.style.display = 'flex';
+        
+        // Hide after 3 seconds
+        setTimeout(() => {
+          statusEl.style.display = 'none';
+        }, 3000);
+      } else {
+        statusEl.innerHTML = '<i class="fas fa-circle"></i> Connection Lost';
+        statusEl.className = 'connection-status connection-disconnected';
+        statusEl.style.display = 'flex';
+      }
+    }
+
     // ============ OPENCAGE GEOCODING FUNCTIONS ============
-    
-    // Cache for geocoded addresses to avoid repeated API calls
-    const addressCache = new Map();
-    
-    async function coordinatesToAddress(lat, lng) {
+    async function getReadableAddress(lat, lng) {
       try {
-        // Check cache first
         const cacheKey = `${lat.toFixed(6)},${lng.toFixed(6)}`;
         if (addressCache.has(cacheKey)) {
           return addressCache.get(cacheKey);
@@ -911,70 +1009,15 @@
         const data = await response.json();
         
         if (data.results && data.results.length > 0) {
-          const result = data.results[0];
-          const addressData = {
-            formatted: result.formatted,
-            components: result.components,
-            fullDetails: result
-          };
-          
-          // Store in cache
-          addressCache.set(cacheKey, addressData);
-          return addressData;
-        }
-        return null;
-      } catch (error) {
-        console.error('OpenCage geocoding error:', error);
-        return null;
-      }
-    }
-    
-    async function getReadableAddress(lat, lng) {
-      try {
-        const result = await coordinatesToAddress(lat, lng);
-        
-        if (result && result.formatted) {
-          return result.formatted;
-        }
-        
-        // Fallback: Show coordinates if geocoding fails
-        return `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
-      } catch {
-        return `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
-      }
-    }
-
-    // ============ LOCATION HANDLING WITH OPENCAGE ============
-    async function getLocationName(reportData) {
-      // Try to get address from database first
-      if (reportData.location_name && reportData.location_name.trim()) {
-        return reportData.location_name.trim();
-      }
-      
-      if (reportData.location && reportData.location.trim()) {
-        return reportData.location.trim();
-      }
-      
-      if (reportData.address && reportData.address.trim()) {
-        return reportData.address.trim();
-      }
-      
-      // If coordinates exist, use OpenCage to get address
-      const lat = parseFloat(reportData.latitude);
-      const lng = parseFloat(reportData.longitude);
-      
-      if (!isNaN(lat) && !isNaN(lng)) {
-        try {
-          // Get readable address from coordinates
-          const address = await getReadableAddress(lat, lng);
+          const address = data.results[0].formatted;
+          addressCache.set(cacheKey, address);
           return address;
-        } catch {
-          // Fallback to coordinates
-          return `Coordinates: ${lat.toFixed(4)}, ${lng.toFixed(4)}`;
         }
+        return `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+      } catch (error) {
+        console.error('Geocoding error:', error);
+        return `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
       }
-      
-      return 'Location not specified';
     }
 
     // ============ PHOTO HANDLING ============
@@ -1030,11 +1073,6 @@
     }
 
     // ============ MAP MARKERS ============
-    let markers = [];
-    let allReports = [];
-    let filteredReports = [];
-    let currentFilter = 'all';
-
     function createCustomIcon(type) {
       const config = typeConfig[type] || { name: 'Unknown', icon: 'exclamation-triangle', color: '#3498db' };
       return L.divIcon({
@@ -1066,7 +1104,7 @@
       markers = [];
     }
 
-    function addReportMarker(report) {
+    function addReportMarker(report, isNew = false) {
       if (!report.latitude || !report.longitude) {
         return null;
       }
@@ -1074,11 +1112,15 @@
       const icon = createCustomIcon(report.type);
       const marker = L.marker([report.latitude, report.longitude], { icon }).addTo(map);
       
+      // Add animation for new markers
+      if (isNew) {
+        marker._icon.style.animation = 'pulse 1s 3';
+      }
+      
       const status = report.status || 'pending';
       const statusText = status.charAt(0).toUpperCase() + status.slice(1);
       const photoUrl = getPhotoUrl(report);
       
-      // Get coordinates display
       const coordinates = `${report.latitude.toFixed(6)}, ${report.longitude.toFixed(6)}`;
       
       const popupContent = `
@@ -1248,10 +1290,160 @@
       }
     }
 
-    // ============ DATA LOADING ============
-    async function loadReports() {
+    // ============ DATA PROCESSING ============
+    async function processReport(rawReport) {
+      // Determine incident type
+      let incidentType = 'motor_accident';
+      const dbType = (rawReport.type || '').toString().toLowerCase().trim();
+      
+      if (dbType.includes('fire')) incidentType = 'fire_accident';
+      else if (dbType.includes('assault') || dbType.includes('crime')) incidentType = 'assault_crime';
+      else if (dbType.includes('motor') || dbType.includes('accident') || dbType === 'accident') incidentType = 'motor_accident';
+      
+      // Get location
+      const lat = parseFloat(rawReport.latitude);
+      const lng = parseFloat(rawReport.longitude);
+      let location = 'Location not specified';
+      
+      if (!isNaN(lat) && !isNaN(lng)) {
+        try {
+          location = await getReadableAddress(lat, lng);
+        } catch (error) {
+          location = `Coordinates: ${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+        }
+      } else if (rawReport.location_name && rawReport.location_name.trim()) {
+        location = rawReport.location_name.trim();
+      } else if (rawReport.location && rawReport.location.trim()) {
+        location = rawReport.location.trim();
+      }
+      
+      const reporterName = rawReport.reporter || rawReport.reporter_name || rawReport.name || rawReport.reporter_email || 'Anonymous';
+      const photoUrl = getPhotoUrl(rawReport);
+      
+      return {
+        id: rawReport.id,
+        type: incidentType,
+        location: location,
+        reporter_name: reporterName,
+        created_at: rawReport.created_at || new Date().toISOString(),
+        status: (rawReport.status || 'pending').toLowerCase(),
+        latitude: lat,
+        longitude: lng,
+        description: rawReport.description || rawReport.details || rawReport.incident_details || '',
+        photo_url: photoUrl,
+        photo: rawReport.photo || rawReport.photo_url || rawReport.image_url || null,
+        original_data: rawReport
+      };
+    }
+
+    // ============ REALTIME DATA HANDLING ============
+    async function addNewReport(reportData) {
+      const processedReport = await processReport(reportData);
+      
+      // Add to allReports
+      const existingIndex = allReports.findIndex(r => r.id === processedReport.id);
+      if (existingIndex >= 0) {
+        allReports[existingIndex] = processedReport;
+      } else {
+        allReports.unshift(processedReport);
+        showToast(`New ${typeConfig[processedReport.type]?.name || 'incident'} reported`, 'info');
+      }
+      
+      applyFilters();
+      
+      // Highlight new report in table
+      highlightNewReport(processedReport.id);
+    }
+
+    function updateExistingReport(reportData) {
+      const index = allReports.findIndex(r => r.id === reportData.id);
+      if (index >= 0) {
+        // Update existing report
+        processReport(reportData).then(updatedReport => {
+          allReports[index] = updatedReport;
+          applyFilters();
+          
+          // If status changed, show toast
+          const oldStatus = allReports[index].status;
+          if (oldStatus !== updatedReport.status) {
+            showToast(`Report #${reportData.id} status updated to ${updatedReport.status}`, 'warning');
+          }
+        });
+      }
+    }
+
+    function removeReport(reportId) {
+      const index = allReports.findIndex(r => r.id === reportId);
+      if (index >= 0) {
+        allReports.splice(index, 1);
+        applyFilters();
+        showToast(`Report #${reportId} removed`, 'warning');
+      }
+    }
+
+    function highlightNewReport(reportId) {
+      const tableRow = document.querySelector(`tr[data-report-id="${reportId}"]`);
+      if (tableRow) {
+        tableRow.classList.add('new-report');
+        setTimeout(() => {
+          tableRow.classList.remove('new-report');
+        }, 1000);
+      }
+    }
+
+    // ============ REALTIME SUBSCRIPTION ============
+    function setupRealtimeSubscription() {
+      // Remove existing subscription if any
+      if (realtimeSubscription) {
+        supabase.removeChannel(realtimeSubscription);
+      }
+
+      console.log('Setting up realtime subscription...');
+      
+      realtimeSubscription = supabase
+        .channel('reports-realtime')
+        .on('postgres_changes', 
+          { 
+            event: '*', 
+            schema: 'public', 
+            table: 'reports' 
+          }, 
+          (payload) => {
+            console.log('Realtime update:', payload);
+            
+            if (payload.eventType === 'INSERT') {
+              addNewReport(payload.new);
+            } else if (payload.eventType === 'UPDATE') {
+              updateExistingReport(payload.new);
+            } else if (payload.eventType === 'DELETE') {
+              removeReport(payload.old.id);
+            }
+            
+            updateConnectionStatus(true);
+          }
+        )
+        .subscribe((status) => {
+          console.log('Realtime subscription status:', status);
+          
+          if (status === 'SUBSCRIBED') {
+            updateConnectionStatus(true);
+          } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+            updateConnectionStatus(false);
+            // Try to reconnect after 5 seconds
+            setTimeout(() => {
+              if (realtimeSubscription) {
+                realtimeSubscription.unsubscribe();
+                setupRealtimeSubscription();
+              }
+            }, 5000);
+          }
+        });
+    }
+
+    // ============ INITIAL DATA LOAD ============
+    async function loadInitialData() {
       const tableBody = document.getElementById('reportsTableBody');
-      const refreshBtn = document.querySelector('.refresh-btn');
+      const refreshBtn = document.getElementById('refreshBtn');
       
       tableBody.innerHTML = `
         <tr>
@@ -1273,58 +1465,13 @@
         
         if (error) throw error;
         
-        allReports = [];
-        
         if (data && data.length > 0) {
-          // Process each report with OpenCage geocoding
-          const reportPromises = data.map(async (report) => {
-            // Determine incident type
-            let incidentType = 'motor_accident';
-            const dbType = (report.type || '').toString().toLowerCase().trim();
-            
-            if (dbType.includes('fire')) incidentType = 'fire_accident';
-            else if (dbType.includes('assault') || dbType.includes('crime')) incidentType = 'assault_crime';
-            else if (dbType.includes('motor') || dbType.includes('accident') || dbType === 'accident') incidentType = 'motor_accident';
-            
-            // Get location using OpenCage
-            const lat = parseFloat(report.latitude);
-            const lng = parseFloat(report.longitude);
-            let location = 'Location not specified';
-            
-            if (!isNaN(lat) && !isNaN(lng)) {
-              try {
-                location = await getReadableAddress(lat, lng);
-              } catch (error) {
-                console.warn(`Failed to geocode ${lat}, ${lng}:`, error);
-                location = `Coordinates: ${lat.toFixed(4)}, ${lng.toFixed(4)}`;
-              }
-            } else if (report.location_name && report.location_name.trim()) {
-              location = report.location_name.trim();
-            } else if (report.location && report.location.trim()) {
-              location = report.location.trim();
-            }
-            
-            const reporterName = report.reporter || report.reporter_name || report.name || report.reporter_email || 'Anonymous';
-            const photoUrl = getPhotoUrl(report);
-            
-            return {
-              id: report.id,
-              type: incidentType,
-              location: location,
-              reporter_name: reporterName,
-              created_at: report.created_at || new Date().toISOString(),
-              status: (report.status || 'pending').toLowerCase(),
-              latitude: lat,
-              longitude: lng,
-              description: report.description || report.details || report.incident_details || '',
-              photo_url: photoUrl,
-              photo: report.photo || report.photo_url || report.image_url || null,
-              original_data: report
-            };
-          });
-          
-          // Wait for all geocoding to complete
+          // Process all reports
+          const reportPromises = data.map(processReport);
           allReports = await Promise.all(reportPromises);
+          
+          // Setup realtime updates
+          setupRealtimeSubscription();
           
           // Apply initial filters
           applyFilters();
@@ -1332,29 +1479,24 @@
           // Update statistics
           updateStatistics();
           
-          refreshBtn.innerHTML = `<i class="fas fa-check"></i> ${allReports.length} Reports`;
-          showToast(`Loaded ${allReports.length} reports`, 'success');
-          
+          showToast(`Loaded ${allReports.length} reports. Realtime updates enabled.`, 'success');
         } else {
           allReports = [];
           applyFilters();
           showToast('No emergency reports found.', 'info');
-          refreshBtn.innerHTML = '<i class="fas fa-database"></i> No Data';
         }
         
       } catch (error) {
-        console.error('❌ Error loading reports:', error);
+        console.error('Error loading reports:', error);
         
         allReports = [];
         applyFilters();
         showToast(`Error loading reports: ${error.message}`, 'error');
-        refreshBtn.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Error';
         
       } finally {
-        setTimeout(() => {
-          refreshBtn.innerHTML = '<i class="fas fa-sync-alt"></i> Refresh Data';
-          refreshBtn.disabled = false;
-        }, 2000);
+        refreshBtn.innerHTML = '<i class="fas fa-sync-alt"></i> Refresh';
+        refreshBtn.disabled = false;
+        isInitialLoad = false;
       }
     }
 
@@ -1369,22 +1511,22 @@
         return true;
       });
       
-      for (const report of filteredReports) {
+      // Add markers for filtered reports
+      filteredReports.forEach(report => {
         addReportMarker(report);
-      }
+      });
       
       updateTable();
       updateStatistics();
       updateFilterIndicators();
       
-      if (filteredReports.length > 0) {
+      // Auto-zoom if needed
+      if (!isInitialLoad && filteredReports.length > 0) {
         const validMarkers = markers.filter(marker => marker.getLatLng());
         if (validMarkers.length > 0) {
           const group = new L.featureGroup(validMarkers);
           map.fitBounds(group.getBounds().pad(0.1));
         }
-      } else {
-        map.setView([12.4048, 121.9829], 15);
       }
     }
 
@@ -1393,13 +1535,6 @@
       if (buttonElement) buttonElement.classList.add('active');
       currentFilter = type;
       applyFilters();
-      
-      if (type === 'all') {
-        showToast('Showing all incident types', 'info');
-      } else {
-        const typeName = typeConfig[type]?.name || type;
-        showToast(`Showing ${typeName} incidents only`, 'info');
-      }
     }
 
     function clearFilters() {
@@ -1407,7 +1542,6 @@
       document.querySelectorAll('.type-btn').forEach(btn => btn.classList.remove('active'));
       document.querySelector('.type-btn[onclick*="filterByType(\'all\'"]').classList.add('active');
       applyFilters();
-      showToast('All filters cleared', 'success');
     }
 
     function fitAllMarkers() {
@@ -1441,10 +1575,11 @@
       document.getElementById('fireAccidents').textContent = fireAccidents;
       document.getElementById('assaultCrimes').textContent = assaultCrimes;
       
+      // Update notification dot
       const notifDot = document.getElementById('notifDot');
       if (pending > 0) {
         notifDot.style.display = 'block';
-        notifDot.title = `${pending} pending incidents require attention`;
+        notifDot.title = `${pending} pending incidents`;
       } else {
         notifDot.style.display = 'none';
       }
@@ -1468,21 +1603,6 @@
                   'Submit emergency reports using the mobile app.' : 
                   'Try clearing filters or selecting a different incident type.'}
               </small>
-              ${allReports.length > 0 ? `
-                <br>
-                <button onclick="clearFilters()" style="
-                  margin-top: 15px;
-                  padding: 8px 16px;
-                  background: var(--accent-gold);
-                  color: var(--primary-blue);
-                  border: none;
-                  border-radius: 6px;
-                  cursor: pointer;
-                  font-weight: bold;
-                ">
-                  Clear All Filters
-                </button>
-              ` : ''}
             </td>
           </tr>
         `;
@@ -1497,7 +1617,7 @@
         const photoUrl = getPhotoUrl(report);
         
         return `
-          <tr>
+          <tr data-report-id="${report.id}">
             <td><strong>#${report.id}</strong></td>
             <td>
               <div style="display: flex; align-items: center; gap: 8px;">
@@ -1583,26 +1703,8 @@
       const toast = document.createElement('div');
       toast.className = 'toast';
       toast.innerHTML = `
-        <div style="
-          position: fixed;
-          bottom: 30px;
-          right: 30px;
-          background: rgba(0, 0, 0, 0.9);
-          color: white;
-          padding: 15px 20px;
-          border-radius: 10px;
-          border-left: 5px solid ${colors[type]};
-          z-index: 10000;
-          max-width: 350px;
-          box-shadow: 0 5px 20px rgba(0,0,0,0.4);
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          animation: fadeIn 0.3s ease-out;
-        ">
-          <i class="fas fa-${icons[type]}" style="color: ${colors[type]}; font-size: 18px;"></i>
-          <span style="font-size: 14px;">${message}</span>
-        </div>
+        <i class="fas fa-${icons[type]}" style="color: ${colors[type]}; font-size: 18px;"></i>
+        <span style="font-size: 14px;">${message}</span>
       `;
       
       document.body.appendChild(toast);
@@ -1618,21 +1720,54 @@
       }, 3000);
     }
 
+    // ============ MANUAL REFRESH ============
+    async function manualRefresh() {
+      const refreshBtn = document.getElementById('refreshBtn');
+      refreshBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Refreshing...';
+      refreshBtn.disabled = true;
+      
+      try {
+        const { data, error } = await supabase
+          .from('reports')
+          .select('*')
+          .order('created_at', { ascending: false });
+        
+        if (error) throw error;
+        
+        if (data && data.length > 0) {
+          const reportPromises = data.map(processReport);
+          allReports = await Promise.all(reportPromises);
+          applyFilters();
+          showToast(`Refreshed ${allReports.length} reports`, 'success');
+        } else {
+          allReports = [];
+          applyFilters();
+        }
+        
+      } catch (error) {
+        console.error('Refresh error:', error);
+        showToast('Refresh failed', 'error');
+        
+      } finally {
+        setTimeout(() => {
+          refreshBtn.innerHTML = '<i class="fas fa-sync-alt"></i> Refresh';
+          refreshBtn.disabled = false;
+        }, 1000);
+      }
+    }
+
     // ============ INITIALIZATION ============
     document.addEventListener('DOMContentLoaded', () => {
-      console.log('🚀 AidTracker Dashboard Initializing with OpenCage Geocoding...');
+      console.log('🚀 AidTracker Dashboard Initializing...');
       
-      // Load REAL data on page load
-      loadReports();
-      
-      // Auto-refresh every 30 seconds
-      setInterval(loadReports, 30000);
+      // Load initial data
+      loadInitialData();
       
       // Keyboard shortcuts
       document.addEventListener('keydown', (e) => {
         if (e.key === 'r' && (e.ctrlKey || e.metaKey)) {
           e.preventDefault();
-          loadReports();
+          manualRefresh();
         }
         if (e.key === 'Escape') {
           const modal = document.getElementById('photoModal');
@@ -1648,6 +1783,21 @@
           if (buttons[index]) buttons[index].click();
         }
       });
+      
+      // Handle page visibility changes
+      document.addEventListener('visibilitychange', () => {
+        if (!document.hidden && realtimeSubscription) {
+          // Page became visible, ensure subscription is active
+          setupRealtimeSubscription();
+        }
+      });
+    });
+
+    // Cleanup on page unload
+    window.addEventListener('beforeunload', () => {
+      if (realtimeSubscription) {
+        supabase.removeChannel(realtimeSubscription);
+      }
     });
   </script>
 </body>
