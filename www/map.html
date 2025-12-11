@@ -1,0 +1,442 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<title>AidTracker Route Map</title>
+
+<!-- Leaflet -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<!-- Tailwind -->
+<script src="https://cdn.tailwindcss.com"></script>
+
+<style>
+* {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  box-sizing: border-box;
+}
+
+html, body { 
+  height: 100% !important; 
+  width: 100% !important;
+  margin: 0 !important; 
+  padding: 0 !important;
+  overflow: hidden !important;
+}
+
+#map { 
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  z-index: 1;
+}
+
+.pulse { 
+  width: 24px !important; 
+  height: 24px !important; 
+  background: #1380ff !important; 
+  border: 3px solid white !important; 
+  border-radius: 50% !important; 
+  box-shadow: 0 0 15px rgba(19,128,255,0.9) !important; 
+  position: relative !important; 
+}
+.pulse::after { 
+  content: "" !important; 
+  position: absolute !important; 
+  top: 50% !important; 
+  left: 50% !important; 
+  width: 40px !important; 
+  height: 40px !important; 
+  border-radius: 50% !important; 
+  background: rgba(19,128,255,0.3) !important; 
+  transform: translate(-50%, -50%) !important; 
+  animation: pulse 2s infinite ease-out !important; 
+}
+
+.report-icon {
+  background: #e74c3c !important;
+  width: 24px !important;
+  height: 24px !important;
+  border-radius: 50% !important;
+  border: 3px solid white !important;
+  box-shadow: 0 0 15px rgba(231, 76, 60, 0.9) !important;
+}
+
+@keyframes pulse { 
+  0% { transform: translate(-50%, -50%) scale(0.8); opacity: 0.8; } 
+  70% { transform: translate(-50%, -50%) scale(2.5); opacity: 0; } 
+  100% { transform: translate(-50%, -50%) scale(0.8); opacity: 0; } 
+}
+
+.btn { 
+  position: fixed !important;
+  z-index: 1000 !important;
+  background: white !important;
+  border-radius: 12px !important;
+  padding: 16px 24px !important;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.3) !important;
+  font-weight: 700 !important;
+  cursor: pointer !important;
+  transition: all 0.3s ease !important;
+  border: none !important;
+  font-size: 18px !important;
+  bottom: 25px !important;
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  min-width: 200px !important;
+  max-width: 90vw !important;
+  text-align: center !important;
+  touch-action: manipulation !important;
+}
+
+.btn:hover { 
+  background: #f8f9fa !important;
+  transform: translateX(-50%) scale(1.05) !important;
+}
+
+@media (max-width: 640px) {
+  .btn {
+    padding: 14px 20px !important;
+    font-size: 16px !important;
+    min-width: 180px !important;
+    bottom: 20px !important;
+  }
+  
+  .pulse {
+    width: 20px !important;
+    height: 20px !important;
+  }
+  
+  .report-icon {
+    width: 20px !important;
+    height: 20px !important;
+  }
+  
+  /* Adjust map controls for mobile */
+  .leaflet-control-zoom {
+    margin: 10px !important;
+    margin-top: 70px !important; /* Make room for mobile browser UI */
+  }
+  
+  .leaflet-control-attribution {
+    font-size: 9px !important;
+    padding: 2px 4px !important;
+    max-width: 80vw !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+}
+
+/* Ensure fullscreen map controls */
+.leaflet-control-zoom {
+  margin: 15px !important;
+  margin-top: 80px !important; /* Account for mobile browser address bar */
+}
+
+.leaflet-control-attribution {
+  font-size: 10px !important;
+  padding: 2px 5px !important;
+  background: rgba(255, 255, 255, 0.9) !important;
+  border-radius: 3px !important;
+}
+
+/* iOS specific fixes */
+@supports (-webkit-touch-callout: none) {
+  #map {
+    height: -webkit-fill-available !important;
+  }
+  
+  .leaflet-control-zoom {
+    margin-top: 100px !important; /* Extra space for iOS safari */
+  }
+}
+
+/* Android specific fixes */
+@media (hover: none) and (pointer: coarse) {
+  .leaflet-control-zoom a {
+    padding: 10px 15px !important;
+    font-size: 18px !important;
+  }
+}
+</style>
+</head>
+
+<body>
+<div id="map"></div>
+<button id="statusBtn" class="btn">🚑 Active</button>
+
+<script>
+// Clear any existing routing data
+localStorage.removeItem('leaflet-routing-machine');
+sessionStorage.removeItem('leaflet-routing-machine');
+
+const report = JSON.parse(localStorage.getItem("selectedReport"));
+if (!report) {
+  alert("No report data found.");
+  window.location.href = "notification.html";
+}
+
+// Initialize the map immediately (no setTimeout needed)
+const map = L.map("map", {
+  zoomControl: true,
+  zoomControlOptions: {
+    position: 'topright'
+  },
+  dragging: true,
+  touchZoom: true,
+  scrollWheelZoom: true,
+  doubleClickZoom: true,
+  boxZoom: true,
+  keyboard: true,
+  tap: true,
+  attributionControl: true,
+  fadeAnimation: true,
+  zoomAnimation: true,
+  markerZoomAnimation: true,
+  transform3DLimit: 8388608,
+  preferCanvas: false
+}).setView([report.latitude, report.longitude], 17);
+
+L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { 
+  maxZoom: 19, 
+  minZoom: 3,
+  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+  detectRetina: true,
+  updateWhenIdle: true,
+  updateWhenZooming: true,
+  keepBuffer: 4
+}).addTo(map);
+
+// Custom icons
+const reportIcon = L.divIcon({
+  html: '<div class="report-icon"></div>',
+  className: 'custom-report-icon',
+  iconSize: [24, 24],
+  iconAnchor: [12, 12]
+});
+
+const reportMarker = L.marker([report.latitude, report.longitude], { 
+  icon: reportIcon,
+  title: 'Incident Location',
+  alt: 'Incident Location Marker',
+  riseOnHover: true
+}).addTo(map);
+
+reportMarker.bindPopup(`
+  <div style="font-size: 14px; min-width: 200px; padding: 5px;">
+    <b style="color: #e74c3c; font-size: 16px;">${report.type?.toUpperCase() || "INCIDENT"}</b><br>
+    <hr style="margin: 5px 0; border-color: #eee;">
+    <b>Incident ID:</b> ${report.id || report._id || "N/A"}<br>
+    <b>Reported:</b> ${new Date(report.timestamp).toLocaleString()}<br>
+    <b>Coordinates:</b> ${report.latitude.toFixed(6)}, ${report.longitude.toFixed(6)}<br>
+    <b>Zoom Level:</b> ${map.getZoom()}
+  </div>
+`).openPopup();
+
+let userMarker;
+const btn = document.getElementById("statusBtn");
+let responded = false;
+const DIST_THRESHOLD = 20;
+
+function distanceMeters(lat1, lon1, lat2, lon2) {
+  const R = 6371e3;
+  const φ1 = lat1 * Math.PI / 180;
+  const φ2 = lat2 * Math.PI / 180;
+  const Δφ = (lat2 - lat1) * Math.PI / 180;
+  const Δλ = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(Δφ / 2) ** 2 + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) ** 2;
+  return 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function markOnTheWay() {
+  btn.innerText = "🟢 ON THE WAY";
+  localStorage.setItem("reportStatusUpdate", JSON.stringify({
+    id: report.id || report._id || String(report.timestamp),
+    statusText: "Responder On the Way",
+    remove: false,
+    random: Math.random()
+  }));
+}
+
+function markResponded() {
+  if (responded) return;
+  responded = true;
+  btn.innerText = "✅ RESPONDED";
+  
+  localStorage.setItem("reportStatusUpdate", JSON.stringify({
+    id: report.id || report._id || String(report.timestamp),
+    statusText: "Responded",
+    remove: true,
+    random: Math.random()
+  }));
+  
+  setTimeout(() => {
+    window.location.href = "index.html";
+  }, 1500);
+}
+
+// Fix map size issues on mobile
+function fixMapSize() {
+  setTimeout(() => {
+    map.invalidateSize();
+    map._onResize();
+    
+    // Force a repaint
+    const container = map.getContainer();
+    container.style.display = 'none';
+    container.offsetHeight; // Trigger reflow
+    container.style.display = 'block';
+  }, 100);
+}
+
+// Call fixMapSize multiple times to ensure it works
+setTimeout(fixMapSize, 0);
+setTimeout(fixMapSize, 300);
+setTimeout(fixMapSize, 1000);
+
+// Geolocation tracking
+if (navigator.geolocation) {
+  let locationUpdateCount = 0;
+  
+  navigator.geolocation.watchPosition(
+    pos => {
+      const { latitude, longitude } = pos.coords;
+      locationUpdateCount++;
+
+      if (!userMarker) {
+        userMarker = L.marker([latitude, longitude], {
+          icon: L.divIcon({ 
+            html: '<div class="pulse"></div>',
+            className: 'user-location-marker',
+            iconSize: [24, 24],
+            iconAnchor: [12, 12]
+          }),
+          title: 'Your Location',
+          alt: 'Your Location Marker',
+          riseOnHover: true
+        }).addTo(map);
+        
+        userMarker.bindPopup("<b>🚑 Your Location</b><br>Moving toward incident").openPopup();
+        
+        // Mark as on the way
+        if (locationUpdateCount === 1) {
+          markOnTheWay();
+        }
+        
+        // Fit bounds to show both markers
+        const bounds = L.latLngBounds(
+          [latitude, longitude],
+          [report.latitude, report.longitude]
+        );
+        map.fitBounds(bounds, { 
+          padding: [100, 100], // Increased padding for mobile
+          maxZoom: 18
+        });
+        
+        // Fix size again after markers are added
+        fixMapSize();
+      } else {
+        userMarker.setLatLng([latitude, longitude]);
+      }
+
+      // Check distance and update button
+      const distance = distanceMeters(latitude, longitude, report.latitude, report.longitude);
+      
+      if (!responded && distance <= DIST_THRESHOLD) {
+        markResponded();
+      } else if (!responded) {
+        if (distance < 1000) {
+          btn.innerHTML = `🟢 ${distance.toFixed(0)}m away`;
+        } else {
+          btn.innerHTML = `🟢 ${(distance/1000).toFixed(1)}km away`;
+        }
+      }
+    },
+    err => {
+      console.error("Geolocation error:", err);
+      btn.innerText = "📍 ENABLE LOCATION";
+      btn.style.background = "#ff6b6b";
+      btn.style.color = "white";
+      
+      if (err.code === 1) {
+        alert("Location access denied. Please enable location services to track your route.");
+      } else if (err.code === 2) {
+        alert("Location unavailable. Please check your GPS connection.");
+      } else if (err.code === 3) {
+        alert("Location request timed out. Please check your internet connection.");
+      }
+    },
+    {
+      enableHighAccuracy: true,
+      maximumAge: 5000,
+      timeout: 15000
+    }
+  );
+} else {
+  alert("Geolocation not supported by your browser.");
+  btn.innerText = "📍 NO GPS SUPPORT";
+  btn.style.background = "#ff6b6b";
+  btn.style.color = "white";
+}
+
+// Handle orientation changes
+let orientationChangeTimeout;
+window.addEventListener('orientationchange', () => {
+  clearTimeout(orientationChangeTimeout);
+  orientationChangeTimeout = setTimeout(() => {
+    fixMapSize();
+  }, 500);
+});
+
+// Handle window resize
+let resizeTimeout;
+window.addEventListener('resize', () => {
+  clearTimeout(resizeTimeout);
+  resizeTimeout = setTimeout(() => {
+    fixMapSize();
+  }, 250);
+});
+
+// Handle visibility change (for when app comes from background)
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) {
+    setTimeout(fixMapSize, 500);
+  }
+});
+
+// Fix for iOS Safari 100vh issue
+function setRealViewportHeight() {
+  const vh = window.innerHeight * 0.01;
+  document.documentElement.style.setProperty('--vh', `${vh}px`);
+}
+
+setRealViewportHeight();
+window.addEventListener('resize', setRealViewportHeight);
+
+// Prevent any default behaviors that might interfere
+document.addEventListener('touchmove', function(e) {
+  if (e.scale !== 1) { 
+    e.preventDefault(); 
+  }
+}, { passive: false });
+
+document.addEventListener('gesturestart', function(e) {
+  e.preventDefault();
+});
+
+// Final size fix after everything loads
+window.addEventListener('load', () => {
+  setTimeout(fixMapSize, 1000);
+});
+
+</script>
+</body>
+</html>
