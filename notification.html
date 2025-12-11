@@ -961,7 +961,7 @@ body {
       
       <div class="modal-section">
         <div class="modal-section-title">
-          <i class="fas fa-sticky-note"></i> Resolution Notes
+          <i class="fas fa-sticky-note"></i> Resolution Notes <span style="color: white;">(optional)</span>
         </div>
         <textarea id="resolutionNotes" class="modal-textarea" placeholder="Describe what actions were taken and the outcome..."></textarea>
       </div>
@@ -976,6 +976,7 @@ body {
       </div>
     </div>
   </div>
+
 <script>
 // ============ GLOBAL VARIABLES ============
 let currentReportId = null;
@@ -1991,13 +1992,12 @@ function openResolveModal(reportId) {
 }
 
 async function resolveIncident() {
-  const status = document.getElementById('resolutionStatus').value;
-  const notes = document.getElementById('resolutionNotes').value.trim();
+  const statusSelect = document.getElementById('resolutionStatus');
+  const selectedOption = statusSelect.options[statusSelect.selectedIndex];
+  const statusValue = selectedOption.value;
+  const statusText = selectedOption.text.split(' - ')[0].trim(); // Get just the status text
   
-  if (!notes) {
-    alert('Please enter resolution notes.');
-    return;
-  }
+  const notes = document.getElementById('resolutionNotes').value.trim();
   
   try {
     const updateData = {
@@ -2005,18 +2005,27 @@ async function resolveIncident() {
       updated_at: new Date().toISOString()
     };
     
+    // Construct resolution description based on your requirements
+    let resolutionDescription = '';
+    
     if (notes) {
-      if (tableColumns.includes('description')) {
-        updateData.description = notes + ' - Resolution status: ' + status;
-      } else if (tableColumns.includes('notes')) {
-        updateData.notes = notes + ' - Resolution status: ' + status;
-      } else if (tableColumns.includes('resolution_notes')) {
-        updateData.resolution_notes = notes;
-      }
+      // If there are notes: "Resolution status: [status text] - Resolution Notes: [notes]"
+      resolutionDescription = `Resolution status: ${statusText} - Resolution Notes: ${notes}`;
+    } else {
+      // If no notes: "Resolution status: [status text]"
+      resolutionDescription = `Resolution status: ${statusText}`;
     }
     
+    // Update description field based on available columns
+    if (tableColumns.includes('description')) {
+      updateData.description = resolutionDescription;
+    } else if (tableColumns.includes('notes')) {
+      updateData.notes = resolutionDescription;
+    }
+    
+    // Set resolution_status if column exists
     if (tableColumns.includes('resolution_status')) {
-      updateData.resolution_status = status;
+      updateData.resolution_status = statusValue;
     }
     
     const { error } = await supabase
@@ -2026,9 +2035,12 @@ async function resolveIncident() {
     
     if (error) throw error;
     
-    //alert(`✅ Incident marked as resolved!\n\nIncident: #${currentReportId.substring(0, 8)}`);
-    
+    // Success - close modal and refresh
     closeModal('resolveModal');
+    
+    // Reset form
+    document.getElementById('resolutionStatus').selectedIndex = 0;
+    document.getElementById('resolutionNotes').value = '';
     
     setTimeout(() => {
       loadReports();
