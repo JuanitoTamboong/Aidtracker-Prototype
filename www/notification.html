@@ -323,6 +323,7 @@ body {
   justify-content: center;
   align-items: center;
   z-index: 10000;
+  -webkit-backdrop-filter: blur(5px);
   backdrop-filter: blur(5px);
   animation: fadeIn 0.3s ease-out;
 }
@@ -989,6 +990,16 @@ let routeLine = null;
 let assignedRespondersList = [];
 let userCurrentLocation = null;
 
+// ============ CACHING SYSTEM ============
+let reportsCache = {
+    data: null,
+    timestamp: null,
+    ttl: 5 * 60 * 1000 // 5 minutes cache TTL
+};
+
+let isLoading = false;
+let lastUpdateTime = null;
+
 const OPENROUTE_API_KEY = 'eyJvcmciOiI1YjNjZTM1OTc4NTExMTAwMDFjZjYyNDgiLCJpZCI6ImJjYzMxOGQ0MGYwMTQ3YTBhZDJlNWU3ZDkxOGNhNGJiIiwiaCI6Im11cm11cjY0In0=';
 
 const defaultRespondersData = [
@@ -1541,33 +1552,57 @@ async function getTableColumns() {
   }
 }
 
-async function loadReports() {
+async function loadReports(forceRefresh = false) {
   const statusEl = document.getElementById('status');
   const container = document.getElementById('notificationList');
-  
+
+  // Prevent multiple simultaneous loads
+  if (isLoading && !forceRefresh) return;
+  isLoading = true;
+
   try {
     await getTableColumns();
-    
-    // Always try to get all three responder columns
-    const selectQuery = 'id, type, latitude, longitude, reporter, status, created_at, assigned_responders, assigned_unit, contact';
-    
-    const { data, error } = await supabaseClient
-      .from('reports')
-      .select(selectQuery)
-      .order('created_at', { ascending: false });
 
-    if (error) {
-      // If error, try without the new columns
-      const { data: simpleData, error: simpleError } = await supabaseClient
+    // Check cache first (unless force refresh)
+    const now = Date.now();
+    let data = null;
+    let fromCache = false;
+
+    if (!forceRefresh && reportsCache.data && reportsCache.timestamp &&
+        (now - reportsCache.timestamp) < reportsCache.ttl) {
+      data = reportsCache.data;
+      fromCache = true;
+      console.log('Loading reports from cache');
+    } else {
+      // Fetch fresh data from Supabase
+      const selectQuery = 'id, type, latitude, longitude, reporter, status, created_at, assigned_responders, assigned_unit, contact';
+
+      const { data: freshData, error } = await supabaseClient
         .from('reports')
-        .select('id, type, latitude, longitude, reporter, status, created_at')
+        .select(selectQuery)
         .order('created_at', { ascending: false });
-      
-      if (simpleError) throw simpleError;
-      
-      data = simpleData;
+
+      if (error) {
+        // If error, try without the new columns
+        const { data: simpleData, error: simpleError } = await supabaseClient
+          .from('reports')
+          .select('id, type, latitude, longitude, reporter, status, created_at')
+          .order('created_at', { ascending: false });
+
+        if (simpleError) throw simpleError;
+
+        data = simpleData;
+      } else {
+        data = freshData;
+      }
+
+      // Update cache
+      reportsCache.data = data;
+      reportsCache.timestamp = now;
+      lastUpdateTime = now;
+      console.log('Fetched fresh reports from Supabase');
     }
-    
+
     if (!data || data.length === 0) {
       statusEl.innerHTML = `
         <div class="no-reports">
@@ -1576,16 +1611,24 @@ async function loadReports() {
           <p style="color: #fff8dc; opacity: 0.8;">Emergency reports will appear here once submitted.</p>
         </div>
       `;
+      isLoading = false;
       return;
     }
-    
+
     statusEl.style.display = 'none';
-    container.innerHTML = '';
-    
-    for (const report of data) {
-      renderNotificationCard(report);
+
+    // Incremental update instead of full re-render
+    if (fromCache && container.children.length > 0) {
+      // Update existing cards incrementally
+      updateExistingCards(data);
+    } else {
+      // Full render for fresh data or empty container
+      container.innerHTML = '';
+      for (const report of data) {
+        renderNotificationCard(report);
+      }
     }
-    
+
   } catch (error) {
     console.error('Error loading reports:', error);
     statusEl.innerHTML = `
@@ -1593,7 +1636,7 @@ async function loadReports() {
         <i class="fas fa-exclamation-triangle"></i>
         <h3 style="font-size: 24px; color: #ff6b6b; margin-bottom: 10px;">Error Loading Reports</h3>
         <p style="color: #fff8dc; opacity: 0.8;">Unable to load reports. Please try again.</p>
-        <button onclick="loadReports()" style="
+        <button onclick="loadReports(true)" style="
           margin-top: 20px;
           padding: 10px 20px;
           background: #ffd700;
@@ -1607,7 +1650,91 @@ async function loadReports() {
         </button>
       </div>
     `;
+  } finally {
+    isLoading = false;
   }
+}
+
+// Function to update existing cards incrementally
+function updateExistingCards(newData) {
+  const container = document.getElementById('notificationList');
+  const existingCards = Array.from(container.children);
+
+  // Create a map of existing cards by report ID
+  const existingCardMap = new Map();
+  existingCards.forEach(card => {
+    const reportId = card.dataset.reportId;
+    if (reportId) {
+      existingCardMap.set(reportId, card);
+    }
+  });
+
+  // Update existing cards and add new ones
+  newData.forEach(report => {
+    const existingCard = existingCardMap.get(report.id);
+
+    if (existingCard) {
+      // Update existing card if data changed
+      updateCardIfChanged(existingCard, report);
+      existingCardMap.delete(report.id); // Remove from map to track processed cards
+    } else {
+      // Add new card
+      const newCard = renderNotificationCard(report);
+      container.insertBefore(newCard, container.firstChild);
+    }
+  });
+
+  // Remove cards that no longer exist in data
+  existingCardMap.forEach(card => {
+    card.remove();
+  });
+}
+
+// Function to update a card only if its data has changed
+function updateCardIfChanged(card, newReport) {
+  const currentStatus = card.querySelector('.status-badge')?.textContent?.toLowerCase();
+  const newStatus = (newReport.status || 'pending').toLowerCase();
+
+  const currentResponders = card.dataset.assignedResponders || '';
+  const newResponders = getDisplayText(newReport);
+
+  // Only update if status or responders changed
+  if (currentStatus !== getStatusText(newStatus) || currentResponders !== newResponders) {
+    // Re-render the entire card for simplicity (could be optimized further)
+    const newCard = renderNotificationCard(newReport);
+    card.parentNode.replaceChild(newCard, card);
+  }
+}
+
+// Helper function to get display text for responders
+function getDisplayText(report) {
+  const assignedResponders = report.assigned_responders || '';
+  const assignedUnit = report.assigned_unit || '';
+  const contact = report.contact || '';
+
+  let displayText = '';
+  if (assignedUnit && assignedResponders) {
+    displayText = `${assignedUnit} - ${assignedResponders}`;
+    if (contact) {
+      displayText += ` - ${contact}`;
+    }
+  } else if (assignedResponders) {
+    displayText = assignedResponders;
+    if (contact) {
+      displayText += ` - ${contact}`;
+    }
+  }
+  return displayText;
+}
+
+// Helper function to get status text
+function getStatusText(status) {
+  if (status === 'investigating' || status === 'assigned') {
+    return 'investigating';
+  } else if (status === 'resolved') {
+    return 'resolved';
+  }
+  return 'pending';
 }
 
 function renderNotificationCard(report) {
@@ -2052,14 +2179,87 @@ async function resolveIncident() {
   }
 }
 
+// ============ REAL-TIME SUBSCRIPTION ============
+function setupRealtimeSubscription() {
+  const channel = supabaseClient
+    .channel('reports_changes')
+    .on('postgres_changes', {
+      event: '*', // Listen to all events (INSERT, UPDATE, DELETE)
+      schema: 'public',
+      table: 'reports'
+    }, (payload) => {
+      console.log('Real-time update received:', payload.eventType, payload.new || payload.old);
+
+      // Force refresh reports when any change occurs
+      loadReports(true);
+
+      // Show a brief notification for new reports
+      if (payload.eventType === 'INSERT') {
+        showRealtimeNotification('New emergency report received!');
+      }
+    })
+    .subscribe((status) => {
+      console.log('Realtime subscription status:', status);
+    });
+}
+
+// ============ REAL-TIME NOTIFICATION ============
+function showRealtimeNotification(message) {
+  // Remove any existing notification
+  const existingNotification = document.querySelector('.realtime-notification');
+  if (existingNotification) {
+    existingNotification.remove();
+  }
+
+  // Create new notification
+  const notification = document.createElement('div');
+  notification.className = 'realtime-notification';
+  notification.style.cssText = `
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: linear-gradient(135deg, #e74c3c, #c0392b);
+    color: white;
+    padding: 15px 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    z-index: 10000;
+    font-weight: bold;
+    font-size: 14px;
+    animation: slideInRight 0.5s ease-out;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  `;
+
+  notification.innerHTML = `
+    <i class="fas fa-bell"></i>
+    ${message}
+  `;
+
+  document.body.appendChild(notification);
+
+  // Auto-remove after 5 seconds
+  setTimeout(() => {
+    if (notification.parentNode) {
+      notification.style.animation = 'slideOutRight 0.5s ease-in';
+      setTimeout(() => notification.remove(), 500);
+    }
+  }, 5000);
+}
+
 // ============ INITIALIZATION ============
 document.addEventListener('DOMContentLoaded', async () => {
   await getUserLocation();
   await getTableColumns();
   loadReports();
-  
-  setInterval(loadReports, 30000);
-  
+
+  // Setup real-time subscription for instant updates
+  setupRealtimeSubscription();
+
+  // Keep polling as fallback (less frequent now)
+  setInterval(loadReports, 60000); // Reduced to 1 minute since we have real-time
+
   document.getElementById('confirmRespondersBtn').onclick = assignResponders;
   document.getElementById('confirmResolveBtn').onclick = resolveIncident;
   
