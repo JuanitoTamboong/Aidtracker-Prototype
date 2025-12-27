@@ -558,6 +558,7 @@
       align-items: center;
       gap: 6px;
       backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
       animation: slideIn 0.3s ease;
     }
 
@@ -930,7 +931,7 @@
     // Supabase Configuration with Realtime enabled
     const SUPABASE_URL = 'https://gwvepxupoxyyydnisulb.supabase.co';
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd3dmVweHVwb3h5eXlkbmlzdWxiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ4MDE4ODcsImV4cCI6MjA4MDM3Nzg4N30.Ku9SXTAKNMvHilgEpxj5HcVA-0TPt4ziuEq0Irao5Qc';
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
       realtime: {
         params: {
           eventsPerSecond: 10
@@ -1053,7 +1054,7 @@
         }
         
         if (report.photo.startsWith('incident_photos/')) {
-          const { data } = supabase.storage
+          const { data } = supabaseClient.storage
             .from('incident_photos')
             .getPublicUrl(report.photo);
           
@@ -1395,12 +1396,12 @@
     function setupRealtimeSubscription() {
       // Remove existing subscription if any
       if (realtimeSubscription) {
-        supabase.removeChannel(realtimeSubscription);
+        supabaseClient.removeChannel(realtimeSubscription);
       }
 
       console.log('Setting up realtime subscription...');
-      
-      realtimeSubscription = supabase
+
+      realtimeSubscription = supabaseClient
         .channel('reports-realtime')
         .on('postgres_changes', 
           { 
@@ -1458,7 +1459,7 @@
       refreshBtn.disabled = true;
       
       try {
-        const { data, error } = await supabase
+        const { data, error } = await supabaseClient
           .from('reports')
           .select('*')
           .order('created_at', { ascending: false });
@@ -1727,7 +1728,7 @@
       refreshBtn.disabled = true;
       
       try {
-        const { data, error } = await supabase
+        const { data, error } = await supabaseClient
           .from('reports')
           .select('*')
           .order('created_at', { ascending: false });
@@ -1796,7 +1797,7 @@
     // Cleanup on page unload
     window.addEventListener('beforeunload', () => {
       if (realtimeSubscription) {
-        supabase.removeChannel(realtimeSubscription);
+        supabaseClient.removeChannel(realtimeSubscription);
       }
     });
   </script>

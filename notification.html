@@ -961,7 +961,7 @@ body {
       
       <div class="modal-section">
         <div class="modal-section-title">
-          <i class="fas fa-sticky-note"></i> Resolution Notes
+          <i class="fas fa-sticky-note"></i> Resolution Notes <span style="color: white;">(optional)</span>
         </div>
         <textarea id="resolutionNotes" class="modal-textarea" placeholder="Describe what actions were taken and the outcome..."></textarea>
       </div>
@@ -976,6 +976,7 @@ body {
       </div>
     </div>
   </div>
+
 <script>
 // ============ GLOBAL VARIABLES ============
 let currentReportId = null;
@@ -1016,7 +1017,7 @@ const defaultRespondersData = [
 
 const SUPABASE_URL = 'https://gwvepxupoxyyydnisulb.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd3dmVweHVwb3h5eXlkbmlzdWxiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ4MDE4ODcsImV4cCI6MjA4MDM3Nzg4N30.Ku9SXTAKNMvHilgEpxj5HcVA-0TPt4ziuEq0Irao5Qc';
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // ============ HELPER FUNCTIONS ============
 async function getUserLocation() {
@@ -1522,7 +1523,7 @@ async function showRouteOnMap() {
 // ============ MAIN FUNCTIONS ============
 async function getTableColumns() {
   try {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseClient
       .from('reports')
       .select('*')
       .limit(1);
@@ -1550,14 +1551,14 @@ async function loadReports() {
     // Always try to get all three responder columns
     const selectQuery = 'id, type, latitude, longitude, reporter, status, created_at, assigned_responders, assigned_unit, contact';
     
-    const { data, error } = await supabase
+    const { data, error } = await supabaseClient
       .from('reports')
       .select(selectQuery)
       .order('created_at', { ascending: false });
-    
+
     if (error) {
       // If error, try without the new columns
-      const { data: simpleData, error: simpleError } = await supabase
+      const { data: simpleData, error: simpleError } = await supabaseClient
         .from('reports')
         .select('id, type, latitude, longitude, reporter, status, created_at')
         .order('created_at', { ascending: false });
@@ -1883,7 +1884,7 @@ async function assignResponders() {
     };
     
     // Update the report in Supabase
-    const { error } = await supabase
+    const { error } = await supabaseClient
       .from('reports')
       .update(updateData)
       .eq('id', currentReportId);
@@ -1949,7 +1950,7 @@ function openQuickRouteModal(reportId, latitude, longitude, assignedResponders =
   
   // If coordinates aren't provided, we'll get them from the database
   if (!latitude || !longitude) {
-    supabase
+    supabaseClient
       .from('reports')
       .select('latitude, longitude')
       .eq('id', reportId)
@@ -1991,13 +1992,12 @@ function openResolveModal(reportId) {
 }
 
 async function resolveIncident() {
-  const status = document.getElementById('resolutionStatus').value;
-  const notes = document.getElementById('resolutionNotes').value.trim();
+  const statusSelect = document.getElementById('resolutionStatus');
+  const selectedOption = statusSelect.options[statusSelect.selectedIndex];
+  const statusValue = selectedOption.value;
+  const statusText = selectedOption.text.split(' - ')[0].trim(); // Get just the status text
   
-  if (!notes) {
-    alert('Please enter resolution notes.');
-    return;
-  }
+  const notes = document.getElementById('resolutionNotes').value.trim();
   
   try {
     const updateData = {
@@ -2005,30 +2005,42 @@ async function resolveIncident() {
       updated_at: new Date().toISOString()
     };
     
+    // Construct resolution description based on your requirements
+    let resolutionDescription = '';
+    
     if (notes) {
-      if (tableColumns.includes('description')) {
-        updateData.description = notes + ' - Resolution status: ' + status;
-      } else if (tableColumns.includes('notes')) {
-        updateData.notes = notes + ' - Resolution status: ' + status;
-      } else if (tableColumns.includes('resolution_notes')) {
-        updateData.resolution_notes = notes;
-      }
+      // If there are notes: "Resolution status: [status text] - Resolution Notes: [notes]"
+      resolutionDescription = `Resolution status: ${statusText} - Resolution Notes: ${notes}`;
+    } else {
+      // If no notes: "Resolution status: [status text]"
+      resolutionDescription = `Resolution status: ${statusText}`;
     }
     
+    // Update description field based on available columns
+    if (tableColumns.includes('description')) {
+      updateData.description = resolutionDescription;
+    } else if (tableColumns.includes('notes')) {
+      updateData.notes = resolutionDescription;
+    }
+    
+    // Set resolution_status if column exists
     if (tableColumns.includes('resolution_status')) {
-      updateData.resolution_status = status;
+      updateData.resolution_status = statusValue;
     }
     
-    const { error } = await supabase
+    const { error } = await supabaseClient
       .from('reports')
       .update(updateData)
       .eq('id', currentReportId);
     
     if (error) throw error;
     
-    //alert(`✅ Incident marked as resolved!\n\nIncident: #${currentReportId.substring(0, 8)}`);
-    
+    // Success - close modal and refresh
     closeModal('resolveModal');
+    
+    // Reset form
+    document.getElementById('resolutionStatus').selectedIndex = 0;
+    document.getElementById('resolutionNotes').value = '';
     
     setTimeout(() => {
       loadReports();
