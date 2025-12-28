@@ -1,0 +1,1805 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AidTracker - Emergency Response Dashboard</title>
+
+  <!-- Leaflet Map -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <!-- Font Awesome for icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <!-- Supabase Client -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+
+  <style>
+    :root {
+      --primary-blue: #001f3f;
+      --accent-gold: #ffd700;
+      --light-gold: #fff8dc;
+      --danger-red: #e74c3c;
+      --warning-orange: #f39c12;
+      --success-green: #2ecc71;
+      --glass-bg: rgba(255, 255, 255, 0.1);
+      --glass-border: rgba(255, 255, 255, 0.2);
+      --shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+      background: linear-gradient(135deg, var(--primary-blue), #003366);
+      background-attachment: fixed;
+      color: #fff;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    /* === Glass Morphism Effect === */
+    .glass {
+      background: var(--glass-bg);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1px solid var(--glass-border);
+      border-radius: 16px;
+      box-shadow: var(--shadow);
+    }
+
+    /* === Header === */
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      padding: 15px 20px;
+    }
+
+    .logo-area {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .logo-icon {
+      font-size: 32px;
+      color: var(--accent-gold);
+    }
+
+    .title {
+      font-size: 32px;
+      font-weight: 800;
+      color: #fff;
+      letter-spacing: 0.5px;
+    }
+
+    .title span {
+      color: var(--accent-gold);
+    }
+
+    .subtitle {
+      font-size: 14px;
+      color: var(--light-gold);
+      opacity: 0.9;
+      margin-top: 5px;
+    }
+
+    /* === Realtime Indicator === */
+    .realtime-indicator {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: var(--success-green);
+      margin-left: 10px;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.6; }
+    }
+
+    /* === Type Filter Buttons === */
+    .type-filters {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .type-btn {
+      padding: 10px 20px;
+      background: rgba(0, 0, 0, 0.3);
+      color: white;
+      border: 1px solid var(--glass-border);
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.3s;
+      font-weight: 600;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .type-btn:hover {
+      background: rgba(255, 215, 0, 0.1);
+      transform: translateY(-2px);
+    }
+
+    .type-btn.active {
+      background: var(--accent-gold);
+      color: var(--primary-blue);
+      border-color: var(--accent-gold);
+    }
+
+    .type-btn i {
+      font-size: 16px;
+    }
+
+    /* === Notification Button === */
+    .notification-btn {
+      position: relative;
+      background: var(--glass-bg);
+      border: 1px solid var(--glass-border);
+      border-radius: 12px;
+      width: 50px;
+      height: 50px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.3s;
+      color: var(--accent-gold);
+      font-size: 22px;
+    }
+
+    .notification-btn:hover {
+      background: rgba(255, 215, 0, 0.1);
+      transform: translateY(-2px);
+    }
+
+    .notif-dot {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      width: 10px;
+      height: 10px;
+      background-color: var(--danger-red);
+      border-radius: 50%;
+      display: none;
+    }
+
+    /* === Main Content === */
+    .dashboard {
+      display: grid;
+      grid-template-columns: 1fr 350px;
+      gap: 25px;
+      margin-bottom: 25px;
+      min-height: 550px;
+    }
+
+    /* === Map Container === */
+    .map-container {
+      position: relative;
+      height: 100%;
+    }
+
+    #map {
+      width: 100%;
+      height: 100%;
+      min-height: 500px;
+      border-radius: 16px;
+      border: 2px solid var(--accent-gold);
+      overflow: hidden;
+      z-index: 1;
+    }
+
+    .map-overlay {
+      position: absolute;
+      top: 15px;
+      left: 50px;
+      z-index: 1000;
+      display: flex;
+      gap: 10px;
+    }
+
+    .map-control {
+      padding: 8px 15px;
+      background: rgba(0, 0, 0, 0.7);
+      color: white;
+      border-radius: 8px;
+      font-size: 11px;
+      cursor: pointer;
+      transition: all 0.3s;
+      border: 1px solid var(--accent-gold);
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .map-control:hover {
+      background: rgba(0, 0, 0, 0.9);
+    }
+
+    /* === Stats Panel === */
+    .stats-panel {
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+      height: fit-content;
+    }
+
+    .panel-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--accent-gold);
+      margin-bottom: 5px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+    }
+
+    .stat-card {
+      padding: 15px;
+      border-radius: 12px;
+      background: rgba(0, 0, 0, 0.2);
+      text-align: center;
+      transition: transform 0.3s;
+    }
+
+    .stat-card:hover {
+      transform: translateY(-5px);
+    }
+
+    .stat-value {
+      font-size: 28px;
+      font-weight: 800;
+      margin: 5px 0;
+    }
+
+    .stat-label {
+      font-size: 13px;
+      color: var(--light-gold);
+      opacity: 0.9;
+    }
+
+    /* === Reports Table === */
+    .reports-section {
+      grid-column: 1 / -1;
+      padding: 25px;
+      margin-top: 10px;
+    }
+
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .section-title {
+      font-size: 22px;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .refresh-btn {
+      padding: 10px 20px;
+      background: var(--accent-gold);
+      color: var(--primary-blue);
+      border: none;
+      border-radius: 10px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.3s;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .refresh-btn:hover {
+      background: #ffed4e;
+      transform: translateY(-2px);
+    }
+
+    .refresh-btn:disabled {
+      opacity: 0.7;
+      cursor: not-allowed;
+    }
+
+    .table-container {
+      overflow-x: auto;
+      border-radius: 12px;
+      margin-top: 10px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th {
+      background: rgba(0, 0, 0, 0.3);
+      padding: 15px;
+      text-align: left;
+      font-weight: 700;
+      color: var(--accent-gold);
+      border-bottom: 2px solid var(--glass-border);
+    }
+
+    td {
+      padding: 15px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    tr:hover {
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .status-badge {
+      padding: 5px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .status-pending {
+      background: rgba(243, 156, 18, 0.2);
+      color: #f39c12;
+    }
+
+    .status-active {
+      background: rgba(231, 76, 60, 0.2);
+      color: #ff6b6b;
+    }
+
+    .status-resolved {
+      background: rgba(46, 204, 113, 0.2);
+      color: #2ecc71;
+    }
+
+    /* === Photo Modal === */
+    .photo-modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.95);
+      z-index: 10000;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .modal-content {
+      max-width: 90%;
+      max-height: 90%;
+      background: var(--primary-blue);
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+      border: 2px solid var(--accent-gold);
+    }
+
+    .modal-img {
+      width: 100%;
+      height: auto;
+      max-height: 70vh;
+      object-fit: contain;
+    }
+
+    .modal-header {
+      padding: 15px;
+      background: rgba(0, 0, 0, 0.7);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--accent-gold);
+    }
+
+    .modal-title {
+      font-size: 18px;
+      font-weight: bold;
+      color: var(--accent-gold);
+    }
+
+    .modal-close {
+      background: var(--danger-red);
+      color: white;
+      border: none;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      cursor: pointer;
+      font-size: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-close:hover {
+      background: #ff6b6b;
+    }
+
+    .photo-btn {
+      background: var(--accent-gold);
+      color: var(--primary-blue);
+      border: none;
+      padding: 8px 15px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: bold;
+      margin-top: 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.3s;
+    }
+
+    .photo-btn:hover {
+      background: #ffed4e;
+      transform: translateY(-2px);
+    }
+
+    /* === Loading States === */
+    .loading {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 40px;
+      font-size: 18px;
+      color: var(--light-gold);
+    }
+
+    .loading-spinner {
+      border: 4px solid rgba(255, 255, 255, 0.1);
+      border-left-color: var(--accent-gold);
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+      margin-right: 15px;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    /* === Filter Badge === */
+    .active-filter {
+      display: inline-block;
+      padding: 4px 12px;
+      background: var(--accent-gold);
+      color: var(--primary-blue);
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 700;
+      margin-left: 10px;
+      animation: pulse 2s infinite;
+    }
+
+    /* === Animations === */
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(15px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .glass, #map, .stat-card, tr {
+      animation: fadeIn 0.5s ease-out;
+    }
+
+    /* === New Report Animation === */
+    .new-report {
+      animation: highlightNew 1s ease-out;
+    }
+
+    @keyframes highlightNew {
+      0% { background-color: rgba(255, 215, 0, 0.3); }
+      100% { background-color: transparent; }
+    }
+
+    /* === Toast Notification === */
+    .toast {
+      position: fixed;
+      bottom: 30px;
+      right: 30px;
+      background: rgba(0, 0, 0, 0.85);
+      color: white;
+      padding: 15px 20px;
+      border-radius: 10px;
+      border-left: 5px solid var(--accent-gold);
+      z-index: 10000;
+      max-width: 350px;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      animation: fadeIn 0.3s ease-out;
+    }
+
+    /* === Connection Status === */
+    .connection-status {
+      position: fixed;
+      bottom: 20px;
+      left: 20px;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      animation: slideIn 0.3s ease;
+    }
+
+    @keyframes slideIn {
+      from { transform: translateX(-100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+
+    .connection-connected {
+      background: rgba(34, 197, 94, 0.2);
+      color: #86efac;
+      border: 1px solid rgba(34, 197, 94, 0.4);
+    }
+
+    .connection-disconnected {
+      background: rgba(239, 68, 68, 0.2);
+      color: #fca5a5;
+      border: 1px solid rgba(239, 68, 68, 0.4);
+    }
+
+    /* === Responsive Design === */
+    @media (max-width: 1024px) {
+      .dashboard {
+        grid-template-columns: 1fr;
+        gap: 20px;
+      }
+      
+      #map {
+        min-height: 400px;
+      }
+    }
+
+    @media (max-width: 768px) {
+      header {
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+        text-align: left;
+        gap: 15px;
+        padding: 15px 20px;
+      }
+      
+      .logo-area {
+        flex: 1;
+        min-width: 0;
+        gap: 12px;
+      }
+      
+      .logo-area > div {
+        min-width: 0;
+        overflow: hidden;
+      }
+      
+      .title {
+        font-size: 24px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        line-height: 1.2;
+      }
+      
+      .subtitle {
+        font-size: 12px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        margin-top: 2px;
+      }
+      
+      .controls-bar {
+        flex-shrink: 0;
+      }
+      
+      .notification-btn {
+        width: 46px;
+        height: 46px;
+        font-size: 20px;
+      }
+      
+      .type-filters {
+        justify-content: center;
+      }
+      
+      .type-btn {
+        padding: 8px 12px;
+        font-size: 12px;
+      }
+      
+      .stats-grid {
+        grid-template-columns: 1fr;
+      }
+      
+      .table-container {
+        font-size: 14px;
+      }
+      
+      th, td {
+        padding: 10px 8px;
+      }
+      
+      .map-overlay {
+        left: 50px;
+        right: 10px;
+        flex-wrap: wrap;
+      }
+      
+      .map-control {
+        padding: 6px 10px;
+        font-size: 10px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .container {
+        padding: 10px;
+      }
+      
+      header {
+        padding: 12px;
+        gap: 10px;
+      }
+      
+      .logo-area {
+        gap: 8px;
+      }
+      
+      .logo-icon {
+        font-size: 26px;
+      }
+      
+      .title {
+        font-size: 20px;
+      }
+      
+      .subtitle {
+        font-size: 11px;
+      }
+      
+      .notification-btn {
+        width: 42px;
+        height: 42px;
+        font-size: 18px;
+      }
+      
+      .dashboard {
+        gap: 15px;
+      }
+      
+      .stats-panel, .reports-section {
+        padding: 15px;
+      }
+      
+      .type-filters {
+        gap: 5px;
+      }
+      
+      .type-btn {
+        padding: 6px 10px;
+        font-size: 11px;
+      }
+    }
+
+    @media (max-width: 360px) {
+      header {
+        padding: 10px;
+        gap: 8px;
+      }
+      
+      .title {
+        font-size: 18px;
+      }
+      
+      .subtitle {
+        font-size: 10px;
+      }
+      
+      .logo-icon {
+        font-size: 22px;
+      }
+      
+      .notification-btn {
+        width: 38px;
+        height: 38px;
+        font-size: 16px;
+      }
+      
+      .type-btn {
+        padding: 5px 8px;
+        font-size: 10px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <!-- Photo Modal -->
+  <div id="photoModal" class="photo-modal">
+    <div class="modal-content glass">
+      <div class="modal-header">
+        <div class="modal-title" id="modalTitle">Incident Photo</div>
+        <button class="modal-close" onclick="closePhotoModal()">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <img id="modalImage" class="modal-img" src="" alt="Incident Photo">
+      <div style="padding: 15px; text-align: center;">
+        <button class="photo-btn" onclick="closePhotoModal()">
+          <i class="fas fa-times"></i> Close
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Connection Status Indicator -->
+  <div id="connectionStatus" class="connection-status" style="display: none;">
+    <i class="fas fa-circle"></i>
+    <span>Connected</span>
+  </div>
+
+  <div class="container">
+    <!-- Header -->
+    <header class="glass">
+      <div class="logo-area">
+        <div class="logo-icon">
+          <i class="fas fa-hands-helping"></i>
+        </div>
+        <div>
+          <div class="title">Aid<span>Tracker</span> 
+            <span class="realtime-indicator">
+              <i class="fas fa-broadcast-tower"></i> LIVE
+            </span>
+          </div>
+          <div class="subtitle">Emergency Response & Incident Management System</div>
+        </div>
+      </div>
+      
+      <div class="controls-bar">
+        <a href="notification.html" style="text-decoration: none;">
+          <div class="notification-btn">
+            <i class="fas fa-bell"></i>
+            <span class="notif-dot" id="notifDot"></span>
+          </div>
+        </a>
+      </div>
+    </header>
+
+    <!-- Type Filter Buttons -->
+    <div class="type-filters">
+      <button class="type-btn active" onclick="filterByType('all', this)">
+        <i class="fas fa-layer-group"></i> All Types
+      </button>
+      <button class="type-btn" onclick="filterByType('motor_accident', this)">
+        <i class="fas fa-car-crash"></i> Motor Accident
+      </button>
+      <button class="type-btn" onclick="filterByType('fire_accident', this)">
+        <i class="fas fa-fire"></i> Fire Accident
+      </button>
+      <button class="type-btn" onclick="filterByType('assault_crime', this)">
+        <i class="fas fa-user-injured"></i> Assault Crime
+      </button>
+    </div>
+
+    <!-- Dashboard -->
+    <div class="dashboard">
+      <!-- Map Container -->
+      <div class="map-container glass">
+        <div class="map-overlay">
+          <div class="map-control" onclick="fitAllMarkers()">
+            <i class="fas fa-expand"></i> Show All
+          </div>
+          <div class="map-control" onclick="clearFilters()">
+            <i class="fas fa-times"></i> Clear Filters
+          </div>
+        </div>
+        <div id="map"></div>
+      </div>
+      
+      <!-- Stats Panel -->
+      <div class="stats-panel glass">
+        <div class="panel-title">
+          <i class="fas fa-chart-bar"></i> Incident Overview
+          <span id="filterBadge" class="active-filter" style="display: none;">Filtered</span>
+        </div>
+        
+        <div class="stats-grid">
+          <div class="stat-card glass">
+            <div class="stat-value" id="totalIncidents">0</div>
+            <div class="stat-label">Total Incidents</div>
+          </div>
+          
+          <div class="stat-card glass">
+            <div class="stat-value" id="pendingIncidents">0</div>
+            <div class="stat-label">Pending</div>
+          </div>
+          
+          <div class="stat-card glass">
+            <div class="stat-value" id="filteredCount">0</div>
+            <div class="stat-label">Currently Displayed</div>
+          </div>
+          
+          <div class="stat-card glass">
+            <div class="stat-value" id="assignedIncidents">0</div>
+            <div class="stat-label">Assigned</div>
+          </div>
+        </div>
+        
+        <div class="panel-title" style="margin-top: 10px;">
+          <i class="fas fa-exclamation-triangle"></i> Incident Types
+        </div>
+        
+        <div class="stats-grid">
+          <div class="stat-card glass">
+            <div class="stat-value" id="motorAccidents">0</div>
+            <div class="stat-label">Motor Accidents</div>
+          </div>
+          
+          <div class="stat-card glass">
+            <div class="stat-value" id="fireAccidents">0</div>
+            <div class="stat-label">Fire Accidents</div>
+          </div>
+          
+          <div class="stat-card glass">
+            <div class="stat-value" id="assaultCrimes">0</div>
+            <div class="stat-label">Assault Crimes</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Reports Table -->
+    <div class="reports-section glass">
+      <div class="section-header">
+        <div class="section-title">
+          <i class="fas fa-list-alt"></i> Active Reports
+          <span id="tableFilterInfo"></span>
+        </div>
+        <button class="refresh-btn" onclick="manualRefresh()" id="refreshBtn">
+          <i class="fas fa-sync-alt"></i> Refresh
+        </button>
+      </div>
+      
+      <div class="table-container">
+        <table id="reportsTable">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Type</th>
+              <th>Location</th>
+              <th>Reporter</th>
+              <th>Time Reported</th>
+              <th>Status</th>
+              <th>Photo</th>
+            </tr>
+          </thead>
+          <tbody id="reportsTableBody">
+            <tr>
+              <td colspan="7" class="loading">
+                <div class="loading-spinner"></div>
+                <span>Loading reports from Supabase...</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ============ CONFIGURATION ============
+    // Supabase Configuration with Realtime enabled
+    const SUPABASE_URL = 'https://gwvepxupoxyyydnisulb.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd3dmVweHVwb3h5eXlkbmlzdWxiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ4MDE4ODcsImV4cCI6MjA4MDM3Nzg4N30.Ku9SXTAKNMvHilgEpxj5HcVA-0TPt4ziuEq0Irao5Qc';
+    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+      realtime: {
+        params: {
+          eventsPerSecond: 10
+        }
+      }
+    });
+
+    // OpenCage API Key
+    const OPENCAGE_API_KEY = '0a78fbd8bcd74be398f210b34682c77c';
+
+    // Map Initialization (centered on Odiongan, Romblon)
+    const map = L.map("map").setView([12.4048, 121.9829], 15);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 19,
+      attribution: "&copy; OpenStreetMap contributors",
+    }).addTo(map);
+
+    // Incident Type Configuration
+    const typeConfig = {
+      motor_accident: { 
+        name: 'Motor Accident', 
+        icon: 'car-crash', 
+        color: '#e74c3c' 
+      },
+      fire_accident: { 
+        name: 'Fire Accident', 
+        icon: 'fire', 
+        color: '#f39c12' 
+      },
+      assault_crime: { 
+        name: 'Assault Crime', 
+        icon: 'user-injured', 
+        color: '#9b59b6' 
+      }
+    };
+
+    // ============ GLOBAL VARIABLES ============
+    let markers = [];
+    let allReports = [];
+    let filteredReports = [];
+    let currentFilter = 'all';
+    let realtimeSubscription = null;
+    let addressCache = new Map();
+    let isInitialLoad = true;
+
+    // ============ CONNECTION STATUS ============
+    function updateConnectionStatus(connected) {
+      const statusEl = document.getElementById('connectionStatus');
+      if (connected) {
+        statusEl.innerHTML = '<i class="fas fa-circle"></i> Realtime Connected';
+        statusEl.className = 'connection-status connection-connected';
+        statusEl.style.display = 'flex';
+        
+        // Hide after 3 seconds
+        setTimeout(() => {
+          statusEl.style.display = 'none';
+        }, 3000);
+      } else {
+        statusEl.innerHTML = '<i class="fas fa-circle"></i> Connection Lost';
+        statusEl.className = 'connection-status connection-disconnected';
+        statusEl.style.display = 'flex';
+      }
+    }
+
+    // ============ OPENCAGE GEOCODING FUNCTIONS ============
+    async function getReadableAddress(lat, lng) {
+      try {
+        const cacheKey = `${lat.toFixed(6)},${lng.toFixed(6)}`;
+        if (addressCache.has(cacheKey)) {
+          return addressCache.get(cacheKey);
+        }
+        
+        const url = `https://api.opencagedata.com/geocode/v1/json?q=${lat}+${lng}&key=${OPENCAGE_API_KEY}&language=en&pretty=1&no_annotations=1&limit=1`;
+        
+        const response = await fetch(url);
+        const data = await response.json();
+        
+        if (data.results && data.results.length > 0) {
+          const address = data.results[0].formatted;
+          addressCache.set(cacheKey, address);
+          return address;
+        }
+        return `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+      } catch (error) {
+        console.error('Geocoding error:', error);
+        return `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+      }
+    }
+
+    // ============ PHOTO HANDLING ============
+    function showPhotoModal(imageUrl, title = 'Incident Photo') {
+      const modal = document.getElementById('photoModal');
+      const modalImg = document.getElementById('modalImage');
+      const modalTitle = document.getElementById('modalTitle');
+      
+      if (imageUrl) {
+        modalImg.src = imageUrl;
+        modalTitle.textContent = title;
+        modal.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+      } else {
+        showToast('No photo available for this incident', 'warning');
+      }
+    }
+
+    function closePhotoModal() {
+      const modal = document.getElementById('photoModal');
+      modal.style.display = 'none';
+      document.body.style.overflow = 'auto';
+    }
+
+    function getPhotoUrl(report) {
+      if (report.photo_url && report.photo_url.trim()) {
+        return report.photo_url.trim();
+      }
+      
+      if (report.photo && report.photo.trim()) {
+        if (report.photo.startsWith('data:image')) {
+          return report.photo;
+        }
+        
+        if (report.photo.startsWith('incident_photos/')) {
+          const { data } = supabaseClient.storage
+            .from('incident_photos')
+            .getPublicUrl(report.photo);
+          
+          if (data && data.publicUrl) {
+            return data.publicUrl;
+          }
+        }
+        
+        return report.photo;
+      }
+      
+      if (report.image_url && report.image_url.trim()) {
+        return report.image_url.trim();
+      }
+      
+      return null;
+    }
+
+    // ============ MAP MARKERS ============
+    function createCustomIcon(type) {
+      const config = typeConfig[type] || { name: 'Unknown', icon: 'exclamation-triangle', color: '#3498db' };
+      return L.divIcon({
+        html: `
+          <div style="
+            background-color: ${config.color};
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            border: 3px solid white;
+            box-shadow: 0 0 10px rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 14px;
+          ">
+            <i class="fas fa-${config.icon}"></i>
+          </div>
+        `,
+        className: 'custom-marker',
+        iconSize: [38, 38],
+        iconAnchor: [19, 19]
+      });
+    }
+
+    function clearMarkers() {
+      markers.forEach(marker => map.removeLayer(marker));
+      markers = [];
+    }
+
+    function addReportMarker(report, isNew = false) {
+      if (!report.latitude || !report.longitude) {
+        return null;
+      }
+      
+      const icon = createCustomIcon(report.type);
+      const marker = L.marker([report.latitude, report.longitude], { icon }).addTo(map);
+      
+      // Add animation for new markers
+      if (isNew) {
+        marker._icon.style.animation = 'pulse 1s 3';
+      }
+      
+      const status = report.status || 'pending';
+      const statusText = status.charAt(0).toUpperCase() + status.slice(1);
+      const photoUrl = getPhotoUrl(report);
+      
+      const coordinates = `${report.latitude.toFixed(6)}, ${report.longitude.toFixed(6)}`;
+      
+      const popupContent = `
+        <div style="
+          font-family: 'Segoe UI', sans-serif;
+          min-width: 320px;
+          max-width: 380px;
+          padding: 10px;
+        ">
+          <div style="
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid ${typeConfig[report.type]?.color || '#3498db'};
+          ">
+            <div style="
+              background-color: ${typeConfig[report.type]?.color || '#3498db'};
+              width: 20px;
+              height: 20px;
+              border-radius: 50%;
+            "></div>
+            <h3 style="margin: 0; color: #333; font-size: 16px; font-weight: bold;">
+              ${typeConfig[report.type]?.name || 'Unknown Incident'}
+            </h3>
+          </div>
+          
+          <div style="margin-bottom: 12px;">
+            <div style="color: #555; font-size: 11px; font-weight: 600; margin-bottom: 4px;">
+              <i class="fas fa-map-marker-alt"></i> LOCATION
+            </div>
+            <div style="color: #222; font-size: 14px; line-height: 1.4;">
+              ${report.location}
+            </div>
+            <div style="color: #777; font-size: 11px; margin-top: 3px;">
+              <i class="fas fa-crosshairs"></i> ${coordinates}
+            </div>
+          </div>
+          
+          <div style="
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin: 15px 0;
+          ">
+            <div>
+              <div style="color: #555; font-size: 11px; font-weight: 600; margin-bottom: 4px;">
+                <i class="fas fa-user"></i> REPORTER
+              </div>
+              <div style="color: #222; font-size: 13px;">
+                ${report.reporter_name}
+              </div>
+            </div>
+            
+            <div>
+              <div style="color: #555; font-size: 11px; font-weight: 600; margin-bottom: 4px;">
+                <i class="fas fa-id-card"></i> REPORT ID
+              </div>
+              <div style="color: #222; font-size: 13px; font-weight: bold;">
+                #${report.id}
+              </div>
+            </div>
+            
+            <div>
+              <div style="color: #555; font-size: 11px; font-weight: 600; margin-bottom: 4px;">
+                <i class="fas fa-clock"></i> TIME
+              </div>
+              <div style="color: #222; font-size: 13px;">
+                ${new Date(report.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+              </div>
+            </div>
+            
+            <div>
+              <div style="color: #555; font-size: 11px; font-weight: 600; margin-bottom: 4px;">
+                <i class="fas fa-calendar"></i> DATE
+              </div>
+              <div style="color: #222; font-size: 13px;">
+                ${new Date(report.created_at).toLocaleDateString()}
+              </div>
+            </div>
+          </div>
+          
+          <div style="margin-bottom: 15px;">
+            <div style="color: #555; font-size: 11px; font-weight: 600; margin-bottom: 6px;">
+              <i class="fas fa-info-circle"></i> STATUS
+            </div>
+            <div style="
+              display: inline-block;
+              padding: 6px 14px;
+              border-radius: 20px;
+              font-size: 12px;
+              font-weight: bold;
+              background-color: ${getStatusColor(status).bg};
+              color: ${getStatusColor(status).text};
+            ">
+              ${statusText}
+            </div>
+          </div>
+          
+          ${photoUrl ? `
+            <div style="margin-bottom: 15px;">
+              <div style="color: #555; font-size: 11px; font-weight: 600; margin-bottom: 6px;">
+                <i class="fas fa-camera"></i> INCIDENT PHOTO
+              </div>
+              <div style="
+                background: #f5f5f5;
+                border-radius: 8px;
+                padding: 8px;
+                text-align: center;
+                cursor: pointer;
+                border: 1px solid #ddd;
+              " onclick="showPhotoModal('${photoUrl}', 'Report #${report.id} - ${typeConfig[report.type]?.name}')">
+                <img src="${photoUrl}" 
+                  style="
+                    max-width: 100%;
+                    max-height: 150px;
+                    border-radius: 6px;
+                    margin-bottom: 8px;
+                  "
+                  onerror="this.onerror=null; this.src='https://via.placeholder.com/300x150/cccccc/666666?text=Photo+Not+Available';"
+                >
+                <div style="color: #666; font-size: 12px; margin-top: 5px;">
+                  <i class="fas fa-search-plus"></i> Click to view full photo
+                </div>
+              </div>
+            </div>
+          ` : ''}
+          
+          ${report.description ? `
+            <div style="
+              margin-top: 15px;
+              padding-top: 15px;
+              border-top: 1px solid #eee;
+            ">
+              <div style="color: #555; font-size: 11px; font-weight: 600; margin-bottom: 6px;">
+                <i class="fas fa-file-alt"></i> DESCRIPTION
+              </div>
+              <div style="
+                color: #222;
+                font-size: 13px;
+                line-height: 1.5;
+                max-height: 100px;
+                overflow-y: auto;
+                padding: 8px;
+                background: #f9f9f9;
+                border-radius: 6px;
+              ">
+                "${report.description}"
+              </div>
+            </div>
+          ` : ''}
+        </div>
+      `;
+      
+      marker.bindPopup(popupContent);
+      markers.push(marker);
+      return marker;
+    }
+
+    function getStatusColor(status) {
+      switch(status) {
+        case 'pending': return { bg: '#fff3cd', text: '#856404' };
+        case 'investigating': return { bg: '#d1ecf1', text: '#0c5460' };
+        case 'resolved': return { bg: '#d4edda', text: '#155724' };
+        default: return { bg: '#f8d7da', text: '#721c24' };
+      }
+    }
+
+    // ============ DATA PROCESSING ============
+    async function processReport(rawReport) {
+      // Determine incident type
+      let incidentType = 'motor_accident';
+      const dbType = (rawReport.type || '').toString().toLowerCase().trim();
+      
+      if (dbType.includes('fire')) incidentType = 'fire_accident';
+      else if (dbType.includes('assault') || dbType.includes('crime')) incidentType = 'assault_crime';
+      else if (dbType.includes('motor') || dbType.includes('accident') || dbType === 'accident') incidentType = 'motor_accident';
+      
+      // Get location
+      const lat = parseFloat(rawReport.latitude);
+      const lng = parseFloat(rawReport.longitude);
+      let location = 'Location not specified';
+      
+      if (!isNaN(lat) && !isNaN(lng)) {
+        try {
+          location = await getReadableAddress(lat, lng);
+        } catch (error) {
+          location = `Coordinates: ${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+        }
+      } else if (rawReport.location_name && rawReport.location_name.trim()) {
+        location = rawReport.location_name.trim();
+      } else if (rawReport.location && rawReport.location.trim()) {
+        location = rawReport.location.trim();
+      }
+      
+      const reporterName = rawReport.reporter || rawReport.reporter_name || rawReport.name || rawReport.reporter_email || 'Anonymous';
+      const photoUrl = getPhotoUrl(rawReport);
+      
+      return {
+        id: rawReport.id,
+        type: incidentType,
+        location: location,
+        reporter_name: reporterName,
+        created_at: rawReport.created_at || new Date().toISOString(),
+        status: (rawReport.status || 'pending').toLowerCase(),
+        latitude: lat,
+        longitude: lng,
+        description: rawReport.description || rawReport.details || rawReport.incident_details || '',
+        photo_url: photoUrl,
+        photo: rawReport.photo || rawReport.photo_url || rawReport.image_url || null,
+        original_data: rawReport
+      };
+    }
+
+    // ============ REALTIME DATA HANDLING ============
+    async function addNewReport(reportData) {
+      const processedReport = await processReport(reportData);
+      
+      // Add to allReports
+      const existingIndex = allReports.findIndex(r => r.id === processedReport.id);
+      if (existingIndex >= 0) {
+        allReports[existingIndex] = processedReport;
+      } else {
+        allReports.unshift(processedReport);
+        showToast(`New ${typeConfig[processedReport.type]?.name || 'incident'} reported`, 'info');
+      }
+      
+      applyFilters();
+      
+      // Highlight new report in table
+      highlightNewReport(processedReport.id);
+    }
+
+    function updateExistingReport(reportData) {
+      const index = allReports.findIndex(r => r.id === reportData.id);
+      if (index >= 0) {
+        // Update existing report
+        processReport(reportData).then(updatedReport => {
+          allReports[index] = updatedReport;
+          applyFilters();
+          
+          // If status changed, show toast
+          const oldStatus = allReports[index].status;
+          if (oldStatus !== updatedReport.status) {
+            showToast(`Report #${reportData.id} status updated to ${updatedReport.status}`, 'warning');
+          }
+        });
+      }
+    }
+
+    function removeReport(reportId) {
+      const index = allReports.findIndex(r => r.id === reportId);
+      if (index >= 0) {
+        allReports.splice(index, 1);
+        applyFilters();
+        showToast(`Report #${reportId} removed`, 'warning');
+      }
+    }
+
+    function highlightNewReport(reportId) {
+      const tableRow = document.querySelector(`tr[data-report-id="${reportId}"]`);
+      if (tableRow) {
+        tableRow.classList.add('new-report');
+        setTimeout(() => {
+          tableRow.classList.remove('new-report');
+        }, 1000);
+      }
+    }
+
+    // ============ REALTIME SUBSCRIPTION ============
+    function setupRealtimeSubscription() {
+      // Remove existing subscription if any
+      if (realtimeSubscription) {
+        supabaseClient.removeChannel(realtimeSubscription);
+      }
+
+      console.log('Setting up realtime subscription...');
+
+      realtimeSubscription = supabaseClient
+        .channel('reports-realtime')
+        .on('postgres_changes', 
+          { 
+            event: '*', 
+            schema: 'public', 
+            table: 'reports' 
+          }, 
+          (payload) => {
+            console.log('Realtime update:', payload);
+            
+            if (payload.eventType === 'INSERT') {
+              addNewReport(payload.new);
+            } else if (payload.eventType === 'UPDATE') {
+              updateExistingReport(payload.new);
+            } else if (payload.eventType === 'DELETE') {
+              removeReport(payload.old.id);
+            }
+            
+            updateConnectionStatus(true);
+          }
+        )
+        .subscribe((status) => {
+          console.log('Realtime subscription status:', status);
+          
+          if (status === 'SUBSCRIBED') {
+            updateConnectionStatus(true);
+          } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+            updateConnectionStatus(false);
+            // Try to reconnect after 5 seconds
+            setTimeout(() => {
+              if (realtimeSubscription) {
+                realtimeSubscription.unsubscribe();
+                setupRealtimeSubscription();
+              }
+            }, 5000);
+          }
+        });
+    }
+
+    // ============ INITIAL DATA LOAD ============
+    async function loadInitialData() {
+      const tableBody = document.getElementById('reportsTableBody');
+      const refreshBtn = document.getElementById('refreshBtn');
+      
+      tableBody.innerHTML = `
+        <tr>
+          <td colspan="7" class="loading">
+            <div class="loading-spinner"></div>
+            <span>Loading reports from Supabase...</span>
+          </td>
+        </tr>
+      `;
+      
+      refreshBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading...';
+      refreshBtn.disabled = true;
+      
+      try {
+        const { data, error } = await supabaseClient
+          .from('reports')
+          .select('*')
+          .order('created_at', { ascending: false });
+        
+        if (error) throw error;
+        
+        if (data && data.length > 0) {
+          // Process all reports
+          const reportPromises = data.map(processReport);
+          allReports = await Promise.all(reportPromises);
+          
+          // Setup realtime updates
+          setupRealtimeSubscription();
+          
+          // Apply initial filters
+          applyFilters();
+          
+          // Update statistics
+          updateStatistics();
+          
+          showToast(`Loaded ${allReports.length} reports. Realtime updates enabled.`, 'success');
+        } else {
+          allReports = [];
+          applyFilters();
+          showToast('No emergency reports found.', 'info');
+        }
+        
+      } catch (error) {
+        console.error('Error loading reports:', error);
+        
+        allReports = [];
+        applyFilters();
+        showToast(`Error loading reports: ${error.message}`, 'error');
+        
+      } finally {
+        refreshBtn.innerHTML = '<i class="fas fa-sync-alt"></i> Refresh';
+        refreshBtn.disabled = false;
+        isInitialLoad = false;
+      }
+    }
+
+    // ============ FILTERS ============
+    function applyFilters() {
+      clearMarkers();
+      
+      filteredReports = allReports.filter(report => {
+        if (currentFilter !== 'all' && report.type !== currentFilter) {
+          return false;
+        }
+        return true;
+      });
+      
+      // Add markers for filtered reports
+      filteredReports.forEach(report => {
+        addReportMarker(report);
+      });
+      
+      updateTable();
+      updateStatistics();
+      updateFilterIndicators();
+      
+      // Auto-zoom if needed
+      if (!isInitialLoad && filteredReports.length > 0) {
+        const validMarkers = markers.filter(marker => marker.getLatLng());
+        if (validMarkers.length > 0) {
+          const group = new L.featureGroup(validMarkers);
+          map.fitBounds(group.getBounds().pad(0.1));
+        }
+      }
+    }
+
+    function filterByType(type, buttonElement) {
+      document.querySelectorAll('.type-btn').forEach(btn => btn.classList.remove('active'));
+      if (buttonElement) buttonElement.classList.add('active');
+      currentFilter = type;
+      applyFilters();
+    }
+
+    function clearFilters() {
+      currentFilter = 'all';
+      document.querySelectorAll('.type-btn').forEach(btn => btn.classList.remove('active'));
+      document.querySelector('.type-btn[onclick*="filterByType(\'all\'"]').classList.add('active');
+      applyFilters();
+    }
+
+    function fitAllMarkers() {
+      const validMarkers = markers.filter(marker => marker.getLatLng());
+      if (validMarkers.length > 0) {
+        const group = new L.featureGroup(validMarkers);
+        map.fitBounds(group.getBounds().pad(0.1));
+        showToast('Zoomed to show all incidents', 'info');
+      } else {
+        showToast('No incidents to display', 'warning');
+      }
+    }
+
+    // ============ UI UPDATES ============
+    function updateStatistics() {
+      const total = allReports.length;
+      const pending = allReports.filter(r => r.status === 'pending').length;
+      const filtered = filteredReports.length;
+      const assigned = allReports.filter(r => r.status === 'investigating' || r.status === 'resolved').length;
+      
+      const motorAccidents = allReports.filter(r => r.type === 'motor_accident').length;
+      const fireAccidents = allReports.filter(r => r.type === 'fire_accident').length;
+      const assaultCrimes = allReports.filter(r => r.type === 'assault_crime').length;
+      
+      document.getElementById('totalIncidents').textContent = total;
+      document.getElementById('pendingIncidents').textContent = pending;
+      document.getElementById('filteredCount').textContent = filtered;
+      document.getElementById('assignedIncidents').textContent = assigned;
+      
+      document.getElementById('motorAccidents').textContent = motorAccidents;
+      document.getElementById('fireAccidents').textContent = fireAccidents;
+      document.getElementById('assaultCrimes').textContent = assaultCrimes;
+      
+      // Update notification dot
+      const notifDot = document.getElementById('notifDot');
+      if (pending > 0) {
+        notifDot.style.display = 'block';
+        notifDot.title = `${pending} pending incidents`;
+      } else {
+        notifDot.style.display = 'none';
+      }
+    }
+
+    function updateTable() {
+      const tableBody = document.getElementById('reportsTableBody');
+      
+      if (filteredReports.length === 0) {
+        tableBody.innerHTML = `
+          <tr>
+            <td colspan="7" style="text-align: center; padding: 50px; color: var(--light-gold);">
+              <i class="fas fa-search" style="font-size: 36px; margin-bottom: 15px; opacity: 0.5;"></i>
+              <br>
+              ${allReports.length === 0 ? 
+                'No emergency reports in database yet.' : 
+                'No reports match the current filters.'}
+              <br>
+              <small style="opacity: 0.7; margin-top: 10px; display: block;">
+                ${allReports.length === 0 ? 
+                  'Submit emergency reports using the mobile app.' : 
+                  'Try clearing filters or selecting a different incident type.'}
+              </small>
+            </td>
+          </tr>
+        `;
+        return;
+      }
+      
+      const sortedReports = [...filteredReports].sort((a, b) => 
+        new Date(b.created_at) - new Date(a.created_at)
+      );
+      
+      tableBody.innerHTML = sortedReports.map(report => {
+        const photoUrl = getPhotoUrl(report);
+        
+        return `
+          <tr data-report-id="${report.id}">
+            <td><strong>#${report.id}</strong></td>
+            <td>
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <div style="
+                  width: 12px;
+                  height: 12px;
+                  border-radius: 50%;
+                  background-color: ${typeConfig[report.type]?.color || '#3498db'};
+                "></div>
+                ${typeConfig[report.type]?.name || 'Unknown'}
+              </div>
+            </td>
+            <td>
+              <div style="max-width: 200px;" title="${report.location}">
+                ${report.location}
+                ${report.latitude && report.longitude ? `
+                  <div style="font-size: 11px; color: #ffd700; opacity: 0.7; margin-top: 3px;">
+                    <i class="fas fa-crosshairs"></i> ${report.latitude.toFixed(4)}, ${report.longitude.toFixed(4)}
+                  </div>
+                ` : ''}
+              </div>
+            </td>
+            <td>${report.reporter_name}</td>
+            <td>${new Date(report.created_at).toLocaleString()}</td>
+            <td>
+              <span class="status-badge" style="
+                ${report.status === 'pending' ? 
+                  'background: rgba(243, 156, 18, 0.2); color: #f39c12;' : 
+                 report.status === 'investigating' ? 
+                  'background: rgba(231, 76, 60, 0.2); color: #e74c3c;' :
+                 report.status === 'resolved' ? 
+                  'background: rgba(46, 204, 113, 0.2); color: #2ecc71;' :
+                  'background: rgba(149, 165, 166, 0.2); color: #95a5a6;'}
+              ">
+                ${report.status ? report.status.charAt(0).toUpperCase() + report.status.slice(1) : 'Pending'}
+              </span>
+            </td>
+            <td>
+              ${photoUrl ? `
+                <button class="photo-btn" onclick="showPhotoModal('${photoUrl}', 'Report #${report.id}')" style="padding: 6px 12px; font-size: 12px;">
+                  <i class="fas fa-camera"></i> View
+                </button>
+              ` : `
+                <span style="color: #95a5a6; font-size: 12px;">No photo</span>
+              `}
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function updateFilterIndicators() {
+      const filterBadge = document.getElementById('filterBadge');
+      const tableFilterInfo = document.getElementById('tableFilterInfo');
+      
+      if (currentFilter === 'all') {
+        filterBadge.style.display = 'none';
+        tableFilterInfo.textContent = '';
+      } else {
+        filterBadge.style.display = 'inline-block';
+        tableFilterInfo.textContent = ` (Filtered: ${typeConfig[currentFilter]?.name || currentFilter})`;
+      }
+    }
+
+    function showToast(message, type = 'info') {
+      const colors = {
+        info: 'var(--accent-gold)',
+        success: 'var(--success-green)',
+        error: 'var(--danger-red)',
+        warning: 'var(--warning-orange)'
+      };
+      
+      const icons = {
+        info: 'info-circle',
+        success: 'check-circle',
+        error: 'exclamation-circle',
+        warning: 'exclamation-triangle'
+      };
+      
+      const existingToast = document.querySelector('.toast');
+      if (existingToast) existingToast.remove();
+      
+      const toast = document.createElement('div');
+      toast.className = 'toast';
+      toast.innerHTML = `
+        <i class="fas fa-${icons[type]}" style="color: ${colors[type]}; font-size: 18px;"></i>
+        <span style="font-size: 14px;">${message}</span>
+      `;
+      
+      document.body.appendChild(toast);
+      
+      setTimeout(() => {
+        if (toast.parentNode) {
+          toast.style.opacity = '0';
+          toast.style.transform = 'translateY(10px)';
+          setTimeout(() => {
+            if (toast.parentNode) toast.parentNode.removeChild(toast);
+          }, 300);
+        }
+      }, 3000);
+    }
+
+    // ============ MANUAL REFRESH ============
+    async function manualRefresh() {
+      const refreshBtn = document.getElementById('refreshBtn');
+      refreshBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Refreshing...';
+      refreshBtn.disabled = true;
+      
+      try {
+        const { data, error } = await supabaseClient
+          .from('reports')
+          .select('*')
+          .order('created_at', { ascending: false });
+        
+        if (error) throw error;
+        
+        if (data && data.length > 0) {
+          const reportPromises = data.map(processReport);
+          allReports = await Promise.all(reportPromises);
+          applyFilters();
+          showToast(`Refreshed ${allReports.length} reports`, 'success');
+        } else {
+          allReports = [];
+          applyFilters();
+        }
+        
+      } catch (error) {
+        console.error('Refresh error:', error);
+        showToast('Refresh failed', 'error');
+        
+      } finally {
+        setTimeout(() => {
+          refreshBtn.innerHTML = '<i class="fas fa-sync-alt"></i> Refresh';
+          refreshBtn.disabled = false;
+        }, 1000);
+      }
+    }
+
+    // ============ INITIALIZATION ============
+    document.addEventListener('DOMContentLoaded', () => {
+      console.log('🚀 AidTracker Dashboard Initializing...');
+      
+      // Load initial data
+      loadInitialData();
+      
+      // Keyboard shortcuts
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'r' && (e.ctrlKey || e.metaKey)) {
+          e.preventDefault();
+          manualRefresh();
+        }
+        if (e.key === 'Escape') {
+          const modal = document.getElementById('photoModal');
+          if (modal.style.display === 'flex') {
+            closePhotoModal();
+          } else {
+            clearFilters();
+          }
+        }
+        if (e.key >= '1' && e.key <= '4') {
+          const buttons = document.querySelectorAll('.type-btn');
+          const index = parseInt(e.key) - 1;
+          if (buttons[index]) buttons[index].click();
+        }
+      });
+      
+      // Handle page visibility changes
+      document.addEventListener('visibilitychange', () => {
+        if (!document.hidden && realtimeSubscription) {
+          // Page became visible, ensure subscription is active
+          setupRealtimeSubscription();
+        }
+      });
+    });
+
+    // Cleanup on page unload
+    window.addEventListener('beforeunload', () => {
+      if (realtimeSubscription) {
+        supabaseClient.removeChannel(realtimeSubscription);
+      }
+    });
+  </script>
+</body>
+</html>
