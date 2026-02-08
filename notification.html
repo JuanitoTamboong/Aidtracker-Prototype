@@ -96,7 +96,7 @@ body {
   margin-bottom: 10px;
 }
 
-.motor-accident {
+.vehicular-accident {
   background: rgba(231, 76, 60, 0.2);
   color: #e74c3c;
 }
@@ -109,6 +109,11 @@ body {
 .assault-crime {
   background: rgba(155, 89, 182, 0.2);
   color: #9b59b6;
+}
+
+.medical-emergency {
+  background: rgba(255, 20, 147, 0.2);
+  color: #ff1493;
 }
 
 .reporter-info {
@@ -1740,12 +1745,12 @@ function getStatusText(status) {
 function renderNotificationCard(report) {
   const container = document.getElementById('notificationList');
   
-  let incidentType = 'motor_accident';
-  let incidentTypeName = 'MOTOR ACCIDENT';
-  let incidentClass = 'motor-accident';
-  
+  let incidentType = 'vehicular_accident';
+  let incidentTypeName = 'VEHICULAR ACCIDENT';
+  let incidentClass = 'vehicular-accident';
+
   const dbType = (report.type || '').toString().toLowerCase().trim();
-  
+
   if (dbType.includes('fire')) {
     incidentType = 'fire_accident';
     incidentTypeName = 'FIRE ACCIDENT';
@@ -1754,6 +1759,14 @@ function renderNotificationCard(report) {
     incidentType = 'assault_crime';
     incidentTypeName = 'ASSAULT CRIME';
     incidentClass = 'assault-crime';
+  } else if (dbType.includes('medical') || dbType.includes('emergency')) {
+    incidentType = 'medical_emergency';
+    incidentTypeName = 'MEDICAL EMERGENCY';
+    incidentClass = 'medical-emergency';
+  } else if (dbType.includes('motor') || dbType.includes('accident') || dbType === 'accident') {
+    incidentType = 'vehicular_accident';
+    incidentTypeName = 'VEHICULAR ACCIDENT';
+    incidentClass = 'vehicular-accident';
   }
   
   const reporterName = report.reporter || report.reporter_name || report.name || 'Anonymous';

@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Secure Login | AidTracker Emergency Response</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    :root {
+      --primary-blue: #0a2540;
+      --primary-light: #1a73e8;
+      --accent-teal: #00c1d4;
+      --accent-red: #ea4335;
+      --gray-50: #f8fafc;
+      --gray-100: #f1f5f9;
+      --gray-200: #e2e8f0;
+      --gray-300: #cbd5e1;
+      --gray-600: #475569;
+      --gray-700: #334155;
+      --gray-800: #1e293b;
+      --gray-900: #0f172a;
+      --glass-bg: rgba(255, 255, 255, 0.05);
+      --glass-border: rgba(255, 255, 255, 0.1);
+      --shadow-lg: 0 20px 40px -12px rgba(0, 0, 0, 0.25);
+      --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.12);
+      --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.08);
+      --radius-lg: 16px;
+      --radius-md: 10px;
+      --radius-sm: 6px;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', Roboto, Oxygen, Ubuntu, sans-serif;
+      background: linear-gradient(135deg, #0a2540 0%, #1e3a8a 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      color: var(--gray-800);
+      line-height: 1.6;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: 
+        radial-gradient(circle at 20% 80%, rgba(0, 193, 212, 0.1) 0%, transparent 50%),
+        radial-gradient(circle at 80% 20%, rgba(26, 115, 232, 0.1) 0%, transparent 50%);
+      z-index: 1;
+    }
+
+    .login-container {
+      width: 100%;
+      max-width: 440px;
+      position: relative;
+      z-index: 2;
+    }
+
+    .login-card {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(20px);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-lg);
+      padding: 50px 40px;
+      position: relative;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .login-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 4px;
+    }
+
+    .security-badge {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background: var(--primary-blue);
+      color: white;
+      padding: 6px 12px;
+      border-radius: var(--radius-sm);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .security-badge i {
+      font-size: 10px;
+    }
+
+    .brand-header {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+
+    .brand-logo {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .logo-icon {
+      width: 44px;
+      height: 44px;
+      background: linear-gradient(135deg, var(--primary-blue), var(--primary-light));
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 12px rgba(26, 115, 232, 0.3);
+    }
+
+    .logo-icon i {
+      font-size: 20px;
+      color: white;
+    }
+
+    .brand-name {
+      font-size: 28px;
+      font-weight: 700;
+      background: linear-gradient(to right, var(--primary-blue), var(--primary-light));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      letter-spacing: -0.5px;
+    }
+
+    .brand-tagline {
+      color: var(--gray-600);
+      font-size: 14px;
+      font-weight: 500;
+      letter-spacing: 0.3px;
+      text-transform: uppercase;
+    }
+
+    .form-header {
+      text-align: center;
+      margin-bottom: 36px;
+    }
+
+    .form-title {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--gray-900);
+      margin-bottom: 8px;
+    }
+
+    .form-subtitle {
+      color: var(--gray-600);
+      font-size: 14px;
+      font-weight: 400;
+    }
+
+    .form-group {
+      margin-bottom: 24px;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--gray-700);
+      margin-bottom: 8px;
+    }
+
+    .input-group {
+      position: relative;
+    }
+
+    .form-input {
+      width: 100%;
+      padding: 16px 48px 16px 16px;
+      border: 1px solid var(--gray-300);
+      border-radius: var(--radius-md);
+      font-size: 15px;
+      color: var(--gray-800);
+      background: white;
+      transition: all 0.2s ease;
+      font-family: 'Inter', sans-serif;
+    }
+
+    .form-input:focus {
+      outline: none;
+      border-color: var(--primary-light);
+      background: white;
+      box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.1);
+    }
+
+    .form-input::placeholder {
+      color: var(--gray-600);
+      opacity: 0.6;
+    }
+
+    .input-icon {
+      position: absolute;
+      right: 16px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--gray-600);
+      font-size: 16px;
+    }
+
+    .password-toggle {
+      position: absolute;
+      right: 16px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      color: var(--gray-600);
+      cursor: pointer;
+      font-size: 16px;
+      transition: color 0.2s;
+      padding: 4px;
+      z-index: 2;
+    }
+
+    .password-toggle:hover {
+      color: var(--primary-light);
+    }
+
+    .login-btn {
+      width: 100%;
+      padding: 16px;
+      background: linear-gradient(to right, var(--primary-blue), var(--primary-light));
+      color: white;
+      border: none;
+      border-radius: var(--radius-md);
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      margin-top: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      font-family: 'Inter', sans-serif;
+      letter-spacing: 0.3px;
+    }
+
+    .login-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 8px 20px rgba(26, 115, 232, 0.3);
+    }
+
+    .login-btn:active {
+      transform: translateY(0);
+    }
+
+    .login-btn:disabled {
+      opacity: 0.7;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
+    .error-message {
+      background: linear-gradient(to right, #fff5f5, #fed7d7);
+      color: var(--accent-red);
+      padding: 14px 16px;
+      border-radius: var(--radius-md);
+      margin-top: 20px;
+      font-size: 14px;
+      display: none;
+      border-left: 4px solid var(--accent-red);
+      animation: slideIn 0.3s ease;
+    }
+
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateY(-10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .success-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(10, 37, 64, 0.95);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      backdrop-filter: blur(8px);
+    }
+
+    .success-modal.active {
+      display: flex;
+      animation: fadeIn 0.3s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    .modal-content {
+      background: white;
+      border-radius: var(--radius-lg);
+      padding: 50px 40px;
+      max-width: 400px;
+      width: 90%;
+      text-align: center;
+      box-shadow: var(--shadow-lg);
+      animation: modalSlideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    @keyframes modalSlideIn {
+      from {
+        opacity: 0;
+        transform: translateY(30px) scale(0.95);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    .modal-icon {
+      width: 80px;
+      height: 80px;
+      background: linear-gradient(135deg, #10b981, #00e676);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 30px;
+    }
+
+    .modal-icon i {
+      font-size: 36px;
+      color: white;
+    }
+
+    .modal-title {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--gray-900);
+      margin-bottom: 12px;
+    }
+
+    .modal-message {
+      font-size: 15px;
+      color: var(--gray-600);
+      margin-bottom: 30px;
+      line-height: 1.5;
+    }
+
+    .modal-continue-btn {
+      background: linear-gradient(to right, var(--primary-blue), var(--primary-light));
+      color: white;
+      border: none;
+      border-radius: var(--radius-md);
+      padding: 14px 32px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .modal-continue-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 8px 20px rgba(26, 115, 232, 0.3);
+    }
+
+    .spinner {
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .copyright {
+      text-align: center;
+      color: rgba(255, 255, 255, 0.7);
+      font-size: 12px;
+      margin-top: 24px;
+      position: relative;
+      z-index: 2;
+    }
+
+    .system-version {
+      text-align: center;
+      color: rgba(255, 255, 255, 0.5);
+      font-size: 11px;
+      margin-top: 8px;
+      font-family: 'Courier New', monospace;
+      letter-spacing: 0.5px;
+    }
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+      .login-card {
+        padding: 40px 30px;
+      }
+      
+      .brand-name {
+        font-size: 24px;
+      }
+      
+      .form-title {
+        font-size: 22px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .login-card {
+        padding: 32px 24px;
+      }
+      
+      .brand-name {
+        font-size: 22px;
+      }
+      
+      .security-badge {
+        top: 16px;
+        right: 16px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="login-container">
+    <div class="login-card">
+      <div class="security-badge">
+        <i class="fas fa-lock"></i>
+        <span>SECURE LOGIN</span>
+      </div>
+
+      <div class="brand-header">
+        <div class="brand-logo">
+          <div class="logo-icon">
+            <i class="fas fa-shield-alt"></i>
+          </div>
+          <div class="brand-name">AidTracker</div>
+        </div>
+        <div class="brand-tagline">Emergency Response Platform</div>
+      </div>
+
+      <div class="form-header">
+        <h2 class="form-title">Secure Authentication</h2>
+        <p class="form-subtitle">Enter your credentials to access the system</p>
+      </div>
+
+      <form id="loginForm">
+        <div class="form-group">
+          <label class="form-label" for="email">
+            Email Address
+          </label>
+          <div class="input-group">
+            <input
+              type="email"
+              id="email"
+              name="email"
+              class="form-input"
+              placeholder="Enter your email address"
+              required
+              autocomplete="email"
+              autofocus
+            />
+            <div class="input-icon">
+              <i class="fas fa-envelope"></i>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="password">
+            Password
+          </label>
+          <div class="input-group">
+            <input
+              type="password"
+              id="password"
+              name="password"
+              class="form-input"
+              placeholder="Enter your password"
+              required
+              autocomplete="current-password"
+            />
+            <button type="button" class="password-toggle" id="passwordToggle">
+              <i class="far fa-eye"></i>
+            </button>
+          </div>
+        </div>
+
+        <button type="submit" class="login-btn" id="loginBtn">
+          <i class="fas fa-lock"></i>
+          Sign In
+        </button>
+      </form>
+
+      <div class="error-message" id="errorMessage"></div>
+    </div>
+
+  <!-- Success Modal -->
+  <div class="success-modal" id="successModal">
+    <div class="modal-content">
+      <div class="modal-icon">
+        <i class="fas fa-check"></i>
+      </div>
+      <div class="modal-title">Authentication Successful</div>
+      <div class="modal-message" id="modalMessage">
+        Security credentials verified. You are being redirected to your dashboard.
+      </div>
+      <button class="modal-continue-btn" id="modalContinueBtn">
+        <i class="fas fa-arrow-right"></i>
+        Continue to Dashboard
+      </button>
+    </div>
+  </div>
+
+  <script>
+    // Supabase Configuration
+    const SUPABASE_URL = 'https://gwvepxupoxyyydnisulb.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd3dmVweHVwb3h5eXlkbmlzdWxiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ4MDE4ODcsImV4cCI6MjA4MDM3Nzg4N30.Ku9SXTAKNMvHilgEpxj5HcVA-0TPt4ziuEq0Irao5Qc';
+
+    // Initialize Supabase client
+    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    // Admin email to station mapping
+    const adminStationMapping = {
+      'policeadmin@gmail.com': 'police',
+      'fireadmin@gmail.com': 'fire',
+      'medicaladmin@gmail.com': 'ambulance'
+    };
+
+    // Admin passwords for demo (In production, these would be in Supabase)
+    const ADMIN_PASSWORDS = {
+      'policeadmin@gmail.com': 'Police1234!',
+      'fireadmin@gmail.com': 'Fire1234!',
+      'medicaladmin@gmail.com': 'Medical1234!'
+    };
+
+    // Toggle password visibility
+    document.getElementById('passwordToggle').addEventListener('click', function() {
+      const passwordInput = document.getElementById('password');
+      const icon = this.querySelector('i');
+      
+      if (passwordInput.type === 'password') {
+        passwordInput.type = 'text';
+        icon.classList.remove('fa-eye');
+        icon.classList.add('fa-eye-slash');
+      } else {
+        passwordInput.type = 'password';
+        icon.classList.remove('fa-eye-slash');
+        icon.classList.add('fa-eye');
+      }
+    });
+
+    // Handle login form submission
+    document.getElementById('loginForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
+      const loginBtn = document.getElementById('loginBtn');
+      const errorMessage = document.getElementById('errorMessage');
+      const successModal = document.getElementById('successModal');
+      const modalMessage = document.getElementById('modalMessage');
+
+      // Reset error message
+      errorMessage.style.display = 'none';
+      errorMessage.textContent = '';
+
+      // Disable button
+      loginBtn.disabled = true;
+      loginBtn.innerHTML = '<i class="fas fa-spinner spinner"></i> Authenticating...';
+
+      // Add slight delay for UX
+      await new Promise(resolve => setTimeout(resolve, 300));
+
+      try {
+        const station = adminStationMapping[email];
+        const isAdmin = !!station;
+
+        if (isAdmin) {
+          // Admin login
+          if (password !== ADMIN_PASSWORDS[email]) {
+            throw new Error('Invalid credentials. Please check your email and password.');
+          }
+
+          const userData = {
+            email: email,
+            station: station,
+            role: 'admin',
+            token: 'secure-token-' + Date.now(),
+            isAdmin: true,
+            loginTime: new Date().toISOString()
+          };
+
+          // Store user data
+          localStorage.setItem('user', JSON.stringify(userData));
+
+          // Show success modal
+          modalMessage.textContent = `Welcome, ${station.charAt(0).toUpperCase() + station.slice(1)} Administrator. Redirecting to ${station} dashboard.`;
+          successModal.classList.add('active');
+
+          // Set up modal continue button
+          document.getElementById('modalContinueBtn').onclick = function() {
+            window.location.href = `${userData.station}.html?token=${userData.token}&auth=secure`;
+          };
+        } else {
+          // Regular user login via Supabase
+          const { data, error } = await supabaseClient.auth.signInWithPassword({
+            email: email,
+            password: password
+          });
+
+          if (error) {
+            console.error('Login error:', error);
+            throw new Error('Invalid credentials. Please check your email and password.');
+          }
+
+          if (data && data.user) {
+            // Store user data
+            localStorage.setItem('user', JSON.stringify({
+              email: data.user.email,
+              station: null,
+              role: 'user',
+              token: data.session.access_token,
+              isAdmin: false,
+              loginTime: new Date().toISOString()
+            }));
+
+            // Show success modal
+            modalMessage.textContent = `Welcome back, ${data.user.email}. You're being redirected to your dashboard.`;
+            successModal.classList.add('active');
+
+            // Set up modal continue button
+            document.getElementById('modalContinueBtn').onclick = function() {
+              window.location.href = `index-dashboard.html?token=${data.session.access_token}&auth=secure`;
+            };
+          } else {
+            throw new Error('Authentication failed. Please try again.');
+          }
+        }
+      } catch (error) {
+        console.error('Login error:', error);
+        errorMessage.textContent = error.message;
+        errorMessage.style.display = 'block';
+        
+        // Shake animation for error
+        loginBtn.style.animation = 'shake 0.5s';
+        setTimeout(() => {
+          loginBtn.style.animation = '';
+        }, 500);
+      } finally {
+        // Re-enable button
+        loginBtn.disabled = false;
+        loginBtn.innerHTML = '<i class="fas fa-lock"></i> Sign In';
+      }
+    });
+
+    // Check if already logged in on page load
+    document.addEventListener('DOMContentLoaded', async () => {
+      try {
+        const storedUser = localStorage.getItem('user');
+        if (storedUser) {
+          const user = JSON.parse(storedUser);
+          
+          // Check if session is still valid (less than 12 hours old)
+          if (user.loginTime) {
+            const loginTime = new Date(user.loginTime);
+            const now = new Date();
+            const hoursDiff = (now - loginTime) / (1000 * 60 * 60);
+            
+            if (hoursDiff < 12) {
+              if (user.isAdmin && user.token) {
+                // Redirect admin to their station
+                window.location.href = `${user.station}.html?token=${user.token}&auth=reuse`;
+                return;
+              } else {
+                window.location.href = `index-dashboard.html?token=${user.token}&auth=reuse`;
+                return;
+              }
+            }
+          }
+        }
+
+        // Check Supabase session
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        
+        if (session && session.user) {
+          const userEmail = session.user.email;
+          const station = adminStationMapping[userEmail];
+
+          if (station) {
+            window.location.href = `${station}.html?token=${session.access_token}&auth=supabase`;
+          } else {
+            window.location.href = `index-dashboard.html?token=${session.access_token}&auth=supabase`;
+          }
+        }
+      } catch (error) {
+        console.log('No existing session found, showing login form');
+      }
+    });
+
+    // Add shake animation for errors
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes shake {
+        0%, 100% { transform: translateX(0); }
+        10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+        20%, 40%, 60%, 80% { transform: translateX(5px); }
+      }
+    `;
+    document.head.appendChild(style);
+
+    // Auto-focus email input on page load
+    document.getElementById('email').focus();
+  </script>
+</body>
+</html>
