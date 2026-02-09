@@ -141,7 +141,10 @@ app.get("/login", (req, res) => {
 });
 
 // Station dashboard routes
-app.get("/police", (req, res) => {
+app.get("/police", verifyAuth, (req, res) => {
+    if (req.user.role !== 'admin' || req.user.station !== 'police') {
+        return res.status(403).send('Access denied');
+    }
     res.sendFile(path.join(__dirname, "police.html"));
 });
 
