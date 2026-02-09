@@ -7,23 +7,33 @@ import { Server } from "socket.io";
 import http from "http";
 import { createClient } from '@supabase/supabase-js';
 
+// Fix for __dirname in ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
     cors: {
-        origin: ["http://localhost:3001", "http://127.0.0.1:5500", "http://127.0.0.1:5501"],
+        origin: function (origin, callback) {
+            // Allow requests with no origin (mobile apps, curl, etc.)
+            if (!origin) return callback(null, true);
+
+            // Allow localhost for development
+            if (origin.includes('localhost') || origin.includes('127.0.0.1')) return callback(null, true);
+
+            // Allow all origins for production (you may want to restrict this)
+            return callback(null, true);
+        },
         methods: ["GET", "POST"],
         credentials: true
     }
 });
-const PORT = 3001;
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const PORT = process.env.PORT || 3001;
 
 // Initialize Supabase
-const supabaseUrl = 'https://gwvepxupoxyyydnisulb.supabase.co';
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd3dmVweHVwb3h5eXlkbmlzdWxiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ4MDE4ODcsImV4cCI6MjA4MDM3Nzg4N30.Ku9SXTAKNMvHilgEpxj5HcVA-0TPt4ziuEq0Irao5Qc';
+const supabaseUrl = process.env.SUPABASE_URL || 'https://gwvepxupoxyyydnisulb.supabase.co';
+const supabaseKey = process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd3dmVweHVwb3h5eXlkbmlzdWxiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ4MDE4ODcsImV4cCI6MjA4MDM3Nzg4N30.Ku9SXTAKNMvHilgEpxj5HcVA-0TPt4ziuEq0Irao5Qc';
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 // Admin accounts mapping
@@ -35,11 +45,24 @@ const ADMIN_STATIONS = {
 
 // ------------------ MIDDLEWARE ------------------ //
 app.use(cors({
-    origin: ["http://localhost:3001", "http://127.0.0.1:5500", "http://127.0.0.1:5501"],
+    origin: function (origin, callback) {
+        // Allow requests with no origin (mobile apps, curl, etc.)
+        if (!origin) return callback(null, true);
+
+        // Allow localhost for development
+        if (origin.includes('localhost') || origin.includes('127.0.0.1')) return callback(null, true);
+
+        // Allow all origins for production (you may want to restrict this)
+        return callback(null, true);
+    },
     credentials: true
 }));
 app.use(express.json({ limit: "100mb" }));
+
+// Static files
 app.use(express.static(__dirname));
+
+// Static files for uploads
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 // ------------------ FILE PATHS ------------------ //
@@ -61,11 +84,11 @@ const activeSessions = new Map();
 async function verifyAuth(req, res, next) {
     try {
         const token = req.query.token || req.headers.authorization?.split(' ')[1];
-        
+
         if (!token) {
             return res.status(401).json({ error: 'No token provided' });
         }
-        
+
         // Check active sessions first
         const sessionData = activeSessions.get(token);
         if (sessionData) {
@@ -75,11 +98,11 @@ async function verifyAuth(req, res, next) {
 
         // Verify with Supabase
         const { data: { user }, error } = await supabase.auth.getUser(token);
-        
+
         if (error || !user) {
             return res.status(401).json({ error: 'Invalid token' });
         }
-        
+
         // Check if user is admin
         const station = ADMIN_STATIONS[user.email] || null;
         const userData = {
@@ -89,13 +112,13 @@ async function verifyAuth(req, res, next) {
             role: station ? 'admin' : 'user',
             token: token
         };
-        
+
         // Store in active sessions
         activeSessions.set(token, {
             user: userData,
             expiresAt: Date.now() + 3600000 // 1 hour
         });
-        
+
         req.user = userData;
         next();
     } catch (error) {
@@ -109,12 +132,12 @@ const connectedClients = new Map();
 
 io.on('connection', (socket) => {
     console.log('Client connected:', socket.id);
-    
+
     socket.on('registerUser', (userData) => {
         connectedClients.set(socket.id, { ...userData, socket });
         console.log(`User ${userData.email} registered for notifications`);
     });
-    
+
     socket.on('disconnect', () => {
         console.log('Client disconnected:', socket.id);
         connectedClients.delete(socket.id);
@@ -130,6 +153,11 @@ setInterval(() => {
         }
     }
 }, 3600000);
+
+// Health check endpoint
+app.get("/health", (req, res) => {
+    res.json({ status: "OK", timestamp: new Date().toISOString() });
+});
 
 // ------------------ PAGE ROUTES ------------------ //
 app.get("/", (req, res) => {
@@ -542,10 +570,11 @@ app.put("/api/reports/:id/status", verifyAuth, async (req, res) => {
 
 // ------------------ START SERVER ------------------ //
 server.listen(PORT, () => {
-    console.log(`✅ Server running at http://localhost:${PORT}`);
+    console.log(`✅ Server running on port ${PORT}`);
     console.log(`✅ Login page: http://localhost:${PORT}/login`);
     console.log(`\n🔐 Admin Accounts (use email/password from Supabase):`);
     console.log(`   👮 Police: policeadmin@gmail.com`);
     console.log(`   🚒 Fire: fireadmin@gmail.com`);
     console.log(`   🚑 Ambulance: medicaladmin@gmail.com`);
+    console.log(`\n🌐 Server is ready for deployment!`);
 });
