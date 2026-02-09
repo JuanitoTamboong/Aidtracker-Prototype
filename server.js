@@ -23,8 +23,15 @@ const __dirname = path.dirname(__filename);
 
 // Initialize Supabase
 const supabaseUrl = 'https://gwvepxupoxyyydnisulb.supabase.co';
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd3dmVweHVwb3h5eXlkbmlzdWxiIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2NDgwMTg4NywiZXhwIjoyMDgwMzc3ODg3fQ.0Q1yTrQfwRl0c7zTas_61frYKpQ9bThsGpgoJRNu7p8';
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd3dmVweHVwb3h5eXlkbmlzdWxiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ4MDE4ODcsImV4cCI6MjA4MDM3Nzg4N30.Ku9SXTAKNMvHilgEpxj5HcVA-0TPt4ziuEq0Irao5Qc';
 const supabase = createClient(supabaseUrl, supabaseKey);
+
+// Admin accounts mapping
+const ADMIN_STATIONS = {
+    'policeadmin@gmail.com': 'police',
+    'fireadmin@gmail.com': 'fire',
+    'medicaladmin@gmail.com': 'ambulance'
+};
 
 // ------------------ MIDDLEWARE ------------------ //
 app.use(cors({
@@ -47,30 +54,8 @@ if (!fs.existsSync(NOTIFICATIONS_FILE)) {
     fs.writeFileSync(NOTIFICATIONS_FILE, JSON.stringify([]));
 }
 
-// Admin accounts mapping
-const ADMIN_ACCOUNTS = {
-    'policeadmin@gmail.com': { station: 'police', username: 'police_admin' },
-    'fireadmin@gmail.com': { station: 'fire', username: 'fire_admin' },
-    'medicaladmin@gmail.com': { station: 'ambulance', username: 'medical_admin' }
-};
-
-// Admin passwords for demo
-const ADMIN_PASSWORDS = {
-    'policeadmin@gmail.com': 'Police1234!',
-    'fireadmin@gmail.com': 'Fire1234!',
-    'medicaladmin@gmail.com': 'Medical1234!'
-};
-
-// Demo regular users (since Supabase email login is disabled)
-const DEMO_USERS = {
-    'user@example.com': { password: 'User1234!', role: 'user' }
-};
-
-// Demo user tokens storage
-const userTokens = new Map();
-
-// Demo tokens storage (in production, use proper auth)
-const demoTokens = new Map();
+// Store active sessions
+const activeSessions = new Map();
 
 // ------------------ AUTH MIDDLEWARE ------------------ //
 async function verifyAuth(req, res, next) {
@@ -81,41 +66,14 @@ async function verifyAuth(req, res, next) {
             return res.status(401).json({ error: 'No token provided' });
         }
         
-        // Check if it's a demo token (admin account)
-        if (token.startsWith('demo-token-')) {
-            // Get user from demo tokens storage
-            const userData = demoTokens.get(token);
-            if (!userData) {
-                // Fallback to localStorage data (sent via headers)
-                const storedData = req.headers['x-user-data'];
-                if (storedData) {
-                    try {
-                        const user = JSON.parse(storedData);
-                        req.user = user;
-                        return next();
-                    } catch (e) {
-                        return res.status(401).json({ error: 'Invalid demo token' });
-                    }
-                }
-                return res.status(401).json({ error: 'Invalid demo token' });
-            }
-
-            req.user = userData;
+        // Check active sessions first
+        const sessionData = activeSessions.get(token);
+        if (sessionData) {
+            req.user = sessionData.user;
             return next();
         }
 
-        // Check if it's a user token (regular user)
-        if (token.startsWith('user-token-')) {
-            const userData = userTokens.get(token);
-            if (!userData) {
-                return res.status(401).json({ error: 'Invalid user token' });
-            }
-
-            req.user = userData;
-            return next();
-        }
-        
-        // Regular Supabase token validation
+        // Verify with Supabase
         const { data: { user }, error } = await supabase.auth.getUser(token);
         
         if (error || !user) {
@@ -123,23 +81,22 @@ async function verifyAuth(req, res, next) {
         }
         
         // Check if user is admin
-        const adminAccount = ADMIN_ACCOUNTS[user.email];
-        if (adminAccount) {
-            req.user = {
-                email: user.email,
-                station: adminAccount.station,
-                role: 'admin',
-                token: token
-            };
-        } else {
-            req.user = {
-                email: user.email,
-                station: null,
-                role: 'user',
-                token: token
-            };
-        }
+        const station = ADMIN_STATIONS[user.email] || null;
+        const userData = {
+            id: user.id,
+            email: user.email,
+            station: station,
+            role: station ? 'admin' : 'user',
+            token: token
+        };
         
+        // Store in active sessions
+        activeSessions.set(token, {
+            user: userData,
+            expiresAt: Date.now() + 3600000 // 1 hour
+        });
+        
+        req.user = userData;
         next();
     } catch (error) {
         console.error('Auth error:', error);
@@ -164,116 +121,108 @@ io.on('connection', (socket) => {
     });
 });
 
+// Clean up expired sessions every hour
+setInterval(() => {
+    const now = Date.now();
+    for (const [token, session] of activeSessions.entries()) {
+        if (session.expiresAt < now) {
+            activeSessions.delete(token);
+        }
+    }
+}, 3600000);
+
 // ------------------ PAGE ROUTES ------------------ //
+app.get("/", (req, res) => {
+    res.redirect("/login");
+});
+
 app.get("/login", (req, res) => {
     res.sendFile(path.join(__dirname, "index.html"));
 });
-
 
 // Station dashboard routes
 app.get("/police", (req, res) => {
     res.sendFile(path.join(__dirname, "police.html"));
 });
 
-app.get("/fire", (req, res) => {
+app.get("/fire", verifyAuth, (req, res) => {
+    if (req.user.role !== 'admin' || req.user.station !== 'fire') {
+        return res.status(403).send('Access denied');
+    }
     res.sendFile(path.join(__dirname, "fire.html"));
 });
 
-app.get("/ambulance", (req, res) => {
+app.get("/ambulance", verifyAuth, (req, res) => {
+    if (req.user.role !== 'admin' || req.user.station !== 'ambulance') {
+        return res.status(403).send('Access denied');
+    }
     res.sendFile(path.join(__dirname, "ambulance.html"));
 });
 
-// Dashboard route for regular users
-app.get("/dashboard", (req, res) => {
-    res.sendFile(path.join(__dirname, "notification.html"));
-});
-
-
 // ------------------ AUTH API ROUTES ------------------ //
-// Demo login endpoint for admin accounts
-app.post("/api/admin-login", (req, res) => {
+// Login endpoint
+app.post("/api/login", async (req, res) => {
     const { email, password } = req.body;
 
     if (!email || !password) {
         return res.status(400).json({ error: 'Email and password required' });
     }
 
-    // Check if admin account
-    if (!ADMIN_ACCOUNTS[email]) {
-        return res.status(401).json({ error: 'Invalid admin credentials' });
+    try {
+        // Sign in with Supabase
+        const { data, error } = await supabase.auth.signInWithPassword({
+            email: email,
+            password: password
+        });
+
+        if (error) {
+            console.error('Login error:', error);
+            return res.status(401).json({ 
+                error: error.message || 'Invalid credentials' 
+            });
+        }
+
+        const { user, session } = data;
+        
+        // Determine user role and station
+        const station = ADMIN_STATIONS[user.email] || null;
+        const userData = {
+            id: user.id,
+            email: user.email,
+            station: station,
+            role: station ? 'admin' : 'user',
+            token: session.access_token
+        };
+
+        // Store session
+        activeSessions.set(session.access_token, {
+            user: userData,
+            expiresAt: Date.now() + 3600000 // 1 hour
+        });
+
+        // Set redirect URL
+        let redirectUrl = '/dashboard';
+        if (station) {
+            redirectUrl = `/${station}`;
+        } else {
+            // Regular users - show error or redirect to login
+            return res.status(403).json({ 
+                error: 'Access denied. Admin accounts only.' 
+            });
+        }
+
+        res.json({
+            success: true,
+            token: session.access_token,
+            refresh_token: session.refresh_token,
+            user: userData,
+            redirectUrl: redirectUrl
+        });
+
+    } catch (error) {
+        console.error('Server error during login:', error);
+        res.status(500).json({ error: 'Server error during authentication' });
     }
-
-    // Check password
-    if (password !== ADMIN_PASSWORDS[email]) {
-        return res.status(401).json({ error: 'Invalid password' });
-    }
-
-    // Generate demo token
-    const demoToken = `demo-token-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-    const userData = {
-        email: email,
-        station: ADMIN_ACCOUNTS[email].station,
-        role: 'admin',
-        token: demoToken,
-        isAdmin: true
-    };
-
-    // Store demo token
-    demoTokens.set(demoToken, userData);
-
-    // Clean up old tokens after 1 hour
-    setTimeout(() => {
-        demoTokens.delete(demoToken);
-    }, 3600000);
-
-    res.json({
-        success: true,
-        token: demoToken,
-        user: userData
-    });
-});
-
-// Demo login endpoint for regular users
-app.post("/api/user-login", (req, res) => {
-    const { email, password } = req.body;
-
-    if (!email || !password) {
-        return res.status(400).json({ error: 'Email and password required' });
-    }
-
-    // Check if demo user account
-    if (!DEMO_USERS[email]) {
-        return res.status(401).json({ error: 'Invalid user credentials' });
-    }
-
-    // Check password
-    if (password !== DEMO_USERS[email].password) {
-        return res.status(401).json({ error: 'Invalid password' });
-    }
-
-    // Generate user token
-    const userToken = `user-token-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-    const userData = {
-        email: email,
-        station: null,
-        role: DEMO_USERS[email].role,
-        token: userToken,
-        isAdmin: false
-    };
-
-    // Store user token
-    userTokens.set(userToken, userData);
-
-    // Clean up old tokens after 1 hour
-    setTimeout(() => {
-        userTokens.delete(userToken);
-    }, 3600000);
-
-    res.json({
-        success: true,
-        token: userToken,
-        user: userData
-    });
 });
 
 // Verify token endpoint
@@ -285,29 +234,16 @@ app.post("/api/verify-token", async (req, res) => {
     }
     
     try {
-        // Check if demo token (admin)
-        if (token.startsWith('demo-token-')) {
-            const userData = demoTokens.get(token);
-            if (userData) {
-                return res.json({
-                    authenticated: true,
-                    user: userData
-                });
-            }
+        // Check active sessions
+        const sessionData = activeSessions.get(token);
+        if (sessionData) {
+            return res.json({
+                authenticated: true,
+                user: sessionData.user
+            });
         }
 
-        // Check if user token (regular user)
-        if (token.startsWith('user-token-')) {
-            const userData = userTokens.get(token);
-            if (userData) {
-                return res.json({
-                    authenticated: true,
-                    user: userData
-                });
-            }
-        }
-
-        // Check Supabase token
+        // Verify with Supabase
         const { data: { user }, error } = await supabase.auth.getUser(token);
 
         if (error || !user) {
@@ -315,21 +251,34 @@ app.post("/api/verify-token", async (req, res) => {
         }
 
         // Check if user is admin
-        const adminAccount = ADMIN_ACCOUNTS[user.email];
-        const station = adminAccount ? adminAccount.station : null;
-
+        const station = ADMIN_STATIONS[user.email] || null;
+        
         res.json({
             authenticated: true,
             user: {
+                id: user.id,
                 email: user.email,
                 station: station,
-                role: adminAccount ? 'admin' : 'user',
+                role: station ? 'admin' : 'user',
                 token: token
             }
         });
     } catch (error) {
+        console.error('Token verification error:', error);
         res.json({ authenticated: false });
     }
+});
+
+// Logout endpoint
+app.post("/api/logout", async (req, res) => {
+    const { token } = req.body;
+    
+    if (token) {
+        activeSessions.delete(token);
+        await supabase.auth.signOut();
+    }
+    
+    res.json({ success: true, message: 'Logged out successfully' });
 });
 
 // ------------------ REPORT ROUTES ------------------ //
@@ -381,7 +330,7 @@ app.post("/api/reports", (req, res) => {
 
             report.photo = `/uploads/${fileName}`;
         } catch (err) {
-            console.error("âš ï¸ Failed to save photo:", err);
+            console.error("⚠️ Failed to save photo:", err);
             report.photo = null;
         }
     }
@@ -407,8 +356,8 @@ app.post("/api/reports", (req, res) => {
     else if (dbType.includes('medical') || dbType.includes('emergency')) incidentType = 'medical_emergency';
 
     const targetStations = stationMapping[incidentType] || [];
-    const targetEmails = Object.keys(ADMIN_ACCOUNTS)
-        .filter(email => targetStations.includes(ADMIN_ACCOUNTS[email].station));
+    const targetEmails = Object.keys(ADMIN_STATIONS)
+        .filter(email => targetStations.includes(ADMIN_STATIONS[email]));
 
     // Save notifications
     const notifications = JSON.parse(fs.readFileSync(NOTIFICATIONS_FILE, 'utf8'));
@@ -419,7 +368,7 @@ app.post("/api/reports", (req, res) => {
             title: `New ${incidentType.replace('_', ' ').toUpperCase()} Report`,
             message: `${report.reporter} reported a ${incidentType.replace('_', ' ')} at ${report.location || 'Unknown location'}`,
             user: email,
-            station: ADMIN_ACCOUNTS[email].station,
+            station: ADMIN_STATIONS[email],
             incidentType: incidentType,
             reportId: report.id,
             time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
@@ -590,11 +539,10 @@ app.put("/api/reports/:id/status", verifyAuth, async (req, res) => {
 
 // ------------------ START SERVER ------------------ //
 server.listen(PORT, () => {
-    console.log(`âœ… Server running at http://localhost:${PORT}`);
-    console.log(`âœ… Login page: http://localhost:${PORT}/login`);
-    console.log(`\nðŸ“‹ Admin Accounts:`);
-    console.log(`   ðŸ‘® Police: policeadmin@gmail.com / Police1234!`);
-    console.log(`   ðŸš’ Fire: fireadmin@gmail.com / Fire1234!`);
-    console.log(`   ðŸš‘ Ambulance: medicaladmin@gmail.com / Medical1234!`);
+    console.log(`✅ Server running at http://localhost:${PORT}`);
+    console.log(`✅ Login page: http://localhost:${PORT}/login`);
+    console.log(`\n🔐 Admin Accounts (use email/password from Supabase):`);
+    console.log(`   👮 Police: policeadmin@gmail.com`);
+    console.log(`   🚒 Fire: fireadmin@gmail.com`);
+    console.log(`   🚑 Ambulance: medicaladmin@gmail.com`);
 });
-

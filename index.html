@@ -594,54 +594,32 @@
         let response;
         let redirectUrl = '/dashboard';
         
-        // Check if it's an admin account
-        if (ADMIN_ACCOUNTS[email]) {
-          // Admin login
-          response = await fetch('/api/admin-login', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ email, password })
-          });
-          
-          const data = await response.json();
-          
-          if (!response.ok) {
-            throw new Error(data.error || 'Invalid admin credentials');
-          }
-          
-          // Set redirect URL for admin
-          redirectUrl = `/${data.user.station}`;
-          
-          // Store user data
-          localStorage.setItem('user', JSON.stringify(data.user));
-          localStorage.setItem('token', data.token);
-          
+        // Login for all users (admin and regular)
+        response = await fetch('/api/login', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ email, password })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || 'Invalid credentials');
+        }
+
+        // Set redirect URL based on user role
+        if (data.user.role === 'admin' && data.user.station) {
+          redirectUrl = `/${data.user.station}?token=${data.token}`;
           modalMessage.textContent = `Welcome, ${data.user.station.charAt(0).toUpperCase() + data.user.station.slice(1)} Administrator. Redirecting to dashboard...`;
-          
         } else {
-          // Regular user login
-          response = await fetch('/api/user-login', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ email, password })
-          });
-          
-          const data = await response.json();
-          
-          if (!response.ok) {
-            throw new Error(data.error || 'Invalid user credentials');
-          }
-          
-          // Store user data
-          localStorage.setItem('user', JSON.stringify(data.user));
-          localStorage.setItem('token', data.token);
-          
           modalMessage.textContent = `Welcome back, ${email}. Redirecting to dashboard...`;
         }
+
+        // Store user data
+        localStorage.setItem('user', JSON.stringify(data.user));
+        localStorage.setItem('token', data.token);
 
         // Show success modal
         successModal.classList.add('active');

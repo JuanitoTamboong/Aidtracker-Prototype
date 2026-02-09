@@ -1323,26 +1323,39 @@
     // ============ AUTHENTICATION ============
     function checkAuthentication() {
       try {
+        // Check for token in URL parameters (from login redirect)
+        const urlParams = new URLSearchParams(window.location.search);
+        const tokenFromUrl = urlParams.get('token');
+
+        if (tokenFromUrl) {
+          // Store token from URL
+          localStorage.setItem('token', tokenFromUrl);
+          // Clean up URL
+          window.history.replaceState({}, document.title, window.location.pathname);
+        }
+
         const user = localStorage.getItem('user');
-        if (!user) {
+        const token = localStorage.getItem('token');
+
+        if (!user || !token) {
           window.location.href = 'index.html';
           return false;
         }
 
         const userData = JSON.parse(user);
-        
+
         // Check for police station access
-        if (userData.station === 'police' || 
-            userData.email === 'policeadmin@gmail.com' || 
+        if (userData.station === 'police' ||
+            userData.email === 'policeadmin@gmail.com' ||
             userData.role === 'admin') {
           console.log('✅ User authenticated for police dashboard');
           return true;
         }
-        
+
         alert('⚠️ Access denied. Police dashboard only.');
         window.location.href = 'index.html';
         return false;
-        
+
       } catch (error) {
         console.error('Auth error:', error);
         window.location.href = 'index.html';
