@@ -28,7 +28,7 @@
       --shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
       --header-height: 70px;
       --tab-bar-height: 60px;
-      --sidebar-width: 70px;
+      --sidebar-width: 0px; /* Start at 0 for mobile */
     }
 
     * {
@@ -75,6 +75,9 @@
       align-items: center;
       justify-content: space-between;
       border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(0, 31, 63, 0.9);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
     }
 
     .header-left {
@@ -180,7 +183,7 @@
 
     /* === Desktop Navigation === */
     .desktop-nav {
-      display: none;
+      display: none; /* Hidden on mobile by default */
       position: fixed;
       left: 0;
       top: var(--header-height);
@@ -189,6 +192,9 @@
       z-index: 900;
       border-right: 1px solid rgba(255, 255, 255, 0.1);
       padding: 20px 0;
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      overflow-y: auto;
     }
 
     .desktop-nav-btn {
@@ -196,19 +202,25 @@
       padding: 16px 0;
       background: transparent;
       border: none;
-      color: rgba(255, 255, 255, 0.7);
+      color: rgba(255, 255, 255, 0.8);
       cursor: pointer;
       transition: all 0.3s;
       display: flex;
       flex-direction: column;
       align-items: center;
       gap: 6px;
-      font-size: 11px;
+      font-size: 12px;
       font-weight: 600;
+      text-decoration: none;
     }
 
     .desktop-nav-btn i {
-      font-size: 20px;
+      font-size: 22px;
+      width: 30px;
+      height: 30px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
 
     .desktop-nav-btn:hover {
@@ -230,10 +242,13 @@
       right: 0;
       height: var(--tab-bar-height);
       z-index: 1000;
-      display: flex;
+      display: flex; /* Visible on mobile */
       padding: 8px 16px;
       border-top: 1px solid rgba(255, 255, 255, 0.1);
       gap: 8px;
+      background: rgba(0, 31, 63, 0.9);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
     }
 
     .tab-btn {
@@ -245,17 +260,17 @@
       gap: 4px;
       background: transparent;
       border: none;
-      color: rgba(255, 255, 255, 0.7);
+      color: rgba(255, 255, 255, 0.8);
       cursor: pointer;
       transition: all 0.3s;
       border-radius: 10px;
       padding: 8px 0;
-      font-size: 10px;
+      font-size: 11px;
       font-weight: 600;
     }
 
     .tab-btn i {
-      font-size: 18px;
+      font-size: 20px;
     }
 
     .tab-btn.active {
@@ -744,47 +759,54 @@
       100% { transform: rotate(360deg); }
     }
 
-    /* === Desktop Responsive Design === */
+    /* ============================================
+       DESKTOP RESPONSIVE DESIGN
+       ============================================ */
     @media (min-width: 768px) {
       :root {
         --header-height: 80px;
         --tab-bar-height: 0px;
-        --sidebar-width: 80px;
+        --sidebar-width: 90px; /* Now sidebar appears */
       }
 
-      /* Show desktop nav, hide mobile tabs */
+      /* HIDE mobile tab bar on desktop */
+      .tab-bar {
+        display: none !important;
+      }
+
+      /* SHOW desktop navigation on desktop */
       .desktop-nav {
-        display: flex;
+        display: flex !important;
         flex-direction: column;
         align-items: center;
-      }
-
-      .tab-bar {
-        display: none;
+        background: rgba(0, 31, 63, 0.9);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border-right: 1px solid rgba(255, 215, 0, 0.2);
       }
 
       /* Adjust main content for sidebar */
       .main-content {
-        padding: calc(var(--header-height) + 24px) 24px 24px calc(var(--sidebar-width) + 24px);
+        padding: calc(var(--header-height) + 24px) 24px 24px calc(var(--sidebar-width) + 24px) !important;
         max-width: 100%;
-        display: block; /* Remove grid for now */
       }
 
       .main-header {
-        padding-left: calc(var(--sidebar-width) + 24px);
-        padding-right: 24px;
+        padding-left: calc(var(--sidebar-width) + 24px) !important;
+        padding-right: 24px !important;
+        background: rgba(0, 31, 63, 0.9);
       }
 
       .main-title {
-        font-size: 24px;
+        font-size: 22px;
       }
 
       .subtitle {
-        font-size: 14px;
+        font-size: 13px;
       }
 
       .live-badge {
-        font-size: 12px;
+        font-size: 11px;
       }
 
       /* Improve map sizing */
@@ -793,10 +815,10 @@
         margin-bottom: 24px;
       }
 
-      /* Stats and filters in grid */
+      /* Dashboard grid layout */
       .dashboard-grid {
         display: grid;
-        grid-template-columns: 1fr 1fr;
+        grid-template-columns: 2fr 1fr;
         gap: 24px;
         margin-bottom: 24px;
       }
@@ -806,6 +828,7 @@
       }
 
       .filter-section {
+        grid-column: 1 / -1;
         margin-bottom: 0;
       }
 
@@ -815,24 +838,25 @@
       }
 
       .filters-grid {
-        grid-template-columns: repeat(3, 1fr);
+        grid-template-columns: repeat(6, 1fr);
         gap: 12px;
       }
 
       .filter-btn {
         padding: 16px 12px;
-        font-size: 14px;
+        font-size: 13px;
       }
 
       .filter-btn i {
         font-size: 18px;
       }
 
-      /* Reports section full width */
+      /* Reports section */
       .reports-section {
         margin-bottom: 0;
       }
 
+      /* Toast positioning */
       .toast {
         left: auto;
         right: 24px;
@@ -845,62 +869,51 @@
         top: calc(var(--header-height) + 24px);
         right: 24px;
       }
+
+      /* Desktop nav button improvements */
+      .desktop-nav-btn {
+        padding: 18px 0;
+        font-size: 13px;
+        color: rgba(255, 255, 255, 0.9);
+      }
+
+      .desktop-nav-btn i {
+        font-size: 24px;
+        margin-bottom: 4px;
+      }
+
+      .desktop-nav-btn.active {
+        color: var(--accent-gold);
+        background: rgba(255, 215, 0, 0.2);
+        border-left: 4px solid var(--accent-gold);
+      }
     }
 
+    /* Larger desktop screens */
     @media (min-width: 1024px) {
       :root {
-        --sidebar-width: 90px;
+        --sidebar-width: 100px;
       }
 
       .main-content {
         max-width: 1400px;
         margin: 0 auto;
-        padding-left: calc(var(--sidebar-width) + 32px);
-        padding-right: 32px;
+        padding-left: calc(var(--sidebar-width) + 32px) !important;
+        padding-right: 32px !important;
       }
 
       .main-header {
-        padding-left: calc(var(--sidebar-width) + 32px);
-        padding-right: 32px;
-      }
-
-      .desktop-nav-btn {
-        padding: 20px 0;
-        font-size: 12px;
-      }
-
-      .desktop-nav-btn i {
-        font-size: 22px;
+        padding-left: calc(var(--sidebar-width) + 32px) !important;
+        padding-right: 32px !important;
       }
 
       .dashboard-grid {
-        grid-template-columns: 2fr 1fr;
+        grid-template-columns: 3fr 1fr;
         gap: 32px;
       }
 
       .map-section {
         height: 500px;
-        grid-column: 1;
-        grid-row: 1;
-      }
-
-      .stats-section {
-        grid-column: 2;
-        grid-row: 1;
-      }
-
-      .filter-section {
-        grid-column: 1 / -1;
-        grid-row: 2;
-      }
-
-      .stats-grid {
-        grid-template-columns: 1fr;
-        gap: 16px;
-      }
-
-      .filters-grid {
-        grid-template-columns: repeat(6, 1fr);
       }
 
       .stat-card {
@@ -914,8 +927,18 @@
       .stat-label {
         font-size: 14px;
       }
+
+      .desktop-nav-btn {
+        padding: 20px 0;
+        font-size: 14px;
+      }
+
+      .desktop-nav-btn i {
+        font-size: 26px;
+      }
     }
 
+    /* Extra large screens */
     @media (min-width: 1200px) {
       .dashboard-grid {
         grid-template-columns: 3fr 1fr;
@@ -929,8 +952,8 @@
     /* === iPhone Notch & Safe Area Support === */
     @supports (padding: max(0px)) {
       .main-header {
-        padding-left: max(16px, env(safe-area-inset-left));
-        padding-right: max(16px, env(safe-area-inset-right));
+        padding-left: max(16px, env(safe-area-inset-left)) !important;
+        padding-right: max(16px, env(safe-area-inset-right)) !important;
         padding-top: env(safe-area-inset-top);
         height: calc(var(--header-height) + env(safe-area-inset-top));
       }
@@ -943,8 +966,22 @@
       }
 
       .main-content {
-        padding-left: max(16px, env(safe-area-inset-left));
-        padding-right: max(16px, env(safe-area-inset-right));
+        padding-left: max(16px, env(safe-area-inset-left)) !important;
+        padding-right: max(16px, env(safe-area-inset-right)) !important;
+      }
+      
+      @media (min-width: 768px) {
+        .main-header {
+          padding-left: calc(var(--sidebar-width) + max(24px, env(safe-area-inset-left))) !important;
+        }
+        
+        .main-content {
+          padding-left: calc(var(--sidebar-width) + max(24px, env(safe-area-inset-left))) !important;
+        }
+        
+        .desktop-nav {
+          padding-top: calc(20px + env(safe-area-inset-top));
+        }
       }
     }
 
@@ -957,6 +994,15 @@
 
       .stat-card {
         border: 1px solid white;
+      }
+      
+      .desktop-nav-btn {
+        color: white;
+      }
+      
+      .desktop-nav-btn.active {
+        color: var(--accent-gold);
+        background: rgba(255, 215, 0, 0.3);
       }
     }
 
@@ -1272,9 +1318,6 @@
       
       // Make functions globally available
       exposeGlobalFunctions();
-      
-      // Setup desktop navigation
-      setupDesktopNavigation();
     });
 
     // ============ AUTHENTICATION ============
@@ -1960,14 +2003,6 @@
       }
       
       filterInfo.textContent = activeFilters.length > 0 ? `(${activeFilters.join(' • ')})` : '';
-    }
-
-    // ============ DESKTOP NAVIGATION ============
-    function setupDesktopNavigation() {
-      // Only needed if desktop nav is shown
-      if (window.innerWidth >= 768) {
-        console.log('💻 Setting up desktop navigation');
-      }
     }
 
     // ============ REALTIME FUNCTIONS ============
