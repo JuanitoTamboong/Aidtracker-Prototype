@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>Fire Department Dashboard - AidTracker</title>
 
   <!-- Leaflet Map -->
@@ -26,27 +26,31 @@
       --glass-bg: rgba(255, 255, 255, 0.1);
       --glass-border: rgba(255, 255, 255, 0.2);
       --shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      --header-height: 70px;
+      --tab-bar-height: 60px;
+      --sidebar-width: 0px; /* Start at 0 for mobile */
     }
 
     * {
       margin: 0;
       padding: 0;
       box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html {
+      scroll-behavior: smooth;
     }
 
     body {
-      font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
       background: linear-gradient(135deg, var(--primary-blue), #003366);
       background-attachment: fixed;
       color: #fff;
       min-height: 100vh;
       overflow-x: hidden;
-    }
-
-    .container {
-      max-width: 1400px;
-      margin: 0 auto;
-      padding: 15px;
+      padding-top: env(safe-area-inset-top);
+      padding-bottom: env(safe-area-inset-bottom);
     }
 
     /* === Glass Morphism Effect === */
@@ -55,40 +59,55 @@
       backdrop-filter: blur(10px);
       -webkit-backdrop-filter: blur(10px);
       border: 1px solid var(--glass-border);
-      border-radius: 16px;
       box-shadow: var(--shadow);
     }
 
     /* === Header === */
-    header {
+    .main-header {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: var(--header-height);
+      z-index: 1000;
+      padding: 0 16px;
       display: flex;
-      justify-content: space-between;
       align-items: center;
-      margin-bottom: 15px;
-      padding: 12px 15px;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(0, 31, 63, 0.9);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
     }
 
-    .logo-area {
+    .header-left {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 12px;
+      flex: 1;
+      min-width: 0;
+    }
+
+    .logo-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      background: var(--accent-gold);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--primary-blue);
+      font-size: 20px;
+      flex-shrink: 0;
+    }
+
+    .header-titles {
       min-width: 0;
       flex: 1;
     }
 
-    .logo-icon {
-      font-size: 28px;
-      color: var(--accent-gold);
-      flex-shrink: 0;
-    }
-
-    .logo-text {
-      min-width: 0;
-      overflow: hidden;
-    }
-
-    .title {
-      font-size: 22px;
+    .main-title {
+      font-size: 18px;
       font-weight: 800;
       color: #fff;
       white-space: nowrap;
@@ -97,7 +116,7 @@
       line-height: 1.2;
     }
 
-    .title span {
+    .main-title span {
       color: var(--accent-gold);
     }
 
@@ -105,13 +124,12 @@
       font-size: 11px;
       color: var(--light-gold);
       opacity: 0.9;
-      margin-top: 2px;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
     }
 
-    .realtime-indicator {
+    .live-badge {
       display: inline-flex;
       align-items: center;
       gap: 4px;
@@ -126,41 +144,18 @@
       50% { opacity: 0.6; }
     }
 
-    .controls-bar {
+    .header-actions {
       display: flex;
       align-items: center;
       gap: 8px;
       flex-shrink: 0;
     }
 
-    .logout-btn {
-      background: var(--danger-red);
-      color: white;
-      border: none;
-      padding: 8px 12px;
-      border-radius: 8px;
-      cursor: pointer;
-      font-size: 12px;
-      font-weight: 600;
-      transition: all 0.3s;
-      display: flex;
-      align-items: center;
-      gap: 5px;
-      white-space: nowrap;
-    }
-
-    .logout-btn:hover {
-      background: #ff6b6b;
-      transform: translateY(-2px);
-    }
-
     .notification-btn {
       position: relative;
-      background: var(--glass-bg);
-      border: 1px solid var(--glass-border);
-      border-radius: 10px;
       width: 40px;
       height: 40px;
+      border-radius: 10px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -173,7 +168,6 @@
 
     .notification-btn:hover {
       background: rgba(255, 215, 0, 0.1);
-      transform: translateY(-2px);
     }
 
     .notif-dot {
@@ -187,76 +181,149 @@
       display: none;
     }
 
-    /* === Type Filter Buttons === */
-    .type-filters {
-      display: flex;
-      gap: 8px;
-      margin-bottom: 15px;
-      flex-wrap: wrap;
-      justify-content: center;
+    /* === Desktop Navigation === */
+    .desktop-nav {
+      display: none; /* Hidden on mobile by default */
+      position: fixed;
+      left: 0;
+      top: var(--header-height);
+      bottom: 0;
+      width: var(--sidebar-width);
+      z-index: 900;
+      border-right: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 20px 0;
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      overflow-y: auto;
     }
 
-    .type-btn {
-      padding: 8px 12px;
-      background: rgba(0, 0, 0, 0.3);
-      color: white;
-      border: 1px solid var(--glass-border);
-      border-radius: 8px;
+    .desktop-nav-btn {
+      width: 100%;
+      padding: 16px 0;
+      background: transparent;
+      border: none;
+      color: rgba(255, 255, 255, 0.8);
       cursor: pointer;
       transition: all 0.3s;
-      font-weight: 600;
-      font-size: 12px;
       display: flex;
+      flex-direction: column;
       align-items: center;
       gap: 6px;
-      flex: 1;
-      min-width: 0;
+      font-size: 12px;
+      font-weight: 600;
+      text-decoration: none;
+    }
+
+    .desktop-nav-btn i {
+      font-size: 22px;
+      width: 30px;
+      height: 30px;
+      display: flex;
+      align-items: center;
       justify-content: center;
     }
 
-    .type-btn:hover {
+    .desktop-nav-btn:hover {
+      color: var(--accent-gold);
       background: rgba(255, 215, 0, 0.1);
-      transform: translateY(-2px);
     }
 
-    .type-btn.active {
-      background: var(--accent-gold);
-      color: var(--primary-blue);
-      border-color: var(--accent-gold);
+    .desktop-nav-btn.active {
+      color: var(--accent-gold);
+      background: rgba(255, 215, 0, 0.15);
+      border-left: 3px solid var(--accent-gold);
     }
 
-    .type-btn i {
-      font-size: 14px;
+    /* === Tab Navigation (Mobile) === */
+    .tab-bar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: var(--tab-bar-height);
+      z-index: 1000;
+      display: flex; /* Visible on mobile */
+      padding: 8px 16px;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      gap: 8px;
+      background: rgba(0, 31, 63, 0.9);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+    }
+
+    .tab-btn {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      background: transparent;
+      border: none;
+      color: rgba(255, 255, 255, 0.8);
+      cursor: pointer;
+      transition: all 0.3s;
+      border-radius: 10px;
+      padding: 8px 0;
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    .tab-btn i {
+      font-size: 20px;
+    }
+
+    .tab-btn.active {
+      color: var(--accent-gold);
+      background: rgba(255, 215, 0, 0.1);
     }
 
     /* === Main Content === */
-    .dashboard {
-      display: flex;
-      flex-direction: column;
-      gap: 15px;
-      margin-bottom: 20px;
+    .main-content {
+      padding: calc(var(--header-height) + 16px) 16px calc(var(--tab-bar-height) + 16px);
+      max-width: 100%;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
     }
 
-    .map-container {
-      position: relative;
-      width: 100%;
+    .content-section {
+      display: none;
+      animation: fadeIn 0.3s ease;
+    }
+
+    .content-section.active {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* === Map Section === */
+    .map-section {
       height: 300px;
-      order: 1;
+      border-radius: 16px;
+      overflow: hidden;
+      margin-bottom: 16px;
+      position: relative;
+      border: 2px solid var(--accent-gold);
     }
 
     #map {
       width: 100%;
       height: 100%;
-      border-radius: 12px;
-      border: 2px solid var(--accent-gold);
-      overflow: hidden;
-      z-index: 1;
     }
 
-    .map-overlay {
+    #fullMap {
+      width: 100%;
+      height: 100%;
+    }
+
+    .map-controls {
       position: absolute;
-      top: 10px;
-      left: 10px;
+      top: 12px;
+      left: 12px;
       z-index: 1000;
       display: flex;
       gap: 8px;
@@ -264,49 +331,47 @@
     }
 
     .map-control {
-      padding: 6px 10px;
-      background: rgba(0, 0, 0, 0.7);
+      padding: 8px 12px;
+      background: rgba(0, 0, 0, 0.8);
       color: white;
-      border-radius: 6px;
-      font-size: 10px;
+      border-radius: 8px;
+      font-size: 12px;
       cursor: pointer;
       transition: all 0.3s;
       border: 1px solid var(--accent-gold);
       display: flex;
       align-items: center;
-      gap: 4px;
+      gap: 6px;
     }
 
     .map-control:hover {
       background: rgba(0, 0, 0, 0.9);
     }
 
-    /* === Stats Panel === */
-    .stats-panel {
-      padding: 15px;
-      order: 2;
+    /* === Stats Section === */
+    .stats-section {
+      margin-bottom: 16px;
     }
 
-    .panel-title {
+    .section-title {
       font-size: 16px;
       font-weight: 700;
       color: var(--accent-gold);
-      margin-bottom: 10px;
+      margin-bottom: 12px;
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 8px;
     }
 
     .stats-grid {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
-      gap: 10px;
+      gap: 12px;
     }
 
     .stat-card {
-      padding: 12px;
-      border-radius: 10px;
-      background: rgba(0, 0, 0, 0.2);
+      padding: 16px;
+      border-radius: 12px;
       text-align: center;
       transition: transform 0.3s;
     }
@@ -316,63 +381,69 @@
     }
 
     .stat-value {
-      font-size: 24px;
+      font-size: 28px;
       font-weight: 800;
-      margin: 5px 0;
+      margin: 8px 0;
+      color: #fff;
     }
 
     .stat-label {
-      font-size: 11px;
+      font-size: 12px;
       color: var(--light-gold);
       opacity: 0.9;
     }
 
-    .active-filter {
-      display: inline-block;
-      padding: 3px 8px;
-      background: var(--accent-gold);
-      color: var(--primary-blue);
-      border-radius: 12px;
-      font-size: 10px;
-      font-weight: 700;
-      margin-left: 8px;
-      animation: pulse 2s infinite;
+    /* === Quick Filters === */
+    .filter-section {
+      margin-bottom: 16px;
     }
 
-    /* === Reports Table === */
+    .filters-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+
+    .filter-btn {
+      padding: 12px 8px;
+      border-radius: 10px;
+      border: 1px solid var(--glass-border);
+      background: rgba(0, 0, 0, 0.3);
+      color: white;
+      cursor: pointer;
+      transition: all 0.3s;
+      font-weight: 600;
+      font-size: 12px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .filter-btn i {
+      font-size: 16px;
+    }
+
+    .filter-btn.active {
+      background: var(--accent-gold);
+      color: var(--primary-blue);
+      border-color: var(--accent-gold);
+    }
+
+    /* === Reports Section === */
     .reports-section {
-      padding: 15px;
-      order: 3;
+      margin-bottom: 16px;
     }
 
     .section-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 15px;
-      flex-wrap: wrap;
-      gap: 10px;
-    }
-
-    .section-title {
-      font-size: 18px;
-      font-weight: 700;
-      color: #fff;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      flex: 1;
-      min-width: 0;
-    }
-
-    #tableFilterInfo {
-      font-size: 12px;
-      color: var(--light-gold);
-      margin-left: 8px;
+      margin-bottom: 12px;
     }
 
     .refresh-btn {
-      padding: 8px 15px;
+      padding: 8px 16px;
       background: var(--accent-gold);
       color: var(--primary-blue);
       border: none;
@@ -397,48 +468,87 @@
       cursor: not-allowed;
     }
 
-    .table-container {
-      overflow-x: auto;
-      border-radius: 10px;
-      margin-top: 10px;
-      -webkit-overflow-scrolling: touch;
+    .reports-list {
+      border-radius: 12px;
+      overflow: hidden;
     }
 
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      min-width: 600px;
-    }
-
-    th {
-      background: rgba(0, 0, 0, 0.3);
-      padding: 10px;
-      text-align: left;
-      font-weight: 700;
-      color: var(--accent-gold);
-      border-bottom: 2px solid var(--glass-border);
-      font-size: 12px;
-      white-space: nowrap;
-    }
-
-    td {
-      padding: 10px;
+    .report-item {
+      padding: 16px;
       border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-      font-size: 12px;
+      transition: all 0.3s;
     }
 
-    tr:hover {
+    .report-item:last-child {
+      border-bottom: none;
+    }
+
+    .report-item:hover {
       background: rgba(255, 255, 255, 0.05);
     }
 
+    .report-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 8px;
+    }
+
+    .report-type {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .type-indicator {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+    }
+
+    .type-name {
+      font-weight: 600;
+      font-size: 14px;
+    }
+
+    .report-id {
+      font-size: 12px;
+      color: var(--light-gold);
+      opacity: 0.7;
+    }
+
+    .report-details {
+      margin-bottom: 12px;
+    }
+
+    .report-location {
+      font-size: 13px;
+      color: #fff;
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .report-time {
+      font-size: 11px;
+      color: var(--light-gold);
+      opacity: 0.7;
+    }
+
+    .report-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
     .status-badge {
-      padding: 4px 8px;
-      border-radius: 12px;
-      font-size: 10px;
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 11px;
       font-weight: 700;
       text-transform: uppercase;
-      display: inline-block;
-      min-width: 70px;
+      min-width: 80px;
       text-align: center;
     }
 
@@ -463,19 +573,18 @@
     }
 
     .photo-btn {
+      padding: 6px 12px;
       background: var(--accent-gold);
       color: var(--primary-blue);
       border: none;
-      padding: 5px 10px;
       border-radius: 6px;
+      font-weight: 600;
       cursor: pointer;
-      font-size: 11px;
-      font-weight: bold;
+      font-size: 12px;
       display: flex;
       align-items: center;
-      gap: 5px;
+      gap: 4px;
       transition: all 0.3s;
-      white-space: nowrap;
     }
 
     .photo-btn:hover {
@@ -489,23 +598,21 @@
       position: fixed;
       top: 0;
       left: 0;
-      width: 100%;
-      height: 100%;
+      right: 0;
+      bottom: 0;
       background: rgba(0, 0, 0, 0.95);
-      z-index: 10000;
+      z-index: 2000;
       justify-content: center;
       align-items: center;
-      padding: 15px;
+      padding: 16px;
     }
 
     .modal-content {
       width: 100%;
       max-width: 500px;
       max-height: 90%;
-      background: var(--primary-blue);
-      border-radius: 12px;
+      border-radius: 16px;
       overflow: hidden;
-      box-shadow: 0 10px 40px rgba(0,0,0,0.5);
       border: 2px solid var(--accent-gold);
     }
 
@@ -517,7 +624,7 @@
     }
 
     .modal-header {
-      padding: 12px;
+      padding: 16px;
       background: rgba(0, 0, 0, 0.7);
       display: flex;
       justify-content: space-between;
@@ -532,90 +639,39 @@
     }
 
     .modal-close {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
       background: var(--danger-red);
       color: white;
       border: none;
-      width: 30px;
-      height: 30px;
-      border-radius: 50%;
       cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       font-size: 16px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-    }
-
-    .modal-close:hover {
-      background: #ff6b6b;
-    }
-
-    /* === Loading States === */
-    .loading {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      padding: 30px;
-      font-size: 14px;
-      color: var(--light-gold);
-      flex-direction: column;
-      text-align: center;
-    }
-
-    .loading-spinner {
-      border: 4px solid rgba(255, 255, 255, 0.1);
-      border-left-color: var(--accent-gold);
-      border-radius: 50%;
-      width: 30px;
-      height: 30px;
-      animation: spin 1s linear infinite;
-      margin-bottom: 10px;
-    }
-
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
-
-    /* === Toast Notification === */
-    .toast {
-      position: fixed;
-      bottom: 20px;
-      right: 20px;
-      left: 20px;
-      background: rgba(0, 0, 0, 0.9);
-      color: white;
-      padding: 12px 15px;
-      border-radius: 8px;
-      border-left: 4px solid var(--accent-gold);
-      z-index: 10000;
-      box-shadow: 0 5px 15px rgba(0,0,0,0.3);
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      animation: fadeIn 0.3s ease-out;
     }
 
     /* === Connection Status === */
     .connection-status {
       position: fixed;
-      bottom: 15px;
-      left: 15px;
-      padding: 6px 12px;
-      border-radius: 15px;
-      font-size: 11px;
+      top: calc(var(--header-height) + 16px);
+      right: 16px;
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-size: 12px;
       font-weight: 600;
       z-index: 1000;
       display: flex;
       align-items: center;
-      gap: 5px;
+      gap: 6px;
       backdrop-filter: blur(10px);
       -webkit-backdrop-filter: blur(10px);
       animation: slideIn 0.3s ease;
     }
 
     @keyframes slideIn {
-      from { transform: translateX(-100%); opacity: 0; }
+      from { transform: translateX(100%); opacity: 0; }
       to { transform: translateX(0); opacity: 1; }
     }
 
@@ -631,203 +687,331 @@
       border: 1px solid rgba(239, 68, 68, 0.4);
     }
 
-    /* === Animations === */
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(15px); }
+    /* === Toast Notification === */
+    .toast {
+      position: fixed;
+      bottom: calc(var(--tab-bar-height) + 16px);
+      left: 16px;
+      right: 16px;
+      background: rgba(0, 0, 0, 0.9);
+      color: white;
+      padding: 12px 16px;
+      border-radius: 8px;
+      border-left: 4px solid var(--accent-gold);
+      z-index: 1000;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      animation: fadeInUp 0.3s ease-out;
+    }
+
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(20px); }
       to { opacity: 1; transform: translateY(0); }
     }
 
-    .glass, #map, .stat-card, tr {
-      animation: fadeIn 0.5s ease-out;
+    /* === Empty State === */
+    .empty-state {
+      padding: 40px 20px;
+      text-align: center;
+      color: var(--light-gold);
     }
 
-    /* === New Report Animation === */
-    .new-report {
-      animation: highlightNew 1s ease-out;
+    .empty-state i {
+      font-size: 48px;
+      margin-bottom: 16px;
+      opacity: 0.5;
     }
 
-    @keyframes highlightNew {
-      0% { background-color: rgba(255, 215, 0, 0.3); }
-      100% { background-color: transparent; }
+    .empty-state h3 {
+      font-size: 18px;
+      margin-bottom: 8px;
     }
 
-    /* === Desktop Layout === */
+    .empty-state p {
+      font-size: 14px;
+      opacity: 0.7;
+    }
+
+    /* === Loading States === */
+    .loading {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 40px;
+      flex-direction: column;
+      gap: 16px;
+      color: var(--light-gold);
+    }
+
+    .loading-spinner {
+      border: 4px solid rgba(255, 255, 255, 0.1);
+      border-left-color: var(--accent-gold);
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    /* ============================================
+       DESKTOP RESPONSIVE DESIGN
+       ============================================ */
     @media (min-width: 768px) {
-      .container {
-        padding: 20px;
+      :root {
+        --header-height: 80px;
+        --tab-bar-height: 0px;
+        --sidebar-width: 90px; /* Now sidebar appears */
       }
 
-      header {
-        padding: 15px 20px;
-        margin-bottom: 20px;
+      /* HIDE mobile tab bar on desktop */
+      .tab-bar {
+        display: none !important;
       }
 
-      .logo-icon {
-        font-size: 32px;
+      /* SHOW desktop navigation on desktop */
+      .desktop-nav {
+        display: flex !important;
+        flex-direction: column;
+        align-items: center;
+        background: rgba(0, 31, 63, 0.9);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border-right: 1px solid rgba(255, 215, 0, 0.2);
       }
 
-      .title {
-        font-size: 28px;
+      /* Adjust main content for sidebar */
+      .main-content {
+        padding: calc(var(--header-height) + 24px) 24px 24px calc(var(--sidebar-width) + 24px) !important;
+        max-width: 100%;
+      }
+
+      .main-header {
+        padding-left: calc(var(--sidebar-width) + 24px) !important;
+        padding-right: 24px !important;
+        background: rgba(0, 31, 63, 0.9);
+      }
+
+      .main-title {
+        font-size: 22px;
       }
 
       .subtitle {
-        font-size: 12px;
-      }
-
-      .logout-btn {
-        padding: 8px 16px;
-        font-size: 14px;
-      }
-
-      .notification-btn {
-        width: 44px;
-        height: 44px;
-        font-size: 20px;
-      }
-
-      .type-filters {
-        gap: 10px;
-        margin-bottom: 20px;
-      }
-
-      .type-btn {
-        padding: 10px 16px;
-        font-size: 14px;
-        flex: none;
-      }
-
-      .dashboard {
-        flex-direction: row;
-        gap: 20px;
-      }
-
-      .map-container {
-        height: 500px;
-        flex: 1;
-        order: 1;
-      }
-
-      .stats-panel {
-        width: 300px;
-        order: 2;
-        flex-shrink: 0;
-      }
-
-      .stats-grid {
-        grid-template-columns: repeat(3, 1fr);
-      }
-
-      .reports-section {
-        order: 3;
-        padding: 20px;
-      }
-
-      .section-title {
-        font-size: 20px;
-      }
-
-      .refresh-btn {
-        padding: 10px 18px;
-        font-size: 14px;
-      }
-
-      th, td {
-        padding: 12px;
         font-size: 13px;
       }
 
-      .status-badge {
+      .live-badge {
         font-size: 11px;
-        padding: 5px 10px;
       }
 
-      .photo-btn {
-        padding: 6px 12px;
-        font-size: 12px;
+      /* Improve map sizing */
+      .map-section {
+        height: 400px;
+        margin-bottom: 24px;
       }
 
-      .toast {
-        left: auto;
-        right: 30px;
-        max-width: 350px;
-      }
-    }
-
-    @media (min-width: 1024px) {
-      .title {
-        font-size: 32px;
+      /* Dashboard grid layout */
+      .dashboard-grid {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 24px;
+        margin-bottom: 24px;
       }
 
-      .subtitle {
-        font-size: 14px;
+      .stats-section {
+        margin-bottom: 0;
       }
 
-      .type-btn {
-        padding: 12px 20px;
-        font-size: 15px;
+      .filter-section {
+        grid-column: 1 / -1;
+        margin-bottom: 0;
       }
 
-      .dashboard {
-        gap: 25px;
+      .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 16px;
       }
 
-      .stats-panel {
-        width: 320px;
-      }
-    }
-
-    /* === Very Small Screens === */
-    @media (max-width: 360px) {
-      .container {
-        padding: 10px;
+      .filters-grid {
+        grid-template-columns: repeat(6, 1fr);
+        gap: 12px;
       }
 
-      header {
-        padding: 10px;
+      .filter-btn {
+        padding: 16px 12px;
+        font-size: 13px;
       }
 
-      .logo-icon {
-        font-size: 24px;
-      }
-
-      .title {
+      .filter-btn i {
         font-size: 18px;
       }
 
-      .logout-btn {
-        padding: 6px 10px;
-        font-size: 11px;
+      /* Reports section */
+      .reports-section {
+        margin-bottom: 0;
       }
 
-      .notification-btn {
-        width: 36px;
-        height: 36px;
-        font-size: 16px;
+      /* Toast positioning */
+      .toast {
+        left: auto;
+        right: 24px;
+        bottom: 24px;
+        max-width: 400px;
       }
 
-      .type-btn {
-        font-size: 11px;
-        padding: 6px 8px;
+      /* Connection status positioning */
+      .connection-status {
+        top: calc(var(--header-height) + 24px);
+        right: 24px;
       }
 
-      .type-btn i {
-        font-size: 12px;
+      /* Desktop nav button improvements */
+      .desktop-nav-btn {
+        padding: 18px 0;
+        font-size: 13px;
+        color: rgba(255, 255, 255, 0.9);
       }
 
-      .map-container {
-        height: 250px;
+      .desktop-nav-btn i {
+        font-size: 24px;
+        margin-bottom: 4px;
+      }
+
+      .desktop-nav-btn.active {
+        color: var(--accent-gold);
+        background: rgba(255, 215, 0, 0.2);
+        border-left: 4px solid var(--accent-gold);
+      }
+    }
+
+    /* Larger desktop screens */
+    @media (min-width: 1024px) {
+      :root {
+        --sidebar-width: 100px;
+      }
+
+      .main-content {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding-left: calc(var(--sidebar-width) + 32px) !important;
+        padding-right: 32px !important;
+      }
+
+      .main-header {
+        padding-left: calc(var(--sidebar-width) + 32px) !important;
+        padding-right: 32px !important;
+      }
+
+      .dashboard-grid {
+        grid-template-columns: 3fr 1fr;
+        gap: 32px;
+      }
+
+      .map-section {
+        height: 500px;
+      }
+
+      .stat-card {
+        padding: 20px;
       }
 
       .stat-value {
-        font-size: 20px;
+        font-size: 32px;
       }
 
       .stat-label {
-        font-size: 10px;
+        font-size: 14px;
       }
 
-      .section-title {
-        font-size: 16px;
+      .desktop-nav-btn {
+        padding: 20px 0;
+        font-size: 14px;
+      }
+
+      .desktop-nav-btn i {
+        font-size: 26px;
+      }
+    }
+
+    /* Extra large screens */
+    @media (min-width: 1200px) {
+      .dashboard-grid {
+        grid-template-columns: 3fr 1fr;
+      }
+      
+      .map-section {
+        height: 550px;
+      }
+    }
+
+    /* === iPhone Notch & Safe Area Support === */
+    @supports (padding: max(0px)) {
+      .main-header {
+        padding-left: max(16px, env(safe-area-inset-left)) !important;
+        padding-right: max(16px, env(safe-area-inset-right)) !important;
+        padding-top: env(safe-area-inset-top);
+        height: calc(var(--header-height) + env(safe-area-inset-top));
+      }
+
+      .tab-bar {
+        padding-left: max(16px, env(safe-area-inset-left));
+        padding-right: max(16px, env(safe-area-inset-right));
+        padding-bottom: env(safe-area-inset-bottom);
+        height: calc(var(--tab-bar-height) + env(safe-area-inset-bottom));
+      }
+
+      .main-content {
+        padding-left: max(16px, env(safe-area-inset-left)) !important;
+        padding-right: max(16px, env(safe-area-inset-right)) !important;
+      }
+      
+      @media (min-width: 768px) {
+        .main-header {
+          padding-left: calc(var(--sidebar-width) + max(24px, env(safe-area-inset-left))) !important;
+        }
+        
+        .main-content {
+          padding-left: calc(var(--sidebar-width) + max(24px, env(safe-area-inset-left))) !important;
+        }
+        
+        .desktop-nav {
+          padding-top: calc(20px + env(safe-area-inset-top));
+        }
+      }
+    }
+
+    /* === High Contrast Mode Support === */
+    @media (prefers-contrast: high) {
+      .glass {
+        background: rgba(0, 0, 0, 0.9);
+        border: 2px solid white;
+      }
+
+      .stat-card {
+        border: 1px solid white;
+      }
+      
+      .desktop-nav-btn {
+        color: white;
+      }
+      
+      .desktop-nav-btn.active {
+        color: var(--accent-gold);
+        background: rgba(255, 215, 0, 0.3);
+      }
+    }
+
+    /* === Reduced Motion Support === */
+    @media (prefers-reduced-motion: reduce) {
+      * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
       }
     }
   </style>
@@ -843,12 +1027,7 @@
           <i class="fas fa-times"></i>
         </button>
       </div>
-      <img id="modalImage" class="modal-img" src="" alt="Incident Photo">
-      <div style="padding: 15px; text-align: center;">
-        <button class="photo-btn" onclick="closePhotoModal()">
-          <i class="fas fa-times"></i> Close
-        </button>
-      </div>
+      <img id="modalImage" class="modal-img" src="" alt="Incident Photo" loading="lazy">
     </div>
   </div>
 
@@ -858,198 +1037,290 @@
     <span>Connected</span>
   </div>
 
-  <div class="container">
-    <!-- Header -->
-    <header class="glass">
-      <div class="logo-area">
-        <div class="logo-icon">
-          <i class="fas fa-fire"></i>
-        </div>
-        <div class="logo-text">
-          <div class="title">Fire<span>Department</span>
-            <span class="realtime-indicator">
-              <i class="fas fa-broadcast-tower"></i> LIVE
-            </span>
-          </div>
-          <div class="subtitle">Fire Department Emergency Response Dashboard</div>
-        </div>
-      </div>
+  <!-- Desktop Navigation Sidebar -->
+  <nav class="desktop-nav glass">
+    <button class="desktop-nav-btn active" onclick="switchTab('overview')" data-tab="overview">
+      <i class="fas fa-home"></i>
+      <span>Overview</span>
+    </button>
+    <button class="desktop-nav-btn" onclick="switchTab('map')" data-tab="map">
+      <i class="fas fa-map"></i>
+      <span>Map</span>
+    </button>
+    <button class="desktop-nav-btn" onclick="switchTab('reports')" data-tab="reports">
+      <i class="fas fa-list"></i>
+      <span>Cases</span>
+    </button>
+    <div style="flex: 1;"></div>
+    <button class="desktop-nav-btn" onclick="logout()">
+      <i class="fas fa-sign-out-alt"></i>
+      <span>Logout</span>
+    </button>
+  </nav>
 
-      <div class="controls-bar">
-        <button class="logout-btn" onclick="logout()" title="Logout">
-          <i class="fas fa-sign-out-alt"></i>
-          <span class="logout-text">Logout</span>
-        </button>
-        <div class="notification-btn" onclick="window.location.href='#'" title="Notifications">
-          <i class="fas fa-bell"></i>
-          <span class="notif-dot" id="notifDot"></span>
-        </div>
+  <!-- Main Header -->
+  <header class="main-header glass">
+    <div class="header-left">
+      <div class="logo-icon">
+        <i class="fas fa-fire"></i>
       </div>
-    </header>
-
-    <!-- Type Filter Buttons -->
-    <div class="type-filters">
-      <button class="type-btn active" onclick="filterByType('all', this)">
-        <i class="fas fa-layer-group"></i> All Fire Cases
-      </button>
-      <button class="type-btn" onclick="filterByType('fire_accident', this)">
-        <i class="fas fa-fire"></i> Fire Accidents
-      </button>
+      <div class="header-titles">
+        <div class="main-title">Fire<span>Department</span>
+          <span class="live-badge">
+            <i class="fas fa-broadcast-tower"></i> LIVE
+          </span>
+        </div>
+        <div class="subtitle">Emergency Fire Response Dashboard</div>
+      </div>
     </div>
 
-    <!-- Dashboard -->
-    <div class="dashboard">
-      <!-- Map Container -->
-      <div class="map-container glass">
-        <div class="map-overlay">
-          <div class="map-control" onclick="fitAllMarkers()">
+    <div class="header-actions">
+      <div class="notification-btn glass" onclick="window.location.href='#'" title="Notifications">
+        <i class="fas fa-bell"></i>
+        <span class="notif-dot" id="notifDot"></span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Tab Navigation (Mobile) -->
+  <nav class="tab-bar glass">
+    <button class="tab-btn active" onclick="switchTab('overview')">
+      <i class="fas fa-home"></i>
+      <span>Overview</span>
+    </button>
+    <button class="tab-btn" onclick="switchTab('map')">
+      <i class="fas fa-map"></i>
+      <span>Map</span>
+    </button>
+    <button class="tab-btn" onclick="switchTab('reports')">
+      <i class="fas fa-list"></i>
+      <span>Cases</span>
+    </button>
+    <button class="tab-btn" onclick="logout()">
+      <i class="fas fa-sign-out-alt"></i>
+      <span>Logout</span>
+    </button>
+  </nav>
+
+  <!-- Main Content -->
+  <main class="main-content">
+    <!-- Overview Tab -->
+    <section id="overviewTab" class="content-section active">
+      <!-- Dashboard Grid for Desktop -->
+      <div class="dashboard-grid">
+        <!-- Map Section -->
+        <div class="map-section glass">
+          <div class="map-controls">
+            <button class="map-control" onclick="fitAllMarkers()">
+              <i class="fas fa-expand"></i> Show All
+            </button>
+            <button class="map-control" onclick="clearFilters()">
+              <i class="fas fa-times"></i> Clear
+            </button>
+          </div>
+          <div id="map"></div>
+        </div>
+
+        <!-- Quick Stats -->
+        <div class="stats-section">
+          <h2 class="section-title">
+            <i class="fas fa-chart-bar"></i> Fire Incident Overview
+          </h2>
+          <div class="stats-grid">
+            <div class="stat-card glass">
+              <div class="stat-value" id="totalIncidents">0</div>
+              <div class="stat-label">Total Fire Cases</div>
+            </div>
+            <div class="stat-card glass">
+              <div class="stat-value" id="pendingIncidents">0</div>
+              <div class="stat-label">Pending</div>
+            </div>
+            <div class="stat-card glass">
+              <div class="stat-value" id="assignedIncidents">0</div>
+              <div class="stat-label">Assigned</div>
+            </div>
+            <div class="stat-card glass">
+              <div class="stat-value" id="resolvedIncidents">0</div>
+              <div class="stat-label">Resolved</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quick Filters -->
+        <div class="filter-section">
+          <h2 class="section-title">
+            <i class="fas fa-filter"></i> Quick Filters
+          </h2>
+          <div class="filters-grid">
+            <button class="filter-btn active" onclick="filterByType('all', this)">
+              <i class="fas fa-layer-group"></i>
+              <span>All</span>
+            </button>
+            <button class="filter-btn" onclick="filterByType('fire_accident', this)">
+              <i class="fas fa-fire"></i>
+              <span>Fire Accidents</span>
+            </button>
+            <button class="filter-btn" onclick="filterByStatus('pending', this)">
+              <i class="fas fa-clock"></i>
+              <span>Pending</span>
+            </button>
+            <button class="filter-btn" onclick="filterByStatus('investigating', this)">
+              <i class="fas fa-search"></i>
+              <span>Investigating</span>
+            </button>
+            <button class="filter-btn" onclick="filterByStatus('resolved', this)">
+              <i class="fas fa-check"></i>
+              <span>Resolved</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recent Reports -->
+      <div class="reports-section">
+        <div class="section-header">
+          <h2 class="section-title">
+            <i class="fas fa-list-alt"></i> Recent Fire Cases
+          </h2>
+          <button class="refresh-btn" onclick="manualRefresh()" id="refreshBtn">
+            <i class="fas fa-sync-alt"></i> Refresh
+          </button>
+        </div>
+        <div class="reports-list glass" id="recentReportsList">
+          <div class="loading">
+            <div class="loading-spinner"></div>
+            <span>Loading fire cases...</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Map Tab -->
+    <section id="mapTab" class="content-section">
+      <div class="map-section glass" style="height: calc(100vh - var(--header-height) - 48px);">
+        <div class="map-controls">
+          <button class="map-control" onclick="fitAllMarkers()">
             <i class="fas fa-expand"></i> Show All
-          </div>
-          <div class="map-control" onclick="clearFilters()">
-            <i class="fas fa-times"></i> Clear Filters
-          </div>
+          </button>
+          <button class="map-control" onclick="clearFilters()">
+            <i class="fas fa-times"></i> Clear
+          </button>
+          <button class="map-control" onclick="manualRefresh()">
+            <i class="fas fa-sync-alt"></i> Refresh
+          </button>
         </div>
-        <div id="map"></div>
+        <div id="fullMap"></div>
       </div>
+    </section>
 
-      <!-- Stats Panel -->
-      <div class="stats-panel glass">
-        <div class="panel-title">
-          <i class="fas fa-chart-bar"></i> Fire Incident Overview
-          <span id="filterBadge" class="active-filter" style="display: none;">Filtered</span>
+    <!-- Reports Tab -->
+    <section id="reportsTab" class="content-section">
+      <div class="reports-section">
+        <div class="section-header">
+          <h2 class="section-title">
+            <i class="fas fa-clipboard-list"></i> All Fire Cases
+            <span id="tableFilterInfo" style="font-size: 12px; color: var(--light-gold); margin-left: 8px;"></span>
+          </h2>
+          <button class="refresh-btn" onclick="manualRefresh()">
+            <i class="fas fa-sync-alt"></i> Refresh
+          </button>
         </div>
-
-        <div class="stats-grid">
-          <div class="stat-card glass">
-            <div class="stat-value" id="totalIncidents">0</div>
-            <div class="stat-label">Total Fire Cases</div>
-          </div>
-
-          <div class="stat-card glass">
-            <div class="stat-value" id="pendingIncidents">0</div>
-            <div class="stat-label">Pending</div>
-          </div>
-
-          <div class="stat-card glass">
-            <div class="stat-value" id="investigatingIncidents">0</div>
-            <div class="stat-label">Investigating</div>
-          </div>
-
-          <div class="stat-card glass">
-            <div class="stat-value" id="resolvedIncidents">0</div>
-            <div class="stat-label">Resolved</div>
-          </div>
-        </div>
-
-        <div class="panel-title" style="margin-top: 10px;">
-          <i class="fas fa-exclamation-triangle"></i> Case Types
-        </div>
-
-        <div class="stats-grid">
-          <div class="stat-card glass">
-            <div class="stat-value" id="fireAccidents">0</div>
-            <div class="stat-label">Fire Accidents</div>
+        <div class="reports-list glass" id="allReportsList">
+          <div class="loading">
+            <div class="loading-spinner"></div>
+            <span>Loading all fire cases...</span>
           </div>
         </div>
       </div>
-    </div>
-
-    <!-- Reports Table -->
-    <div class="reports-section glass">
-      <div class="section-header">
-        <div class="section-title">
-          <i class="fas fa-list-alt"></i> Active Fire Cases
-          <span id="tableFilterInfo"></span>
-        </div>
-        <button class="refresh-btn" onclick="manualRefresh()" id="refreshBtn">
-          <i class="fas fa-sync-alt"></i> Refresh
-        </button>
-      </div>
-
-      <div class="table-container">
-        <table id="reportsTable">
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Type</th>
-              <th>Location</th>
-              <th>Status</th>
-              <th>Time</th>
-              <th>Photo</th>
-            </tr>
-          </thead>
-          <tbody id="reportsTableBody">
-            <tr>
-              <td colspan="6" class="loading">
-                <div class="loading-spinner"></div>
-                <span>Loading fire cases...</span>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </div>
+    </section>
+  </main>
 
   <script>
     // ============ CONFIGURATION ============
     const SUPABASE_URL = 'https://gwvepxupoxyyydnisulb.supabase.co';
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd3dmVweHVwb3h5eXlkbmlzdWxiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ4MDE4ODcsImV4cCI6MjA4MDM3Nzg4N30.Ku9SXTAKNMvHilgEpxj5HcVA-0TPt4ziuEq0Irao5Qc';
-    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
     const OPENCAGE_API_KEY = '0a78fbd8bcd74be398f210b34682c77c';
 
-    // Map Initialization
-    const map = L.map("map").setView([12.4048, 121.9829], 15);
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      maxZoom: 19,
-      attribution: "&copy; OpenStreetMap contributors",
-    }).addTo(map);
+    // ============ GLOBAL VARIABLES ============
+    let supabaseClient = null;
+    let map = null;
+    let fullMap = null;
+    let markers = [];
+    let allReports = [];
+    let filteredReports = [];
+    let currentFilter = { type: 'all', status: 'all' };
+    let realtimeSubscription = null;
+    let addressCache = new Map();
+    let isInitialLoad = true;
+    let touchStartX = 0;
+    let touchEndX = 0;
+    let currentTab = 'overview'; // Track current tab
 
-    // Incident Type Configuration (FIRE ONLY)
+    // Incident Type Configuration
     const typeConfig = {
       fire_accident: {
         name: 'Fire Accident',
         icon: 'fire',
-        color: '#f39c12'
+        color: '#ffd700'  // Using the same gold color as police theme
+      },
+      default: {
+        name: 'Incident',
+        icon: 'fire',
+        color: '#ffd700'  // Using the same gold color as police theme
       }
     };
 
-    // ============ GLOBAL VARIABLES ============
-    let markers = [];
-    let allReports = [];
-    let filteredReports = [];
-    let currentFilter = 'all';
-    let realtimeSubscription = null;
-    let addressCache = new Map();
-    let isInitialLoad = true;
+    // ============ INITIALIZATION ============
+    document.addEventListener('DOMContentLoaded', async () => {
+      console.log('🔥 Fire Department Dashboard Initializing...');
+      
+      // Initialize Supabase
+      supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+      
+      // Check authentication
+      if (!checkAuthentication()) return;
+      
+      // Initialize maps
+      initializeMaps();
+      
+      // Setup event listeners
+      setupEventListeners();
+      
+      // Load initial data
+      await loadInitialData();
+      
+      // Setup realtime subscription
+      setupRealtimeSubscription();
+      
+      // Make functions globally available
+      exposeGlobalFunctions();
+    });
 
-    // ============ AUTHENTICATION & LOGOUT ============
+    // ============ AUTHENTICATION ============
     function checkAuthentication() {
-      const user = localStorage.getItem('user');
-      if (!user) {
-        window.location.href = 'index.html';
-        return false;
-      }
-
       try {
+        const user = localStorage.getItem('user');
+        if (!user) {
+          window.location.href = 'index.html';
+          return false;
+        }
+
         const userData = JSON.parse(user);
         
-        // Allow fire station access if user is admin or has fire station
-        if (userData.station === 'fire' || userData.email === 'fireadmin@gmail.com') {
+        // Check for fire department access
+        if (userData.station === 'fire' || 
+            userData.email === 'fireadmin@gmail.com' || 
+            userData.role === 'admin') {
+          console.log('✅ User authenticated for fire department dashboard');
           return true;
         }
         
-        // Also allow if user has any admin role
-        if (userData.role === 'admin') {
-          return true;
-        }
-        
-        alert('Access denied. You do not have permission to access the Fire Dashboard.');
+        alert('⚠️ Access denied. Fire department dashboard only.');
         window.location.href = 'index.html';
         return false;
         
       } catch (error) {
-        console.error('Error parsing user data:', error);
+        console.error('Auth error:', error);
         window.location.href = 'index.html';
         return false;
       }
@@ -1058,267 +1329,183 @@
     function logout() {
       if (confirm('Are you sure you want to logout?')) {
         localStorage.removeItem('user');
-        supabaseClient.auth.signOut().finally(() => {
-          window.location.href = 'index.html';
-        });
-      }
-    }
-
-    // ============ CONNECTION STATUS ============
-    function updateConnectionStatus(connected) {
-      const statusEl = document.getElementById('connectionStatus');
-      if (connected) {
-        statusEl.innerHTML = '<i class="fas fa-circle"></i> Realtime Connected';
-        statusEl.className = 'connection-status connection-connected';
-        statusEl.style.display = 'flex';
-
-        setTimeout(() => {
-          statusEl.style.display = 'none';
-        }, 3000);
-      } else {
-        statusEl.innerHTML = '<i class="fas fa-circle"></i> Connection Lost';
-        statusEl.className = 'connection-status connection-disconnected';
-        statusEl.style.display = 'flex';
-      }
-    }
-
-    // ============ OPENCAGE GEOCODING ============
-    async function getReadableAddress(lat, lng) {
-      try {
-        const cacheKey = `${lat.toFixed(6)},${lng.toFixed(6)}`;
-        if (addressCache.has(cacheKey)) {
-          return addressCache.get(cacheKey);
+        if (realtimeSubscription) {
+          supabaseClient.removeChannel(realtimeSubscription);
         }
-
-        const url = `https://api.opencagedata.com/geocode/v1/json?q=${lat}+${lng}&key=${OPENCAGE_API_KEY}&language=en&limit=1`;
-
-        const response = await fetch(url);
-        const data = await response.json();
-
-        if (data.results && data.results.length > 0) {
-          const address = data.results[0].formatted;
-          addressCache.set(cacheKey, address);
-          return address;
-        }
-        return `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
-      } catch (error) {
-        console.error('Geocoding error:', error);
-        return `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+        window.location.href = 'index.html';
       }
     }
 
-    // ============ PHOTO HANDLING ============
-    function showPhotoModal(imageUrl, title = 'Incident Photo') {
-      const modal = document.getElementById('photoModal');
-      const modalImg = document.getElementById('modalImage');
-      const modalTitle = document.getElementById('modalTitle');
+    // ============ MAP FUNCTIONS ============
+    function initializeMaps() {
+      // Main overview map
+      map = L.map("map").setView([12.4048, 121.9829], 15);
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        maxZoom: 19,
+        attribution: "© OpenStreetMap"
+      }).addTo(map);
 
-      if (imageUrl && imageUrl !== 'null' && imageUrl !== 'undefined') {
-        modalImg.src = imageUrl;
-        modalTitle.textContent = title;
-        modal.style.display = 'flex';
-        document.body.style.overflow = 'hidden';
-      } else {
-        showToast('No photo available for this incident', 'warning');
-      }
+      // Full screen map
+      fullMap = L.map("fullMap").setView([12.4048, 121.9829], 15);
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        maxZoom: 19,
+        attribution: "© OpenStreetMap"
+      }).addTo(fullMap);
+
+      console.log('🗺️ Maps initialized');
     }
 
-    function closePhotoModal() {
-      const modal = document.getElementById('photoModal');
-      modal.style.display = 'none';
-      document.body.style.overflow = 'auto';
-    }
-
-    function getPhotoUrl(report) {
-      if (report.photo_url && report.photo_url.trim() && report.photo_url.trim() !== 'null') {
-        return report.photo_url.trim();
-      }
-
-      if (report.photo && report.photo.trim() && report.photo.trim() !== 'null') {
-        if (report.photo.startsWith('data:image')) {
-          return report.photo;
-        }
-
-        if (report.photo.startsWith('incident_photos/')) {
-          const { data } = supabaseClient.storage
-            .from('incident_photos')
-            .getPublicUrl(report.photo);
-
-          if (data && data.publicUrl) {
-            return data.publicUrl;
-          }
-        }
-
-        return report.photo;
-      }
-
-      if (report.image_url && report.image_url.trim() && report.image_url.trim() !== 'null') {
-        return report.image_url.trim();
-      }
-
-      return null;
-    }
-
-    // ============ MAP MARKERS ============
-    function createCustomIcon(type) {
-      const config = typeConfig[type] || { 
-        name: 'Unknown', 
-        icon: 'exclamation-triangle', 
-        color: '#3498db' 
-      };
+    function createCustomIcon(type, status = 'pending') {
+      const config = typeConfig[type] || typeConfig.default;
+      
+      // Adjust color based on status
+      let statusColor = config.color;
+      if (status === 'pending') statusColor = '#f39c12';
+      if (status === 'resolved') statusColor = '#2ecc71';
+      if (status === 'investigating') statusColor = '#e74c3c';
+      if (status === 'assigned') statusColor = '#3498db';
+      
       return L.divIcon({
         html: `
           <div style="
-            background-color: ${config.color};
-            width: 28px;
-            height: 28px;
+            background-color: ${statusColor};
+            width: 32px;
+            height: 32px;
             border-radius: 50%;
-            border: 2px solid white;
-            box-shadow: 0 0 8px rgba(0,0,0,0.5);
+            border: 3px solid white;
+            box-shadow: 0 0 10px rgba(0,0,0,0.5);
             display: flex;
             align-items: center;
             justify-content: center;
             color: white;
-            font-size: 12px;
+            font-size: 14px;
           ">
             <i class="fas fa-${config.icon}"></i>
           </div>
         `,
         className: 'custom-marker',
-        iconSize: [32, 32],
-        iconAnchor: [16, 16]
+        iconSize: [36, 36],
+        iconAnchor: [18, 18]
       });
     }
 
     function clearMarkers() {
-      markers.forEach(marker => map.removeLayer(marker));
+      console.log('🗑️ Clearing markers...');
+      markers.forEach(marker => {
+        // Remove from both maps to be safe
+        if (map) map.removeLayer(marker);
+        if (fullMap) fullMap.removeLayer(marker);
+      });
       markers = [];
+      console.log('✅ Markers cleared');
     }
 
-    function addReportMarker(report, isNew = false) {
-      if (!report.latitude || !report.longitude) return null;
-
-      const icon = createCustomIcon(report.type);
-      const marker = L.marker([report.latitude, report.longitude], { icon }).addTo(map);
-
-      if (isNew) {
-        marker._icon.style.animation = 'pulse 1s 3';
+    function addReportMarker(report, targetMap = null) {
+      if (!report.latitude || !report.longitude) {
+        console.warn('⚠️ No coordinates for report:', report.id);
+        return null;
       }
 
-      const status = report.status || 'pending';
+      try {
+        const icon = createCustomIcon(report.type, report.status);
+        const marker = L.marker([report.latitude, report.longitude], { icon });
+        
+        // Determine which map to add to based on current tab
+        let target = targetMap;
+        if (!target) {
+          if (currentTab === 'overview') {
+            target = 'overview';
+          } else if (currentTab === 'map') {
+            target = 'full';
+          }
+        }
+        
+        if (target === 'overview' || target === 'both') {
+          if (map) {
+            marker.addTo(map);
+            console.log(`📍 Added marker to overview map for report #${report.id}`);
+          }
+        }
+        if (target === 'full' || target === 'both') {
+          if (fullMap) {
+            marker.addTo(fullMap);
+            console.log(`📍 Added marker to full map for report #${report.id}`);
+          }
+        }
+
+        // Create popup content
+        const popupContent = createPopupContent(report);
+        marker.bindPopup(popupContent);
+        
+        markers.push(marker);
+        return marker;
+      } catch (error) {
+        console.error('Error adding marker:', error, report);
+        return null;
+      }
+    }
+
+    function createPopupContent(report) {
       const photoUrl = getPhotoUrl(report);
-
-      const popupContent = `
-        <div style="
-          font-family: 'Segoe UI', sans-serif;
-          min-width: 280px;
-          max-width: 320px;
-          padding: 8px;
-        ">
-          <div style="
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            margin-bottom: 12px;
-            padding-bottom: 8px;
-            border-bottom: 2px solid ${typeConfig[report.type]?.color || '#3498db'};
-          ">
-            <div style="
-              background-color: ${typeConfig[report.type]?.color || '#3498db'};
-              width: 16px;
-              height: 16px;
-              border-radius: 50%;
-            "></div>
-            <h3 style="margin: 0; color: #333; font-size: 14px; font-weight: bold;">
-              ${typeConfig[report.type]?.name || 'Unknown Incident'}
-            </h3>
-          </div>
-
-          <div style="margin-bottom: 10px;">
-            <div style="color: #555; font-size: 10px; font-weight: 600; margin-bottom: 3px;">
-              <i class="fas fa-map-marker-alt"></i> LOCATION
-            </div>
-            <div style="color: #222; font-size: 12px; line-height: 1.3;">
-              ${report.location || 'Location not specified'}
-            </div>
-          </div>
-
-          <div style="
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            margin: 12px 0;
-          ">
-            <div>
-              <div style="color: #555; font-size: 10px; font-weight: 600; margin-bottom: 3px;">
-                <i class="fas fa-user"></i> REPORTER
-              </div>
-              <div style="color: #222; font-size: 12px;">
-                ${report.reporter_name || 'Anonymous'}
-              </div>
-            </div>
-
-            <div>
-              <div style="color: #555; font-size: 10px; font-weight: 600; margin-bottom: 3px;">
-                <i class="fas fa-id-card"></i> REPORT ID
-              </div>
-              <div style="color: #222; font-size: 12px; font-weight: bold;">
-                #${report.id}
-              </div>
-            </div>
+      const statusColor = getStatusColor(report.status);
+      const shortLocation = report.location.length > 50 ? 
+        report.location.substring(0, 50) + '...' : report.location;
+      
+      return `
+        <div style="min-width: 250px; max-width: 300px; padding: 10px; font-family: -apple-system, sans-serif;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px solid #eee;">
+            <div style="width: 12px; height: 12px; border-radius: 50%; background: ${typeConfig[report.type]?.color || typeConfig.default.color};"></div>
+            <strong style="color: #333; font-size: 14px;">${typeConfig[report.type]?.name || typeConfig.default.name}</strong>
+            <span style="margin-left: auto; font-size: 11px; color: #666; font-weight: bold;">#${report.id}</span>
           </div>
           
-          <div style="margin-bottom: 12px;">
-            <div style="color: #555; font-size: 10px; font-weight: 600; margin-bottom: 4px;">
-              <i class="fas fa-info-circle"></i> STATUS
-            </div>
-            <div style="
+          <div style="margin-bottom: 8px;">
+            <div style="font-size: 11px; color: #666; margin-bottom: 2px;">Location</div>
+            <div style="font-size: 13px; color: #222;">${shortLocation}</div>
+          </div>
+          
+          <div style="margin-bottom: 8px;">
+            <div style="font-size: 11px; color: #666; margin-bottom: 2px;">Status</div>
+            <span style="
               display: inline-block;
               padding: 4px 10px;
               border-radius: 12px;
-              font-size: 10px;
+              font-size: 11px;
               font-weight: bold;
-              background-color: ${getStatusColor(status).bg};
-              color: ${getStatusColor(status).text};
+              background: ${statusColor.bg};
+              color: ${statusColor.text};
             ">
-              ${status.charAt(0).toUpperCase() + status.slice(1)}
-            </div>
+              ${report.status.charAt(0).toUpperCase() + report.status.slice(1)}
+            </span>
+          </div>
+          
+          <div style="font-size: 11px; color: #666; margin-top: 10px;">
+            <i class="fas fa-clock"></i> ${formatDateTime(report.created_at)}
           </div>
           
           ${photoUrl ? `
-            <div style="margin-bottom: 12px;">
-              <div style="color: #555; font-size: 10px; font-weight: 600; margin-bottom: 4px;">
-                <i class="fas fa-camera"></i> INCIDENT PHOTO
-              </div>
-              <div style="
-                background: #f5f5f5;
-                border-radius: 6px;
-                padding: 6px;
-                text-align: center;
-                cursor: pointer;
-                border: 1px solid #ddd;
-              " onclick="window.showPhotoModal('${photoUrl}', 'Report #${report.id}')">
-                <img src="${photoUrl}" 
-                  style="
-                    max-width: 100%;
-                    max-height: 100px;
-                    border-radius: 4px;
-                    margin-bottom: 6px;
-                  "
-                  onerror="this.onerror=null; this.src='https://via.placeholder.com/250x100/cccccc/666666?text=Photo+Not+Available';"
-                >
-                <div style="color: #666; font-size: 10px; margin-top: 3px;">
-                  <i class="fas fa-search-plus"></i> Click to view
-                </div>
-              </div>
+            <div style="margin-top: 12px;">
+              <button onclick="window.showPhotoModal('${photoUrl}', 'Report #${report.id}')"
+                style="
+                  width: 100%;
+                  padding: 8px;
+                  background: ${typeConfig[report.type]?.color || typeConfig.default.color};
+                  color: var(--primary-blue);
+                  border: none;
+                  border-radius: 6px;
+                  font-size: 12px;
+                  cursor: pointer;
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  gap: 6px;
+                ">
+                <i class="fas fa-camera"></i> View Photo
+              </button>
             </div>
           ` : ''}
         </div>
       `;
-      
-      marker.bindPopup(popupContent);
-      markers.push(marker);
-      return marker;
     }
 
     function getStatusColor(status) {
@@ -1331,107 +1518,463 @@
       }
     }
 
-    // ============ DATA PROCESSING ============
-    async function processReport(rawReport) {
-      // Determine incident type - ONLY fire-related incidents
-      let incidentType = '';
-      const dbType = (rawReport.type || '').toString().toLowerCase().trim();
+    function fitAllMarkers() {
+      console.log('🔍 Fitting all markers to view...');
       
-      if (dbType.includes('fire')) {
-        incidentType = 'fire_accident';
+      // Determine which map is currently active based on currentTab
+      let currentMap;
+      if (currentTab === 'overview') {
+        currentMap = map;
+      } else if (currentTab === 'map') {
+        currentMap = fullMap;
+      } else {
+        console.error('❌ No active tab found for map');
+        showToast('Map not available', 'error');
+        return;
       }
       
-      // Skip if not a fire-related incident
-      if (!incidentType) return null;
-      
-      // Get location
-      const lat = parseFloat(rawReport.latitude);
-      const lng = parseFloat(rawReport.longitude);
-      let location = 'Location not specified';
-      
-      if (!isNaN(lat) && !isNaN(lng)) {
-        try {
-          location = await getReadableAddress(lat, lng);
-        } catch (error) {
-          location = `Coordinates: ${lat.toFixed(4)}, ${lng.toFixed(4)}`;
-        }
-      } else if (rawReport.location_name && rawReport.location_name.trim()) {
-        location = rawReport.location_name.trim();
-      } else if (rawReport.location && rawReport.location.trim()) {
-        location = rawReport.location.trim();
+      if (!currentMap) {
+        console.error('❌ Map not initialized');
+        showToast('Map not available', 'error');
+        return;
       }
       
-      const reporterName = rawReport.reporter || rawReport.reporter_name || rawReport.name || rawReport.reporter_email || 'Anonymous';
-      const photoUrl = getPhotoUrl(rawReport);
+      // Get markers that are on the current map
+      const validMarkers = markers.filter(m => {
+        const latLng = m.getLatLng();
+        return latLng && m._map === currentMap;
+      });
       
-      return {
-        id: rawReport.id,
-        type: incidentType,
-        location: location,
-        reporter_name: reporterName,
-        created_at: rawReport.created_at || rawReport.reported_at || new Date().toISOString(),
-        status: (rawReport.status || 'pending').toLowerCase(),
-        latitude: isNaN(lat) ? 12.4048 : lat,
-        longitude: isNaN(lng) ? 121.9829 : lng,
-        description: rawReport.description || rawReport.details || rawReport.incident_details || '',
-        photo_url: photoUrl,
-        photo: rawReport.photo || rawReport.photo_url || rawReport.image_url || null,
-        original_data: rawReport
-      };
+      console.log(`📍 Found ${validMarkers.length} valid markers on current map`);
+      
+      if (validMarkers.length > 0) {
+        const group = L.featureGroup(validMarkers);
+        currentMap.fitBounds(group.getBounds().pad(0.1));
+        showToast(`Showing ${validMarkers.length} fire incidents on map`, 'success');
+      } else {
+        console.warn('⚠️ No markers to display');
+        showToast('No fire incidents to display on map', 'warning');
+      }
     }
 
-    // ============ REALTIME DATA HANDLING ============
-    async function addNewReport(reportData) {
-      const processedReport = await processReport(reportData);
-      if (!processedReport) return; // Skip if not fire-related
-      
-      const existingIndex = allReports.findIndex(r => r.id === processedReport.id);
-      if (existingIndex >= 0) {
-        allReports[existingIndex] = processedReport;
-      } else {
-        allReports.unshift(processedReport);
-        showToast(`New ${typeConfig[processedReport.type]?.name || 'incident'} reported`, 'info');
+    // ============ DATA FUNCTIONS ============
+    async function getReadableAddress(lat, lng) {
+      const cacheKey = `${lat.toFixed(6)},${lng.toFixed(6)}`;
+      if (addressCache.has(cacheKey)) {
+        return addressCache.get(cacheKey);
       }
+
+      try {
+        const url = `https://api.opencagedata.com/geocode/v1/json?q=${lat}+${lng}&key=${OPENCAGE_API_KEY}&language=en&limit=1`;
+        const response = await fetch(url);
+        if (!response.ok) throw new Error('Geocoding API error');
+        
+        const data = await response.json();
+        
+        if (data.results?.[0]?.formatted) {
+          const address = data.results[0].formatted;
+          addressCache.set(cacheKey, address);
+          return address;
+        }
+        return `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+      } catch (error) {
+        console.error('Geocoding error:', error);
+        return `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+      }
+    }
+
+    function getPhotoUrl(report) {
+      // Check photo_url field first
+      if (report.photo_url && report.photo_url.trim() && report.photo_url !== 'null') {
+        return report.photo_url.trim();
+      }
+      
+      // Check photo field (could be base64 or path)
+      if (report.photo && report.photo.trim() && report.photo !== 'null') {
+        // If it's a base64 image
+        if (report.photo.startsWith('data:image')) {
+          return report.photo;
+        }
+        
+        // If it's a Supabase storage path
+        if (report.photo.startsWith('incident_photos/')) {
+          const { data } = supabaseClient.storage
+            .from('incident_photos')
+            .getPublicUrl(report.photo);
+          return data?.publicUrl || null;
+        }
+        
+        // Assume it's a direct URL
+        return report.photo;
+      }
+      
+      // Check image_url field
+      if (report.image_url && report.image_url.trim() && report.image_url !== 'null') {
+        return report.image_url.trim();
+      }
+      
+      return null;
+    }
+
+    async function processReport(rawReport) {
+      try {
+        // Determine incident type - process only fire-related incidents
+        let incidentType = '';
+        const dbType = (rawReport.type || '').toString().toLowerCase().trim();
+
+        // Process only fire emergencies
+        if (dbType.includes('fire') || dbType.includes('blaze') || dbType.includes('flame') ||
+            dbType.includes('burn') || dbType.includes('inferno') || dbType.includes('combust')) {
+          incidentType = 'fire_accident';
+        } else {
+          // Skip non-fire incidents
+          console.log('Skipping non-fire incident:', dbType);
+          return null;
+        }
+
+        // Get location coordinates
+        const lat = parseFloat(rawReport.latitude);
+        const lng = parseFloat(rawReport.longitude);
+        let location = 'Location not specified';
+
+        if (!isNaN(lat) && !isNaN(lng)) {
+          location = await getReadableAddress(lat, lng);
+        } else if (rawReport.location_name && rawReport.location_name.trim()) {
+          location = rawReport.location_name.trim();
+        } else if (rawReport.location && rawReport.location.trim()) {
+          location = rawReport.location.trim();
+        }
+
+        // Get reporter name
+        const reporterName = rawReport.reporter ||
+                           rawReport.reporter_name ||
+                           rawReport.name ||
+                           rawReport.reporter_email ||
+                           'Anonymous';
+
+        // Get photo URL
+        const photoUrl = getPhotoUrl(rawReport);
+
+        // Parse timestamp
+        const createdAt = rawReport.created_at ||
+                         rawReport.reported_at ||
+                         rawReport.timestamp ||
+                         new Date().toISOString();
+
+        // Determine status
+        const status = (rawReport.status || 'pending').toLowerCase();
+
+        return {
+          id: rawReport.id,
+          type: incidentType,
+          location: location,
+          reporter_name: reporterName,
+          created_at: createdAt,
+          status: status,
+          latitude: isNaN(lat) ? 12.4048 : lat,
+          longitude: isNaN(lng) ? 121.9829 : lng,
+          description: rawReport.description || rawReport.details || rawReport.incident_details || '',
+          photo_url: photoUrl,
+          photo: rawReport.photo || rawReport.photo_url || rawReport.image_url || null,
+          original_data: rawReport
+        };
+      } catch (error) {
+        console.error('Error processing report:', error, rawReport);
+        return null;
+      }
+    }
+
+    async function loadInitialData() {
+      const refreshBtn = document.getElementById('refreshBtn');
+      const originalHTML = refreshBtn.innerHTML;
+      
+      refreshBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading...';
+      refreshBtn.disabled = true;
+
+      try {
+        console.log('📥 Loading initial data...');
+        
+        const { data, error } = await supabaseClient
+          .from('reports')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(100);
+
+        if (error) {
+          console.error('Supabase error:', error);
+          throw error;
+        }
+
+        console.log(`📊 Retrieved ${data?.length || 0} raw reports`);
+
+        // Process all reports
+        const reportPromises = (data || []).map(processReport);
+        const processedReports = await Promise.all(reportPromises);
+        
+        // Filter out null reports (non-fire incidents)
+        allReports = processedReports.filter(report => report !== null);
+        
+        console.log(`🔥 Filtered to ${allReports.length} fire cases`);
+
+        // Apply filters and update UI
+        applyFilters();
+        updateStatistics();
+        updateRecentReports();
+        updateAllReports();
+        
+        if (allReports.length > 0) {
+          showToast(`Loaded ${allReports.length} fire cases`, 'success');
+        } else {
+          showToast('No fire cases found in database', 'info');
+        }
+
+      } catch (error) {
+        console.error('Error loading reports:', error);
+        showToast(`Error loading data: ${error.message}`, 'error');
+        
+        // Show empty state
+        document.getElementById('recentReportsList').innerHTML = `
+          <div class="empty-state">
+            <i class="fas fa-exclamation-triangle"></i>
+            <h3>Unable to Load Data</h3>
+            <p>Please check your connection and try again</p>
+            <button class="refresh-btn" onclick="manualRefresh()" style="margin-top: 16px;">
+              <i class="fas fa-redo"></i> Retry
+            </button>
+          </div>
+        `;
+        
+        document.getElementById('allReportsList').innerHTML = `
+          <div class="empty-state">
+            <i class="fas fa-exclamation-triangle"></i>
+            <h3>Unable to Load Data</h3>
+            <p>Please check your connection and try again</p>
+          </div>
+        `;
+
+      } finally {
+        refreshBtn.innerHTML = originalHTML;
+        refreshBtn.disabled = false;
+        isInitialLoad = false;
+      }
+    }
+
+    // ============ FILTER FUNCTIONS ============
+    function applyFilters() {
+      console.log('🔍 Applying filters:', currentFilter, 'on tab:', currentTab);
+      
+      // Clear existing markers
+      clearMarkers();
+      
+      // Filter reports based on current filter
+      filteredReports = allReports.filter(report => {
+        // Type filter
+        if (currentFilter.type !== 'all' && report.type !== currentFilter.type) {
+          return false;
+        }
+        // Status filter
+        if (currentFilter.status !== 'all' && report.status !== currentFilter.status) {
+          return false;
+        }
+        return true;
+      });
+      
+      console.log(`📋 Filtered to ${filteredReports.length} reports`);
+      
+      // Add markers for filtered reports based on current tab
+      filteredReports.forEach(report => {
+        addReportMarker(report);
+      });
+      
+      // Update UI components
+      updateRecentReports();
+      updateAllReports();
+      updateStatistics();
+      updateFilterInfo();
+      
+      // Auto-fit map if we have markers and it's not initial load
+      if (filteredReports.length > 0 && !isInitialLoad && (currentTab === 'overview' || currentTab === 'map')) {
+        setTimeout(() => {
+          fitAllMarkers();
+        }, 100);
+      }
+    }
+
+    function filterByType(type, buttonElement) {
+      if (buttonElement) {
+        // Update button states
+        document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+        buttonElement.classList.add('active');
+      }
+      
+      currentFilter.type = type;
+      currentFilter.status = 'all'; // Reset status filter when type changes
       
       applyFilters();
-      highlightNewReport(processedReport.id);
-    }
-
-    function updateExistingReport(reportData) {
-      const index = allReports.findIndex(r => r.id === reportData.id);
-      if (index >= 0) {
-        processReport(reportData).then(updatedReport => {
-          if (!updatedReport) {
-            // If updated report is no longer fire-related, remove it
-            allReports.splice(index, 1);
-          } else {
-            allReports[index] = updatedReport;
-          }
-          applyFilters();
-        });
+      
+      if (type !== 'all') {
+        showToast(`Showing ${typeConfig[type]?.name || type} cases`, 'info');
       }
     }
 
-    function removeReport(reportId) {
-      const index = allReports.findIndex(r => r.id === reportId);
-      if (index >= 0) {
-        allReports.splice(index, 1);
-        applyFilters();
+    function filterByStatus(status, buttonElement) {
+      if (buttonElement) {
+        // Update button states
+        document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+        buttonElement.classList.add('active');
+      }
+      
+      currentFilter.status = status;
+      currentFilter.type = 'all'; // Reset type filter when status changes
+      
+      applyFilters();
+      
+      if (status !== 'all') {
+        showToast(`Showing ${status} cases`, 'info');
       }
     }
 
-    function highlightNewReport(reportId) {
-      const tableRow = document.querySelector(`tr[data-report-id="${reportId}"]`);
-      if (tableRow) {
-        tableRow.classList.add('new-report');
-        setTimeout(() => {
-          tableRow.classList.remove('new-report');
-        }, 1000);
+    function clearFilters() {
+      currentFilter = { type: 'all', status: 'all' };
+      
+      // Reset filter buttons
+      document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+      document.querySelector('.filter-btn[onclick*="filterByType(\'all\'"]').classList.add('active');
+      
+      applyFilters();
+      showToast('All filters cleared', 'info');
+    }
+
+    // ============ UI UPDATE FUNCTIONS ============
+    function updateStatistics() {
+      const total = allReports.length;
+      const pending = allReports.filter(r => r.status === 'pending').length;
+      const assigned = allReports.filter(r => r.status === 'assigned' || r.status === 'investigating').length;
+      const resolved = allReports.filter(r => r.status === 'resolved').length;
+
+      document.getElementById('totalIncidents').textContent = total;
+      document.getElementById('pendingIncidents').textContent = pending;
+      document.getElementById('assignedIncidents').textContent = assigned;
+      document.getElementById('resolvedIncidents').textContent = resolved;
+
+      // Update notification dot
+      const notifDot = document.getElementById('notifDot');
+      if (pending > 0) {
+        notifDot.style.display = 'block';
+      } else {
+        notifDot.style.display = 'none';
       }
     }
 
-    // ============ REALTIME SUBSCRIPTION ============
+    function updateRecentReports() {
+      const container = document.getElementById('recentReportsList');
+      const recentReports = filteredReports.slice(0, 5); // Show only 5 most recent
+      
+      if (recentReports.length === 0) {
+        container.innerHTML = createEmptyState(
+          allReports.length === 0 ? 
+            'No fire cases in database yet' : 
+            'No cases match current filters'
+        );
+        return;
+      }
+      
+      container.innerHTML = recentReports.map(report => createReportCard(report)).join('');
+    }
+
+    function updateAllReports() {
+      const container = document.getElementById('allReportsList');
+      
+      if (filteredReports.length === 0) {
+        container.innerHTML = createEmptyState(
+          allReports.length === 0 ? 
+            'No fire cases in database yet' : 
+            'No cases match current filters'
+        );
+        return;
+      }
+      
+      container.innerHTML = filteredReports.map(report => createReportCard(report)).join('');
+    }
+
+    function createReportCard(report) {
+      const photoUrl = getPhotoUrl(report);
+      const statusClass = `status-${report.status}`;
+      const time = new Date(report.created_at);
+      const timeString = formatTime(time);
+      const dateString = formatDate(time);
+      
+      return `
+        <div class="report-item" data-report-id="${report.id}">
+          <div class="report-header">
+            <div class="report-type">
+              <div class="type-indicator" style="background-color: ${typeConfig[report.type]?.color || typeConfig.default.color}"></div>
+              <div class="type-name">${typeConfig[report.type]?.name || 'Fire Incident'}</div>
+            </div>
+            <div class="report-id">#${report.id}</div>
+          </div>
+          
+          <div class="report-details">
+            <div class="report-location" title="${report.location}">
+              <i class="fas fa-map-marker-alt"></i>
+              ${truncateText(report.location, 40)}
+            </div>
+            <div class="report-time">
+              <i class="fas fa-clock"></i>
+              ${timeString} • ${dateString}
+            </div>
+          </div>
+          
+          <div class="report-footer">
+            <span class="status-badge ${statusClass}">
+              ${report.status.charAt(0).toUpperCase() + report.status.slice(1)}
+            </span>
+            
+            ${photoUrl ? `
+              <button class="photo-btn" onclick="showPhotoModal('${photoUrl}', 'Report #${report.id}')">
+                <i class="fas fa-camera"></i> Photo
+              </button>
+            ` : `
+              <span style="color: #95a5a6; font-size: 11px;">No photo</span>
+            `}
+          </div>
+        </div>
+      `;
+    }
+
+    function createEmptyState(message) {
+      return `
+        <div class="empty-state">
+          <i class="fas fa-inbox"></i>
+          <h3>No Fire Cases Found</h3>
+          <p>${message}</p>
+          ${allReports.length === 0 ? '' : `
+            <button class="filter-btn" onclick="clearFilters()" style="margin-top: 12px;">
+              <i class="fas fa-times"></i> Clear Filters
+            </button>
+          `}
+        </div>
+      `;
+    }
+
+    function updateFilterInfo() {
+      const filterInfo = document.getElementById('tableFilterInfo');
+      const activeFilters = [];
+      
+      if (currentFilter.type !== 'all') {
+        activeFilters.push(typeConfig[currentFilter.type]?.name || currentFilter.type);
+      }
+      if (currentFilter.status !== 'all') {
+        activeFilters.push(currentFilter.status.charAt(0).toUpperCase() + currentFilter.status.slice(1));
+      }
+      
+      filterInfo.textContent = activeFilters.length > 0 ? `(${activeFilters.join(' • ')})` : '';
+    }
+
+    // ============ REALTIME FUNCTIONS ============
     function setupRealtimeSubscription() {
+      console.log('📡 Setting up realtime subscription...');
+      
       if (realtimeSubscription) {
         supabaseClient.removeChannel(realtimeSubscription);
       }
@@ -1444,23 +1987,51 @@
             schema: 'public', 
             table: 'reports' 
           }, 
-          (payload) => {
-            if (payload.eventType === 'INSERT') {
-              addNewReport(payload.new);
-            } else if (payload.eventType === 'UPDATE') {
-              updateExistingReport(payload.new);
-            } else if (payload.eventType === 'DELETE') {
-              removeReport(payload.old.id);
-            }
+          async (payload) => {
+            console.log('📨 Realtime update:', payload.eventType, payload.new?.id);
             
-            updateConnectionStatus(true);
+            try {
+              if (payload.eventType === 'INSERT') {
+                const processed = await processReport(payload.new);
+                if (processed) {
+                  allReports.unshift(processed);
+                  applyFilters();
+                  showToast(`New ${typeConfig[processed.type]?.name || 'fire case'} reported`, 'info');
+                  highlightNewReport(processed.id);
+                }
+              } else if (payload.eventType === 'UPDATE') {
+                const processed = await processReport(payload.new);
+                if (processed) {
+                  const index = allReports.findIndex(r => r.id === processed.id);
+                  if (index >= 0) {
+                    allReports[index] = processed;
+                  } else {
+                    allReports.unshift(processed); // Add if not found
+                  }
+                  applyFilters();
+                }
+              } else if (payload.eventType === 'DELETE') {
+                const index = allReports.findIndex(r => r.id === payload.old.id);
+                if (index >= 0) {
+                  allReports.splice(index, 1);
+                  applyFilters();
+                }
+              }
+              
+              updateConnectionStatus(true);
+            } catch (error) {
+              console.error('Error processing realtime update:', error);
+            }
           }
         )
         .subscribe((status) => {
+          console.log('📡 Realtime subscription status:', status);
+          
           if (status === 'SUBSCRIBED') {
             updateConnectionStatus(true);
           } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
             updateConnectionStatus(false);
+            // Attempt to reconnect after 5 seconds
             setTimeout(() => {
               if (realtimeSubscription) {
                 realtimeSubscription.unsubscribe();
@@ -1471,24 +2042,65 @@
         });
     }
 
-    // ============ INITIAL DATA LOAD ============
-    async function loadInitialData() {
-      const tableBody = document.getElementById('reportsTableBody');
-      const refreshBtn = document.getElementById('refreshBtn');
+    function highlightNewReport(reportId) {
+      const items = document.querySelectorAll(`[data-report-id="${reportId}"]`);
+      items.forEach(item => {
+        item.style.animation = 'none';
+        setTimeout(() => {
+          item.style.animation = 'pulse 1s 2';
+        }, 10);
+      });
+    }
 
-      tableBody.innerHTML = `
-        <tr>
-          <td colspan="6" class="loading">
-            <div class="loading-spinner"></div>
-            <span>Loading fire cases...</span>
-          </td>
-        </tr>
-      `;
+    // ============ UTILITY FUNCTIONS ============
+    function switchTab(tabName) {
+      console.log('🔄 Switching to tab:', tabName);
+      
+      // Update currentTab variable
+      currentTab = tabName;
+      
+      // Update mobile tab buttons
+      document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+      document.querySelectorAll(`.tab-btn[onclick*="${tabName}"]`).forEach(btn => btn.classList.add('active'));
+      
+      // Update desktop nav buttons
+      document.querySelectorAll('.desktop-nav-btn').forEach(btn => btn.classList.remove('active'));
+      document.querySelectorAll(`.desktop-nav-btn[data-tab="${tabName}"]`).forEach(btn => btn.classList.add('active'));
+      
+      // Show selected tab content
+      document.querySelectorAll('.content-section').forEach(section => {
+        section.classList.remove('active');
+      });
+      document.getElementById(`${tabName}Tab`).classList.add('active');
+      
+      // Clear and re-add markers for the current tab
+      applyFilters();
+      
+      // Refresh map if needed
+      setTimeout(() => {
+        if (tabName === 'map' && fullMap) {
+          fullMap.invalidateSize();
+          if (filteredReports.length > 0) {
+            fitAllMarkers();
+          }
+        } else if (tabName === 'overview' && map) {
+          map.invalidateSize();
+          if (filteredReports.length > 0) {
+            fitAllMarkers();
+          }
+        }
+      }, 100);
+    }
 
-      refreshBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading...';
-      refreshBtn.disabled = true;
-
+    async function manualRefresh() {
+      console.log('🔄 Manual refresh triggered');
+      const btn = document.getElementById('refreshBtn');
+      const originalHTML = btn.innerHTML;
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+      btn.disabled = true;
+      
       try {
+        // Reload data from database
         const { data, error } = await supabaseClient
           .from('reports')
           .select('*')
@@ -1497,205 +2109,69 @@
 
         if (error) throw error;
 
-        // Process all reports and filter for fire-related ones
+        // Process all reports
         const reportPromises = (data || []).map(processReport);
         const processedReports = await Promise.all(reportPromises);
         
-        // Filter out null reports (non-fire incidents)
+        // Filter out null reports
         allReports = processedReports.filter(report => report !== null);
-
-        if (allReports.length > 0) {
-          setupRealtimeSubscription();
-          applyFilters();
-          updateStatistics();
-          showToast(`Loaded ${allReports.length} fire cases`, 'success');
-        } else {
-          showToast('No fire cases found in database', 'info');
-        }
-
+        
+        // Re-apply filters
+        applyFilters();
+        
+        showToast(`Refreshed ${allReports.length} fire cases`, 'success');
+        
       } catch (error) {
-        console.error('Error loading reports:', error);
-        showToast(`Error loading fire cases: ${error.message}`, 'error');
-
+        console.error('Refresh error:', error);
+        showToast('Refresh failed: ' + error.message, 'error');
+        
       } finally {
-        refreshBtn.innerHTML = '<i class="fas fa-sync-alt"></i> Refresh';
-        refreshBtn.disabled = false;
-        isInitialLoad = false;
+        setTimeout(() => {
+          btn.innerHTML = originalHTML;
+          btn.disabled = false;
+        }, 1000);
       }
     }
 
-    // ============ FILTERS ============
-    function applyFilters() {
-      clearMarkers();
-      
-      filteredReports = allReports.filter(report => {
-        if (currentFilter !== 'all' && report.type !== currentFilter) {
-          return false;
-        }
-        return true;
-      });
-      
-      filteredReports.forEach(report => {
-        addReportMarker(report);
-      });
-      
-      updateTable();
-      updateStatistics();
-      updateFilterIndicators();
-      
-      if (!isInitialLoad && filteredReports.length > 0) {
-        const validMarkers = markers.filter(marker => marker.getLatLng());
-        if (validMarkers.length > 0) {
-          const group = new L.featureGroup(validMarkers);
-          map.fitBounds(group.getBounds().pad(0.1));
-        }
-      }
-    }
-
-    function filterByType(type, buttonElement) {
-      document.querySelectorAll('.type-btn').forEach(btn => btn.classList.remove('active'));
-      if (buttonElement) buttonElement.classList.add('active');
-      currentFilter = type;
-      applyFilters();
-    }
-
-    function clearFilters() {
-      currentFilter = 'all';
-      document.querySelectorAll('.type-btn').forEach(btn => btn.classList.remove('active'));
-      document.querySelector('.type-btn[onclick*="filterByType(\'all\'"]').classList.add('active');
-      applyFilters();
-    }
-
-    function fitAllMarkers() {
-      const validMarkers = markers.filter(marker => marker.getLatLng());
-      if (validMarkers.length > 0) {
-        const group = new L.featureGroup(validMarkers);
-        map.fitBounds(group.getBounds().pad(0.1));
-        showToast('Zoomed to show all incidents', 'info');
+    function showPhotoModal(imageUrl, title = 'Incident Photo') {
+      if (imageUrl && imageUrl !== 'null' && imageUrl !== 'undefined') {
+        const modalImage = document.getElementById('modalImage');
+        modalImage.src = imageUrl;
+        document.getElementById('modalTitle').textContent = title;
+        document.getElementById('photoModal').style.display = 'flex';
+        document.body.style.overflow = 'hidden';
       } else {
-        showToast('No incidents to display', 'warning');
+        showToast('No photo available for this incident', 'warning');
       }
     }
 
-    // ============ UI UPDATES ============
-    function updateStatistics() {
-      const total = allReports.length;
-      const pending = allReports.filter(r => r.status === 'pending').length;
-      const investigating = allReports.filter(r => r.status === 'investigating').length;
-      const resolved = allReports.filter(r => r.status === 'resolved').length;
+    function closePhotoModal() {
+      document.getElementById('photoModal').style.display = 'none';
+      document.body.style.overflow = 'auto';
+      // Clear the image source
+      document.getElementById('modalImage').src = '';
+    }
 
-      const fireAccidents = allReports.filter(r => r.type === 'fire_accident').length;
-
-      document.getElementById('totalIncidents').textContent = total;
-      document.getElementById('pendingIncidents').textContent = pending;
-      document.getElementById('investigatingIncidents').textContent = investigating;
-      document.getElementById('resolvedIncidents').textContent = resolved;
-
-      document.getElementById('fireAccidents').textContent = fireAccidents;
-      
-      const notifDot = document.getElementById('notifDot');
-      if (pending > 0) {
-        notifDot.style.display = 'block';
+    function updateConnectionStatus(connected) {
+      const statusEl = document.getElementById('connectionStatus');
+      if (connected) {
+        statusEl.innerHTML = '<i class="fas fa-circle"></i> Realtime Connected';
+        statusEl.className = 'connection-status connection-connected';
+        statusEl.style.display = 'flex';
+        setTimeout(() => {
+          statusEl.style.display = 'none';
+        }, 3000);
       } else {
-        notifDot.style.display = 'none';
-      }
-    }
-
-    function updateTable() {
-      const tableBody = document.getElementById('reportsTableBody');
-      
-      if (filteredReports.length === 0) {
-        tableBody.innerHTML = `
-          <tr>
-            <td colspan="6" style="text-align: center; padding: 30px; color: var(--light-gold);">
-              <i class="fas fa-search" style="font-size: 28px; margin-bottom: 10px; opacity: 0.5;"></i>
-              <br>
-              ${allReports.length === 0 ? 
-                'No fire cases in database yet.' : 
-                'No cases match the current filters.'}
-              <br>
-              <small style="opacity: 0.7; margin-top: 8px; display: block;">
-                ${allReports.length === 0 ? 
-                  'Emergency reports will appear here when submitted.' : 
-                  'Try clearing filters or selecting a different incident type.'}
-              </small>
-            </td>
-          </tr>
-        `;
-        return;
-      }
-      
-      const sortedReports = [...filteredReports].sort((a, b) => 
-        new Date(b.created_at) - new Date(a.created_at)
-      );
-      
-      tableBody.innerHTML = sortedReports.map(report => {
-        const photoUrl = getPhotoUrl(report);
-        const statusClass = report.status === 'pending' ? 'status-pending' : 
-                           report.status === 'investigating' ? 'status-investigating' : 
-                           report.status === 'assigned' ? 'status-assigned' :
-                           'status-resolved';
-        
-        const shortLocation = report.location.length > 30 ? 
-          report.location.substring(0, 30) + '...' : report.location;
-        
-        return `
-          <tr data-report-id="${report.id}">
-            <td><strong>#${report.id}</strong></td>
-            <td>
-              <div style="display: flex; align-items: center; gap: 6px;">
-                <div style="
-                  width: 10px;
-                  height: 10px;
-                  border-radius: 50%;
-                  background-color: ${typeConfig[report.type]?.color || '#3498db'};
-                "></div>
-                ${typeConfig[report.type]?.name || 'Unknown'}
-              </div>
-            </td>
-            <td title="${report.location}">
-              ${shortLocation}
-            </td>
-            <td>
-              <span class="status-badge ${statusClass}">
-                ${report.status ? report.status.charAt(0).toUpperCase() + report.status.slice(1) : 'Pending'}
-              </span>
-            </td>
-            <td>
-              ${new Date(report.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-              <div style="font-size: 9px; color: #ccc;">
-                ${new Date(report.created_at).toLocaleDateString()}
-              </div>
-            </td>
-            <td>
-              ${photoUrl ? `
-                <button class="photo-btn" onclick="showPhotoModal('${photoUrl}', 'Report #${report.id}')">
-                  <i class="fas fa-camera"></i> View
-                </button>
-              ` : `
-                <span style="color: #95a5a6; font-size: 11px;">-</span>
-              `}
-            </td>
-          </tr>
-        `;
-      }).join('');
-    }
-
-    function updateFilterIndicators() {
-      const filterBadge = document.getElementById('filterBadge');
-      const tableFilterInfo = document.getElementById('tableFilterInfo');
-      
-      if (currentFilter === 'all') {
-        filterBadge.style.display = 'none';
-        tableFilterInfo.textContent = '';
-      } else {
-        filterBadge.style.display = 'inline-block';
-        filterBadge.textContent = typeConfig[currentFilter]?.name || currentFilter;
-        tableFilterInfo.textContent = ` (Filtered: ${typeConfig[currentFilter]?.name || currentFilter})`;
+        statusEl.innerHTML = '<i class="fas fa-circle"></i> Connection Lost';
+        statusEl.className = 'connection-status connection-disconnected';
+        statusEl.style.display = 'flex';
       }
     }
 
     function showToast(message, type = 'info') {
+      // Remove existing toasts
+      document.querySelectorAll('.toast').forEach(toast => toast.remove());
+      
       const colors = {
         info: 'var(--accent-gold)',
         success: 'var(--success-green)',
@@ -1710,73 +2186,48 @@
         warning: 'exclamation-triangle'
       };
       
-      const existingToast = document.querySelector('.toast');
-      if (existingToast) existingToast.remove();
-      
       const toast = document.createElement('div');
-      toast.className = 'toast';
+      toast.className = 'toast glass';
       toast.innerHTML = `
-        <i class="fas fa-${icons[type]}" style="color: ${colors[type]}; font-size: 16px;"></i>
-        <span style="font-size: 13px;">${message}</span>
+        <i class="fas fa-${icons[type]}" style="color: ${colors[type]};"></i>
+        <span>${message}</span>
       `;
       
       document.body.appendChild(toast);
       
       setTimeout(() => {
-        if (toast.parentNode) {
-          toast.style.opacity = '0';
-          toast.style.transform = 'translateY(10px)';
-          setTimeout(() => {
-            if (toast.parentNode) toast.parentNode.removeChild(toast);
-          }, 300);
-        }
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(20px)';
+        setTimeout(() => {
+          if (toast.parentNode) {
+            toast.parentNode.removeChild(toast);
+          }
+        }, 300);
       }, 3000);
     }
 
-    // ============ MANUAL REFRESH ============
-    async function manualRefresh() {
-      const refreshBtn = document.getElementById('refreshBtn');
-      refreshBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Refreshing...';
-      refreshBtn.disabled = true;
-
-      try {
-        const { data, error } = await supabaseClient
-          .from('reports')
-          .select('*')
-          .order('created_at', { ascending: false })
-          .limit(100);
-
-        if (error) throw error;
-
-        const reportPromises = (data || []).map(processReport);
-        const processedReports = await Promise.all(reportPromises);
-        
-        allReports = processedReports.filter(report => report !== null);
-        
-        applyFilters();
-        showToast(`Refreshed ${allReports.length} cases`, 'success');
-
-      } catch (error) {
-        console.error('Refresh error:', error);
-        showToast('Refresh failed: ' + error.message, 'error');
-
-      } finally {
-        setTimeout(() => {
-          refreshBtn.innerHTML = '<i class="fas fa-sync-alt"></i> Refresh';
-          refreshBtn.disabled = false;
-        }, 1000);
-      }
+    function formatDateTime(dateString) {
+      const date = new Date(dateString);
+      return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     }
 
-    // ============ INITIALIZATION ============
-    document.addEventListener('DOMContentLoaded', async () => {
-      if (!checkAuthentication()) return;
+    function formatTime(date) {
+      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
 
-      console.log('🔥 Fire Department Dashboard Initializing...');
+    function formatDate(date) {
+      return date.toLocaleDateString();
+    }
 
-      // Load initial data
-      loadInitialData();
+    function truncateText(text, maxLength) {
+      if (text.length <= maxLength) return text;
+      return text.substring(0, maxLength) + '...';
+    }
 
+    // ============ EVENT LISTENERS ============
+    function setupEventListeners() {
+      console.log('🎯 Setting up event listeners...');
+      
       // Keyboard shortcuts
       document.addEventListener('keydown', (e) => {
         if (e.key === 'r' && (e.ctrlKey || e.metaKey)) {
@@ -1784,38 +2235,92 @@
           manualRefresh();
         }
         if (e.key === 'Escape') {
-          const modal = document.getElementById('photoModal');
-          if (modal.style.display === 'flex') {
-            closePhotoModal();
-          } else {
-            clearFilters();
+          closePhotoModal();
+        }
+        // Tab switching with arrow keys
+        if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+          const tabs = ['overview', 'map', 'reports'];
+          const currentIndex = tabs.indexOf(currentTab);
+          if (e.key === 'ArrowRight' && currentIndex < tabs.length - 1) {
+            switchTab(tabs[currentIndex + 1]);
+          } else if (e.key === 'ArrowLeft' && currentIndex > 0) {
+            switchTab(tabs[currentIndex - 1]);
           }
         }
       });
-
-      // Handle page visibility changes
+      
+      // Page visibility
       document.addEventListener('visibilitychange', () => {
         if (!document.hidden && !realtimeSubscription) {
+          console.log('🔁 Page visible, reconnecting...');
           setupRealtimeSubscription();
         }
       });
+      
+      // Swipe gestures for mobile tabs
+      document.addEventListener('touchstart', e => {
+        touchStartX = e.changedTouches[0].screenX;
+      });
+      
+      document.addEventListener('touchend', e => {
+        touchEndX = e.changedTouches[0].screenX;
+        handleSwipe();
+      });
+      
+      function handleSwipe() {
+        const swipeThreshold = 50;
+        const swipeDistance = touchEndX - touchStartX;
+        
+        if (Math.abs(swipeDistance) > swipeThreshold) {
+          const tabs = ['overview', 'map', 'reports'];
+          const currentIndex = tabs.indexOf(currentTab);
+          
+          if (swipeDistance > 0 && currentIndex > 0) {
+            // Swipe right - go to previous tab
+            switchTab(tabs[currentIndex - 1]);
+          } else if (swipeDistance < 0 && currentIndex < tabs.length - 1) {
+            // Swipe left - go to next tab
+            switchTab(tabs[currentIndex + 1]);
+          }
+        }
+      }
+      
+      // Handle window resize
+      let resizeTimeout;
+      window.addEventListener('resize', () => {
+        clearTimeout(resizeTimeout);
+        resizeTimeout = setTimeout(() => {
+          if (map) map.invalidateSize();
+          if (fullMap) fullMap.invalidateSize();
+          // Re-apply filters to ensure markers are on correct map
+          applyFilters();
+        }, 250);
+      });
+    }
 
-      // Make functions globally available
+    // ============ GLOBAL FUNCTION EXPOSURE ============
+    function exposeGlobalFunctions() {
       window.showPhotoModal = showPhotoModal;
       window.closePhotoModal = closePhotoModal;
       window.filterByType = filterByType;
+      window.filterByStatus = filterByStatus;
       window.clearFilters = clearFilters;
       window.fitAllMarkers = fitAllMarkers;
       window.manualRefresh = manualRefresh;
+      window.switchTab = switchTab;
       window.logout = logout;
-    });
+    }
 
-    // Cleanup on page unload
+    // ============ CLEANUP ============
     window.addEventListener('beforeunload', () => {
+      console.log('🧹 Cleaning up...');
       if (realtimeSubscription) {
         supabaseClient.removeChannel(realtimeSubscription);
       }
     });
+
+    // Initialize on load
+    console.log('✅ Fire Department Dashboard ready');
   </script>
 </body>
 </html>
