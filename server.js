@@ -1,4 +1,4 @@
-import express from "express";
+﻿import express from "express";
 import fs from "fs";
 import path from "path";
 import cors from "cors";
@@ -11,12 +11,12 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
     cors: {
-        origin: ["http://localhost:3000", "http://127.0.0.1:5500", "http://127.0.0.1:5501"],
+        origin: ["http://localhost:3001", "http://127.0.0.1:5500", "http://127.0.0.1:5501"],
         methods: ["GET", "POST"],
         credentials: true
     }
 });
-const PORT = 3000;
+const PORT = 3001;
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -28,7 +28,7 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 
 // ------------------ MIDDLEWARE ------------------ //
 app.use(cors({
-    origin: ["http://localhost:3000", "http://127.0.0.1:5500", "http://127.0.0.1:5501"],
+    origin: ["http://localhost:3001", "http://127.0.0.1:5500", "http://127.0.0.1:5501"],
     credentials: true
 }));
 app.use(express.json({ limit: "100mb" }));
@@ -99,7 +99,18 @@ async function verifyAuth(req, res, next) {
                 }
                 return res.status(401).json({ error: 'Invalid demo token' });
             }
-            
+
+            req.user = userData;
+            return next();
+        }
+
+        // Check if it's a user token (regular user)
+        if (token.startsWith('user-token-')) {
+            const userData = userTokens.get(token);
+            if (!userData) {
+                return res.status(401).json({ error: 'Invalid user token' });
+            }
+
             req.user = userData;
             return next();
         }
@@ -155,7 +166,7 @@ io.on('connection', (socket) => {
 
 // ------------------ PAGE ROUTES ------------------ //
 app.get("/login", (req, res) => {
-    res.sendFile(path.join(__dirname, "login.html"));
+    res.sendFile(path.join(__dirname, "index.html"));
 });
 
 
@@ -172,10 +183,11 @@ app.get("/ambulance", (req, res) => {
     res.sendFile(path.join(__dirname, "ambulance.html"));
 });
 
-// Regular user dashboard
+// Dashboard route for regular users
 app.get("/dashboard", (req, res) => {
-    res.sendFile(path.join(__dirname, "index.html"));
+    res.sendFile(path.join(__dirname, "notification.html"));
 });
+
 
 // ------------------ AUTH API ROUTES ------------------ //
 // Demo login endpoint for admin accounts
@@ -273,7 +285,7 @@ app.post("/api/verify-token", async (req, res) => {
     }
     
     try {
-        // Check if demo token
+        // Check if demo token (admin)
         if (token.startsWith('demo-token-')) {
             const userData = demoTokens.get(token);
             if (userData) {
@@ -283,18 +295,29 @@ app.post("/api/verify-token", async (req, res) => {
                 });
             }
         }
-        
+
+        // Check if user token (regular user)
+        if (token.startsWith('user-token-')) {
+            const userData = userTokens.get(token);
+            if (userData) {
+                return res.json({
+                    authenticated: true,
+                    user: userData
+                });
+            }
+        }
+
         // Check Supabase token
         const { data: { user }, error } = await supabase.auth.getUser(token);
-        
+
         if (error || !user) {
             return res.json({ authenticated: false });
         }
-        
+
         // Check if user is admin
         const adminAccount = ADMIN_ACCOUNTS[user.email];
         const station = adminAccount ? adminAccount.station : null;
-        
+
         res.json({
             authenticated: true,
             user: {
@@ -358,7 +381,7 @@ app.post("/api/reports", (req, res) => {
 
             report.photo = `/uploads/${fileName}`;
         } catch (err) {
-            console.error("⚠️ Failed to save photo:", err);
+            console.error("âš ï¸ Failed to save photo:", err);
             report.photo = null;
         }
     }
@@ -567,10 +590,11 @@ app.put("/api/reports/:id/status", verifyAuth, async (req, res) => {
 
 // ------------------ START SERVER ------------------ //
 server.listen(PORT, () => {
-    console.log(`✅ Server running at http://localhost:${PORT}`);
-    console.log(`✅ Login page: http://localhost:${PORT}/login`);
-    console.log(`\n📋 Admin Accounts:`);
-    console.log(`   👮 Police: policeadmin@gmail.com / Police1234!`);
-    console.log(`   🚒 Fire: fireadmin@gmail.com / Fire1234!`);
-    console.log(`   🚑 Ambulance: medicaladmin@gmail.com / Medical1234!`);
+    console.log(`âœ… Server running at http://localhost:${PORT}`);
+    console.log(`âœ… Login page: http://localhost:${PORT}/login`);
+    console.log(`\nðŸ“‹ Admin Accounts:`);
+    console.log(`   ðŸ‘® Police: policeadmin@gmail.com / Police1234!`);
+    console.log(`   ðŸš’ Fire: fireadmin@gmail.com / Fire1234!`);
+    console.log(`   ðŸš‘ Ambulance: medicaladmin@gmail.com / Medical1234!`);
 });
+

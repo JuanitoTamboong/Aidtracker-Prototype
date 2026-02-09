@@ -546,26 +546,21 @@
         </button>
       </div>
     </div>
+
+    <div class="copyright">
+      © 2024 AidTracker Emergency Response System v2.1
+    </div>
+    <div class="system-version">
+      Build: 2.1.4 | Security Level: HIGH
+    </div>
+  </div>
+
   <script>
-    // Supabase Configuration
-    const SUPABASE_URL = 'https://gwvepxupoxyyydnisulb.supabase.co';
-    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd3dmVweHVwb3h5eXlkbmlzdWxiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ4MDE4ODcsImV4cCI6MjA4MDM3Nzg4N30.Ku9SXTAKNMvHilgEpxj5HcVA-0TPt4ziuEq0Irao5Qc';
-
-    // Initialize Supabase client
-    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
     // Admin email to station mapping
-    const adminStationMapping = {
+    const ADMIN_ACCOUNTS = {
       'policeadmin@gmail.com': 'police',
       'fireadmin@gmail.com': 'fire',
       'medicaladmin@gmail.com': 'ambulance'
-    };
-
-    // Admin passwords for demo (In production, these would be in Supabase)
-    const ADMIN_PASSWORDS = {
-      'policeadmin@gmail.com': 'Police1234!',
-      'fireadmin@gmail.com': 'Fire1234!',
-      'medicaladmin@gmail.com': 'Medical1234!'
     };
 
     // Toggle password visibility
@@ -603,74 +598,67 @@
       loginBtn.disabled = true;
       loginBtn.innerHTML = '<i class="fas fa-spinner spinner"></i> Authenticating...';
 
-      // Add slight delay for UX
-      await new Promise(resolve => setTimeout(resolve, 300));
-
       try {
-        const station = adminStationMapping[email];
-        const isAdmin = !!station;
-
-        if (isAdmin) {
+        let response;
+        let redirectUrl = '/dashboard';
+        
+        // Check if it's an admin account
+        if (ADMIN_ACCOUNTS[email]) {
           // Admin login
-          if (password !== ADMIN_PASSWORDS[email]) {
-            throw new Error('Invalid credentials. Please check your email and password.');
-          }
-
-          const userData = {
-            email: email,
-            station: station,
-            role: 'admin',
-            token: 'secure-token-' + Date.now(),
-            isAdmin: true,
-            loginTime: new Date().toISOString()
-          };
-
-          // Store user data
-          localStorage.setItem('user', JSON.stringify(userData));
-
-          // Show success modal
-          modalMessage.textContent = `Welcome, ${station.charAt(0).toUpperCase() + station.slice(1)} Administrator. Redirecting to ${station} dashboard.`;
-          successModal.classList.add('active');
-
-          // Set up modal continue button
-          document.getElementById('modalContinueBtn').onclick = function() {
-            window.location.href = `${userData.station}.html?token=${userData.token}&auth=secure`;
-          };
-        } else {
-          // Regular user login via Supabase
-          const { data, error } = await supabaseClient.auth.signInWithPassword({
-            email: email,
-            password: password
+          response = await fetch('/api/admin-login', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ email, password })
           });
-
-          if (error) {
-            console.error('Login error:', error);
-            throw new Error('Invalid credentials. Please check your email and password.');
+          
+          const data = await response.json();
+          
+          if (!response.ok) {
+            throw new Error(data.error || 'Invalid admin credentials');
           }
-
-          if (data && data.user) {
-            // Store user data
-            localStorage.setItem('user', JSON.stringify({
-              email: data.user.email,
-              station: null,
-              role: 'user',
-              token: data.session.access_token,
-              isAdmin: false,
-              loginTime: new Date().toISOString()
-            }));
-
-            // Show success modal
-            modalMessage.textContent = `Welcome back, ${data.user.email}. You're being redirected to your dashboard.`;
-            successModal.classList.add('active');
-
-            // Set up modal continue button
-            document.getElementById('modalContinueBtn').onclick = function() {
-              window.location.href = `index-dashboard.html?token=${data.session.access_token}&auth=secure`;
-            };
-          } else {
-            throw new Error('Authentication failed. Please try again.');
+          
+          // Set redirect URL for admin
+          redirectUrl = `/${data.user.station}`;
+          
+          // Store user data
+          localStorage.setItem('user', JSON.stringify(data.user));
+          localStorage.setItem('token', data.token);
+          
+          modalMessage.textContent = `Welcome, ${data.user.station.charAt(0).toUpperCase() + data.user.station.slice(1)} Administrator. Redirecting to dashboard...`;
+          
+        } else {
+          // Regular user login
+          response = await fetch('/api/user-login', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ email, password })
+          });
+          
+          const data = await response.json();
+          
+          if (!response.ok) {
+            throw new Error(data.error || 'Invalid user credentials');
           }
+          
+          // Store user data
+          localStorage.setItem('user', JSON.stringify(data.user));
+          localStorage.setItem('token', data.token);
+          
+          modalMessage.textContent = `Welcome back, ${email}. Redirecting to dashboard...`;
         }
+
+        // Show success modal
+        successModal.classList.add('active');
+
+        // Set up modal continue button
+        document.getElementById('modalContinueBtn').onclick = function() {
+          window.location.href = redirectUrl;
+        };
+
       } catch (error) {
         console.error('Login error:', error);
         errorMessage.textContent = error.message;
@@ -691,44 +679,37 @@
     // Check if already logged in on page load
     document.addEventListener('DOMContentLoaded', async () => {
       try {
-        const storedUser = localStorage.getItem('user');
-        if (storedUser) {
-          const user = JSON.parse(storedUser);
-          
-          // Check if session is still valid (less than 12 hours old)
-          if (user.loginTime) {
-            const loginTime = new Date(user.loginTime);
-            const now = new Date();
-            const hoursDiff = (now - loginTime) / (1000 * 60 * 60);
-            
-            if (hoursDiff < 12) {
-              if (user.isAdmin && user.token) {
-                // Redirect admin to their station
-                window.location.href = `${user.station}.html?token=${user.token}&auth=reuse`;
-                return;
-              } else {
-                window.location.href = `index-dashboard.html?token=${user.token}&auth=reuse`;
-                return;
-              }
-            }
-          }
-        }
-
-        // Check Supabase session
-        const { data: { session } } = await supabaseClient.auth.getSession();
+        const token = localStorage.getItem('token');
+        const userData = localStorage.getItem('user');
         
-        if (session && session.user) {
-          const userEmail = session.user.email;
-          const station = adminStationMapping[userEmail];
-
-          if (station) {
-            window.location.href = `${station}.html?token=${session.access_token}&auth=supabase`;
+        if (token && userData) {
+          // Verify token with server
+          const response = await fetch('/api/verify-token', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ token })
+          });
+          
+          const data = await response.json();
+          
+          if (data.authenticated && data.user) {
+            // Redirect based on user role
+            if (data.user.role === 'admin' && data.user.station) {
+              window.location.href = `/${data.user.station}`;
+            } else {
+              window.location.href = '/dashboard';
+            }
+            return;
           } else {
-            window.location.href = `index-dashboard.html?token=${session.access_token}&auth=supabase`;
+            // Clear invalid tokens
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
           }
         }
       } catch (error) {
-        console.log('No existing session found, showing login form');
+        console.log('Session check failed:', error);
       }
     });
 

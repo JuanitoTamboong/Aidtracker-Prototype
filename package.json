@@ -2,25 +2,18 @@
   "name": "aidtracker-prototype",
   "version": "1.0.0",
   "type": "module",
-  "main": "function.js",
+  "main": "server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node server.js"
+    "start": "node server.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@capacitor/android": "^7.4.4",
-    "@capacitor/cli": "^7.4.4",
-    "@capacitor/core": "^7.4.4",
-    "@capacitor/local-notifications": "^5.0.8",
-    "@capacitor/push-notifications": "^5.1.2",
-    "bcryptjs": "^3.0.3",
-    "body-parser": "^2.2.0",
-    "cors": "^2.8.5",
-    "express": "^5.1.0",
-    "socket.io": "^4.8.1"
-  },
-  "description": ""
+    "@supabase/supabase-js": "^2.95.3",
+    "cors": "^2.8.6",
+    "express": "^5.2.1",
+    "socket.io": "^4.8.3"
+  }
 }
