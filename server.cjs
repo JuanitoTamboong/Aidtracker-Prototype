@@ -256,14 +256,14 @@ app.get("/ambulance", verifyAuth, (req, res) => {
     if (req.user.role !== 'admin' || req.user.station !== 'ambulance') {
         return res.redirect('/?error=access_denied');
     }
-
+    
     const htmlPath = path.join(__dirname, "ambulance.html");
     fs.readFile(htmlPath, 'utf8', (err, html) => {
         if (err) {
             console.error('Error reading ambulance.html:', err);
             return res.sendFile(htmlPath);
         }
-
+        
         const modifiedHtml = html.replace(
             '</head>',
             `<script>
@@ -276,153 +276,7 @@ app.get("/ambulance", verifyAuth, (req, res) => {
             </script>
             </head>`
         );
-
-        res.send(modifiedHtml);
-    });
-});
-
-// ------------------ NOTIFICATION DASHBOARD ROUTES ------------------ //
-app.get("/police-notif", verifyAuth, (req, res) => {
-    if (req.user.role !== 'admin' || req.user.station !== 'police') {
-        return res.redirect('/?error=access_denied');
-    }
-
-    const htmlPath = path.join(__dirname, "police-notif.html");
-    fs.readFile(htmlPath, 'utf8', (err, html) => {
-        if (err) {
-            console.error('Error reading police-notif.html:', err);
-            return res.sendFile(htmlPath);
-        }
-
-        const modifiedHtml = html.replace(
-            '</head>',
-            `<script>
-                const urlParams = new URLSearchParams(window.location.search);
-                const token = urlParams.get('token');
-                if (token) {
-                    localStorage.setItem('token', token);
-                    localStorage.setItem('lastLogin', Date.now());
-                }
-            </script>
-            </head>`
-        );
-
-        res.send(modifiedHtml);
-    });
-});
-
-app.get("/police-notif.html", verifyAuth, (req, res) => {
-    if (req.user.role !== 'admin' || req.user.station !== 'police') {
-        return res.redirect('/?error=access_denied');
-    }
-
-    const htmlPath = path.join(__dirname, "police-notif.html");
-    fs.readFile(htmlPath, 'utf8', (err, html) => {
-        if (err) {
-            console.error('Error reading police-notif.html:', err);
-            return res.sendFile(htmlPath);
-        }
-
-        const modifiedHtml = html.replace(
-            '</head>',
-            `<script>
-                const urlParams = new URLSearchParams(window.location.search);
-                const token = urlParams.get('token');
-                if (token) {
-                    localStorage.setItem('token', token);
-                    localStorage.setItem('lastLogin', Date.now());
-                }
-            </script>
-            </head>`
-        );
-
-        res.send(modifiedHtml);
-    });
-});
-
-app.get("/fire-notif", verifyAuth, (req, res) => {
-    if (req.user.role !== 'admin' || req.user.station !== 'fire') {
-        return res.redirect('/?error=access_denied');
-    }
-
-    const htmlPath = path.join(__dirname, "fire-notif.html");
-    fs.readFile(htmlPath, 'utf8', (err, html) => {
-        if (err) {
-            console.error('Error reading fire-notif.html:', err);
-            return res.sendFile(htmlPath);
-        }
-
-        const modifiedHtml = html.replace(
-            '</head>',
-            `<script>
-                const urlParams = new URLSearchParams(window.location.search);
-                const token = urlParams.get('token');
-                if (token) {
-                    localStorage.setItem('token', token);
-                    localStorage.setItem('lastLogin', Date.now());
-                }
-            </script>
-            </head>`
-        );
-
-        res.send(modifiedHtml);
-    });
-});
-
-app.get("/fire-notif.html", verifyAuth, (req, res) => {
-    if (req.user.role !== 'admin' || req.user.station !== 'fire') {
-        return res.redirect('/?error=access_denied');
-    }
-
-    const htmlPath = path.join(__dirname, "fire-notif.html");
-    fs.readFile(htmlPath, 'utf8', (err, html) => {
-        if (err) {
-            console.error('Error reading fire-notif.html:', err);
-            return res.sendFile(htmlPath);
-        }
-
-        const modifiedHtml = html.replace(
-            '</head>',
-            `<script>
-                const urlParams = new URLSearchParams(window.location.search);
-                const token = urlParams.get('token');
-                if (token) {
-                    localStorage.setItem('token', token);
-                    localStorage.setItem('lastLogin', Date.now());
-                }
-            </script>
-            </head>`
-        );
-
-        res.send(modifiedHtml);
-    });
-});
-
-app.get("/ambulance-notif", verifyAuth, (req, res) => {
-    if (req.user.role !== 'admin' || req.user.station !== 'ambulance') {
-        return res.redirect('/?error=access_denied');
-    }
-
-    const htmlPath = path.join(__dirname, "ambulance-notif.html");
-    fs.readFile(htmlPath, 'utf8', (err, html) => {
-        if (err) {
-            console.error('Error reading ambulance-notif.html:', err);
-            return res.sendFile(htmlPath);
-        }
-
-        const modifiedHtml = html.replace(
-            '</head>',
-            `<script>
-                const urlParams = new URLSearchParams(window.location.search);
-                const token = urlParams.get('token');
-                if (token) {
-                    localStorage.setItem('token', token);
-                    localStorage.setItem('lastLogin', Date.now());
-                }
-            </script>
-            </head>`
-        );
-
+        
         res.send(modifiedHtml);
     });
 });
