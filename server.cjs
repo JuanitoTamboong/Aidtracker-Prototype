@@ -1,42 +1,20 @@
 ﻿/*Aidtracker Prototype Server*/
 
-import express from "express";
-import fs from "fs";
-import path from "path";
-import cors from "cors";
-import { fileURLToPath } from "url";
-import { Server } from "socket.io";
-import http from "http";
-import { createClient } from '@supabase/supabase-js';
-
-// Fix for __dirname in ES modules
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const express = require('express');
+const fs = require('fs');
+const path = require('path');
+const cors = require('cors');
+const { createClient } = require('@supabase/supabase-js');
 
 const app = express();
-const server = http.createServer(app);
-const io = new Server(server, {
-    cors: {
-        origin: function (origin, callback) {
-            // Allow requests with no origin (mobile apps, curl, etc.)
-            if (!origin) return callback(null, true);
-
-            // Allow localhost for development
-            if (origin.includes('localhost') || origin.includes('127.0.0.1')) return callback(null, true);
-
-            // Allow all origins for production (you may want to restrict this)
-            return callback(null, true);
-        },
-        methods: ["GET", "POST"],
-        credentials: true
-    }
-});
-const PORT = process.env.PORT || 3001;
 
 // Initialize Supabase
 const supabaseUrl = process.env.SUPABASE_URL || 'https://gwvepxupoxyyydnisulb.supabase.co';
 const supabaseKey = process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd3dmVweHVwb3h5eXlkbmlzdWxiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ4MDE4ODcsImV4cCI6MjA4MDM3Nzg4N30.Ku9SXTAKNMvHilgEpxj5HcVA-0TPt4ziuEq0Irao5Qc';
 const supabase = createClient(supabaseUrl, supabaseKey);
+
+// Check if we're in production (Vercel)
+const isProduction = process.env.VERCEL === '1' || process.env.NODE_ENV === 'production';
 
 // Admin accounts mapping
 const ADMIN_STATIONS = {
@@ -67,16 +45,34 @@ app.use(express.static(__dirname));
 // Static files for uploads
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
-// ------------------ FILE PATHS ------------------ //
-const REPORTS_FILE = path.join(__dirname, "reports.json");
-const NOTIFICATIONS_FILE = path.join(__dirname, "notifications.json");
+// ------------------ FILE PATHS / STORAGE ------------------ //
+let reportsData = [];
+let notificationsData = [];
 
-// Initialize files
-if (!fs.existsSync(REPORTS_FILE)) {
-    fs.writeFileSync(REPORTS_FILE, JSON.stringify([]));
-}
-if (!fs.existsSync(NOTIFICATIONS_FILE)) {
-    fs.writeFileSync(NOTIFICATIONS_FILE, JSON.stringify([]));
+if (!isProduction) {
+    const REPORTS_FILE = path.join(__dirname, "reports.json");
+    const NOTIFICATIONS_FILE = path.join(__dirname, "notifications.json");
+
+    // Initialize files for development
+    if (!fs.existsSync(REPORTS_FILE)) {
+        fs.writeFileSync(REPORTS_FILE, JSON.stringify([]));
+    }
+    if (!fs.existsSync(NOTIFICATIONS_FILE)) {
+        fs.writeFileSync(NOTIFICATIONS_FILE, JSON.stringify([]));
+    }
+
+    // Load data from files in development
+    try {
+        reportsData = JSON.parse(fs.readFileSync(REPORTS_FILE, "utf8"));
+    } catch (e) {
+        reportsData = [];
+    }
+
+    try {
+        notificationsData = JSON.parse(fs.readFileSync(NOTIFICATIONS_FILE, "utf8"));
+    } catch (e) {
+        notificationsData = [];
+    }
 }
 
 // Store active sessions
@@ -128,23 +124,6 @@ async function verifyAuth(req, res, next) {
         return res.status(401).json({ error: 'Authentication failed' });
     }
 }
-
-// ------------------ SOCKET.IO CONNECTIONS ------------------ //
-const connectedClients = new Map();
-
-io.on('connection', (socket) => {
-    console.log('Client connected:', socket.id);
-
-    socket.on('registerUser', (userData) => {
-        connectedClients.set(socket.id, { ...userData, socket });
-        console.log(`User ${userData.email} registered for notifications`);
-    });
-
-    socket.on('disconnect', () => {
-        console.log('Client disconnected:', socket.id);
-        connectedClients.delete(socket.id);
-    });
-});
 
 // Clean up expired sessions every hour
 setInterval(() => {
@@ -316,119 +295,90 @@ app.post("/api/logout", async (req, res) => {
 
 // ------------------ REPORT ROUTES ------------------ //
 app.get("/api/reports", (req, res) => {
-    if (!fs.existsSync(REPORTS_FILE)) fs.writeFileSync(REPORTS_FILE, "[]");
-    let data = [];
-    try {
-        data = JSON.parse(fs.readFileSync(REPORTS_FILE, "utf8"));
-    } catch (parseError) {
-        console.error('Error parsing reports.json:', parseError);
-        fs.writeFileSync(REPORTS_FILE, JSON.stringify([]));
+    if (isProduction) {
+        res.json(reportsData);
+    } else {
+        if (!fs.existsSync(REPORTS_FILE)) fs.writeFileSync(REPORTS_FILE, "[]");
+        let data = [];
+        try {
+            data = JSON.parse(fs.readFileSync(REPORTS_FILE, "utf8"));
+        } catch (parseError) {
+            console.error('Error parsing reports.json:', parseError);
+            fs.writeFileSync(REPORTS_FILE, JSON.stringify([]));
+        }
+        res.json(data);
     }
-    res.json(data);
 });
 
 app.post("/api/reports", (req, res) => {
-    if (!fs.existsSync(REPORTS_FILE)) fs.writeFileSync(REPORTS_FILE, "[]");
-    let data = [];
-    try {
-        data = JSON.parse(fs.readFileSync(REPORTS_FILE, "utf8"));
-    } catch (parseError) {
-        console.error('Error parsing reports.json in POST:', parseError);
-        fs.writeFileSync(REPORTS_FILE, JSON.stringify([]));
-        data = [];
-    }
+    if (isProduction) {
+        const report = req.body;
+        report.id = Date.now().toString();
+        report.reporter = report.reporter || "Unknown";
+        report.createdAt = new Date().toISOString();
+        report.status = 'pending';
 
-    const report = req.body;
-    report.id = Date.now().toString();
-    report.reporter = report.reporter || "Unknown";
-    report.createdAt = new Date().toISOString();
-    report.status = 'pending';
-
-    // Handle Base64 photo
-    if (report.photo) {
-        try {
-            const matches = report.photo.match(/^data:(image\/\w+);base64,(.+)$/);
-            if (!matches || matches.length !== 3) throw new Error("Invalid base64 data");
-
-            const mimeType = matches[1];
-            const imageData = matches[2];
-            const ext = mimeType.split("/")[1];
-            const fileName = `report_${Date.now()}.${ext}`;
-            const uploadDir = path.join(__dirname, "uploads");
-
-            if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
-
-            const filePath = path.join(uploadDir, fileName);
-            fs.writeFileSync(filePath, Buffer.from(imageData, "base64"));
-
-            report.photo = `/uploads/${fileName}`;
-        } catch (err) {
-            console.error("⚠️ Failed to save photo:", err);
-            report.photo = null;
+        // In production, don't handle file uploads for now
+        if (report.photo) {
+            report.photo = null; // Remove photo in production for simplicity
         }
-    }
 
-    data.push(report);
-    fs.writeFileSync(REPORTS_FILE, JSON.stringify(data, null, 2));
+        reportsData.push(report);
+        res.json({
+            success: true,
+            message: "Report saved successfully",
+            report
+        });
+    } else {
+        if (!fs.existsSync(REPORTS_FILE)) fs.writeFileSync(REPORTS_FILE, "[]");
+        let data = [];
+        try {
+            data = JSON.parse(fs.readFileSync(REPORTS_FILE, "utf8"));
+        } catch (parseError) {
+            console.error('Error parsing reports.json in POST:', parseError);
+            fs.writeFileSync(REPORTS_FILE, JSON.stringify([]));
+            data = [];
+        }
 
-    io.emit("newReport", report);
+        const report = req.body;
+        report.id = Date.now().toString();
+        report.reporter = report.reporter || "Unknown";
+        report.createdAt = new Date().toISOString();
+        report.status = 'pending';
 
-    // Send notifications
-    const stationMapping = {
-        'motor_accident': ['police', 'ambulance'],
-        'fire_accident': ['fire', 'ambulance'],
-        'assault_crime': ['police'],
-        'medical_emergency': ['ambulance']
-    };
+        // Handle Base64 photo
+        if (report.photo) {
+            try {
+                const matches = report.photo.match(/^data:(image\/\w+);base64,(.+)$/);
+                if (!matches || matches.length !== 3) throw new Error("Invalid base64 data");
 
-    let incidentType = 'motor_accident';
-    const dbType = (report.type || '').toString().toLowerCase().trim();
+                const mimeType = matches[1];
+                const imageData = matches[2];
+                const ext = mimeType.split("/")[1];
+                const fileName = `report_${Date.now()}.${ext}`;
+                const uploadDir = path.join(__dirname, "uploads");
 
-    if (dbType.includes('fire')) incidentType = 'fire_accident';
-    else if (dbType.includes('assault') || dbType.includes('crime')) incidentType = 'assault_crime';
-    else if (dbType.includes('medical') || dbType.includes('emergency')) incidentType = 'medical_emergency';
+                if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
 
-    const targetStations = stationMapping[incidentType] || [];
-    const targetEmails = Object.keys(ADMIN_STATIONS)
-        .filter(email => targetStations.includes(ADMIN_STATIONS[email]));
+                const filePath = path.join(uploadDir, fileName);
+                fs.writeFileSync(filePath, Buffer.from(imageData, "base64"));
 
-    // Save notifications
-    const notifications = JSON.parse(fs.readFileSync(NOTIFICATIONS_FILE, 'utf8'));
-    
-    for (const email of targetEmails) {
-        const notification = {
-            id: Date.now() + Math.random(),
-            title: `New ${incidentType.replace('_', ' ').toUpperCase()} Report`,
-            message: `${report.reporter} reported a ${incidentType.replace('_', ' ')} at ${report.location || 'Unknown location'}`,
-            user: email,
-            station: ADMIN_STATIONS[email],
-            incidentType: incidentType,
-            reportId: report.id,
-            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            date: new Date().toLocaleDateString(),
-            read: false,
-            createdAt: new Date().toISOString()
-        };
-
-        notifications.push(notification);
-
-        // Send real-time notification
-        for (let [socketId, client] of connectedClients.entries()) {
-            if (client.email === email) {
-                client.socket.emit('newNotification', notification);
-                break;
+                report.photo = `/uploads/${fileName}`;
+            } catch (err) {
+                console.error("⚠️ Failed to save photo:", err);
+                report.photo = null;
             }
         }
+
+        data.push(report);
+        fs.writeFileSync(REPORTS_FILE, JSON.stringify(data, null, 2));
+
+        res.json({
+            success: true,
+            message: "Report saved successfully",
+            report
+        });
     }
-
-    fs.writeFileSync(NOTIFICATIONS_FILE, JSON.stringify(notifications, null, 2));
-
-    res.json({
-        success: true,
-        message: "Report saved successfully",
-        report,
-        routedTo: targetStations
-    });
 });
 
 // ------------------ STATION DASHBOARD API ROUTES ------------------ //
@@ -441,97 +391,66 @@ app.get("/api/station/:station/reports", verifyAuth, async (req, res) => {
         return res.status(403).json({ error: 'Access denied to this station' });
     }
 
-    try {
-        if (!fs.existsSync(REPORTS_FILE)) {
-            fs.writeFileSync(REPORTS_FILE, "[]");
-        }
-
-        let allReports = [];
-        try {
-            allReports = JSON.parse(fs.readFileSync(REPORTS_FILE, 'utf8'));
-        } catch (parseError) {
-            console.error('Error parsing reports.json:', parseError);
-            // Reset to empty array if corrupted
-            fs.writeFileSync(REPORTS_FILE, JSON.stringify([]));
-        }
-
+    if (isProduction) {
         // Filter reports based on station
         let stationReports = [];
         if (station === 'police') {
             // Police station sees all reports for comprehensive emergency response
-            stationReports = allReports;
+            stationReports = reportsData;
         } else if (station === 'fire') {
-            stationReports = allReports.filter(report => {
+            stationReports = reportsData.filter(report => {
                 const type = (report.type || '').toString().toLowerCase().trim();
                 return type.includes('fire');
             });
         } else if (station === 'ambulance') {
-            stationReports = allReports.filter(report => {
+            stationReports = reportsData.filter(report => {
                 const type = (report.type || '').toString().toLowerCase().trim();
                 return type.includes('motor') || type.includes('accident') || type.includes('fire') || type.includes('medical') || type.includes('emergency');
             });
         }
 
         res.json(stationReports);
-    } catch (error) {
-        console.error('Error fetching station reports:', error);
-        res.status(500).json({ error: 'Server error' });
+    } else {
+        try {
+            if (!fs.existsSync(REPORTS_FILE)) {
+                fs.writeFileSync(REPORTS_FILE, "[]");
+            }
+
+            let allReports = [];
+            try {
+                allReports = JSON.parse(fs.readFileSync(REPORTS_FILE, 'utf8'));
+            } catch (parseError) {
+                console.error('Error parsing reports.json:', parseError);
+                // Reset to empty array if corrupted
+                fs.writeFileSync(REPORTS_FILE, JSON.stringify([]));
+            }
+
+            // Filter reports based on station
+            let stationReports = [];
+            if (station === 'police') {
+                // Police station sees all reports for comprehensive emergency response
+                stationReports = allReports;
+            } else if (station === 'fire') {
+                stationReports = allReports.filter(report => {
+                    const type = (report.type || '').toString().toLowerCase().trim();
+                    return type.includes('fire');
+                });
+            } else if (station === 'ambulance') {
+                stationReports = allReports.filter(report => {
+                    const type = (report.type || '').toString().toLowerCase().trim();
+                    return type.includes('motor') || type.includes('accident') || type.includes('fire') || type.includes('medical') || type.includes('emergency');
+                });
+            }
+
+            res.json(stationReports);
+        } catch (error) {
+            console.error('Error fetching station reports:', error);
+            res.status(500).json({ error: 'Server error' });
+        }
     }
 });
 
-// Get notifications for a specific station/admin
-app.get("/api/station/:station/notifications", verifyAuth, async (req, res) => {
-    const { station } = req.params;
-    const user = req.user;
 
-    // Verify user has access to this station
-    if (user.role === 'admin' && user.station !== station) {
-        return res.status(403).json({ error: 'Access denied to this station' });
-    }
-
-    try {
-        if (!fs.existsSync(NOTIFICATIONS_FILE)) {
-            fs.writeFileSync(NOTIFICATIONS_FILE, "[]");
-        }
-
-        const allNotifications = JSON.parse(fs.readFileSync(NOTIFICATIONS_FILE, 'utf8'));
-        
-        // Filter notifications for this station/user
-        const stationNotifications = allNotifications.filter(notification => 
-            notification.user === user.email
-        );
-
-        res.json(stationNotifications);
-    } catch (error) {
-        console.error('Error fetching notifications:', error);
-        res.status(500).json({ error: 'Server error' });
-    }
-});
-
-// Mark notification as read
-app.put("/api/notifications/:id/read", verifyAuth, async (req, res) => {
-    const { id } = req.params;
-    
-    try {
-        if (!fs.existsSync(NOTIFICATIONS_FILE)) {
-            fs.writeFileSync(NOTIFICATIONS_FILE, "[]");
-        }
-
-        const notifications = JSON.parse(fs.readFileSync(NOTIFICATIONS_FILE, 'utf8'));
-        const notificationIndex = notifications.findIndex(n => n.id == id);
-        
-        if (notificationIndex !== -1) {
-            notifications[notificationIndex].read = true;
-            fs.writeFileSync(NOTIFICATIONS_FILE, JSON.stringify(notifications, null, 2));
-            res.json({ success: true, message: 'Notification marked as read' });
-        } else {
-            res.status(404).json({ error: 'Notification not found' });
-        }
-    } catch (error) {
-        console.error('Error updating notification:', error);
-        res.status(500).json({ error: 'Server error' });
-    }
-});
 
 // Update report status
 app.put("/api/reports/:id/status", verifyAuth, async (req, res) => {
@@ -552,14 +471,7 @@ app.put("/api/reports/:id/status", verifyAuth, async (req, res) => {
             reports[reportIndex].updatedBy = req.user.email;
             
             fs.writeFileSync(REPORTS_FILE, JSON.stringify(reports, null, 2));
-            
-            // Emit status update via socket
-            io.emit('reportStatusUpdate', {
-                id: id,
-                status: status,
-                updatedBy: req.user.email
-            });
-            
+
             res.json({ success: true, report: reports[reportIndex] });
         } else {
             res.status(404).json({ error: 'Report not found' });
@@ -570,13 +482,13 @@ app.put("/api/reports/:id/status", verifyAuth, async (req, res) => {
     }
 });
 
-// ------------------ START SERVER ------------------ //
-server.listen(PORT, () => {
-    console.log(`✅ Server running on port ${PORT}`);
-    console.log(`✅ Login page: http://localhost:${PORT}/login`);
-    console.log(`\n🔐 Admin Accounts (use email/password from Supabase):`);
-    console.log(`   👮 Police: policeadmin@gmail.com`);
-    console.log(`   🚒 Fire: fireadmin@gmail.com`);
-    console.log(`   🚑 Ambulance: medicaladmin@gmail.com`);
-    console.log(`\n🌐 Server is ready for deployment!`);
-});
+// ------------------ EXPORT FOR VERCEL ------------------ //
+module.exports = app;
+
+// For local development
+if (!isProduction) {
+    const port = process.env.PORT || 3000;
+    app.listen(port, () => {
+        console.log(`Server running on port ${port}`);
+    });
+}
