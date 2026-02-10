@@ -635,6 +635,28 @@ app.put("/api/reports/:id/status", verifyAuth, async (req, res) => {
     }
 });
 
+// Notification pages with authentication
+app.get('/police-notif', verifyAuth, (req, res) => {
+    if (req.user.role !== 'admin' || req.user.station !== 'police') {
+        return res.redirect('/?error=access_denied');
+    }
+    res.sendFile(path.join(__dirname, 'police-notif.html'));
+});
+
+app.get('/fire-notif', verifyAuth, (req, res) => {
+    if (req.user.role !== 'admin' || req.user.station !== 'fire') {
+        return res.redirect('/?error=access_denied');
+    }
+    res.sendFile(path.join(__dirname, 'fire-notif.html'));
+});
+
+app.get('/ambulance-notif', verifyAuth, (req, res) => {
+    if (req.user.role !== 'admin' || req.user.station !== 'ambulance') {
+        return res.redirect('/?error=access_denied');
+    }
+    res.sendFile(path.join(__dirname, 'ambulance-notif.html'));
+});
+
 // ------------------ CATCH-ALL ROUTE ------------------ //
 // This handles client-side routing
 app.get('*', (req, res) => {
@@ -642,13 +664,13 @@ app.get('*', (req, res) => {
     if (req.path.startsWith('/api/')) {
         return res.status(404).json({ error: 'API endpoint not found' });
     }
-    
+
     // Don't interfere with static files that exist
     const staticPath = path.join(__dirname, req.path);
     if (fs.existsSync(staticPath) && !fs.lstatSync(staticPath).isDirectory()) {
         return res.sendFile(staticPath);
     }
-    
+
     // For all other routes, serve the login page
     res.sendFile(path.join(__dirname, 'index.html'));
 });

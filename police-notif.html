@@ -1122,27 +1122,63 @@
     // ============ INITIALIZATION ============
     document.addEventListener('DOMContentLoaded', async () => {
       console.log('👮 Police Department Notifications Initializing...');
-      
+
+      // Check authentication from URL token
+      if (!await checkAuthentication()) return;
+
       // Initialize Supabase
       supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-      
+
       // Get user location
       await getUserLocation();
-      
+
       // Get table columns
       await getTableColumns();
-      
+
       // Load initial reports
       loadReports();
-      
+
       // Setup real-time subscription
       setupRealtimeSubscription();
-      
+
       // Setup event listeners
       setupEventListeners();
-      
+
       console.log('✅ Police Department Notifications ready');
     });
+
+    // ============ AUTHENTICATION ============
+    async function checkAuthentication() {
+      try {
+        // Get token from URL parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        const token = urlParams.get('token');
+
+        if (!token) {
+          console.log('No token found in URL, redirecting to login');
+          window.location.href = 'index.html';
+          return false;
+        }
+
+        // Store token in localStorage
+        localStorage.setItem('token', token);
+
+        // For police notifications, assume police station access
+        const userData = {
+          email: 'policeadmin@gmail.com',
+          station: 'police',
+          role: 'admin'
+        };
+        localStorage.setItem('user', JSON.stringify(userData));
+
+        console.log('✅ Token stored successfully for police notifications');
+        return true;
+      } catch (error) {
+        console.error('Authentication error:', error);
+        window.location.href = 'index.html';
+        return false;
+      }
+    }
 
     // ============ HELPER FUNCTIONS ============
     async function getUserLocation() {
@@ -1152,7 +1188,7 @@
           resolve(userCurrentLocation);
           return;
         }
-        
+
         navigator.geolocation.getCurrentPosition(
           (position) => {
             userCurrentLocation = {
