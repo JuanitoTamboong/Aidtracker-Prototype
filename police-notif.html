@@ -1102,6 +1102,13 @@
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd3dmVweHVwb3h5eXlkbmlzdWxiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ4MDE4ODcsImV4cCI6MjA4MDM3Nzg4N30.Ku9SXTAKNMvHilgEpxj5HcVA-0TPt4ziuEq0Irao5Qc';
     const OPENROUTE_API_KEY = 'eyJvcmciOiI1YjNjZTM1OTc4NTExMTAwMDFjZjYyNDgiLCJpZCI6ImJjYzMxOGQ0MGYwMTQ3YTBhZDJlNWU3ZDkxOGNhNGJiIiwiaCI6Im11cm11cjY0In0=';
 
+    // Admin accounts mapping
+    const ADMIN_STATIONS = {
+        'policeadmin@gmail.com': 'police',
+        'fireadmin@gmail.com': 'fire',
+        'medicaladmin@gmail.com': 'ambulance'
+    };
+
     // ============ GLOBAL VARIABLES ============
     let supabaseClient = null;
     let currentReportId = null;
@@ -1191,7 +1198,12 @@
     }
 
     async function goBack() {
-         window.location.href = "/police";
+         const token = localStorage.getItem('token');
+         if (token) {
+             window.location.href = "/police?token=" + encodeURIComponent(token);
+         } else {
+             window.location.href = "/police";
+         }
     }
 
     function openModal(modalId) {
