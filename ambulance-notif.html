@@ -36,7 +36,7 @@
       --warning-orange: #f39c12;
       --success-green: #2ecc71;
       --ambulance-red: #e74c3c;
-      --ambulance-light: #ff6b6b;
+      --ambulance-dark: #c0392b;
       --glass-bg: rgba(255, 255, 255, 0.1);
       --glass-border: rgba(255, 255, 255, 0.2);
       --shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
@@ -104,11 +104,11 @@
       width: 40px;
       height: 40px;
       border-radius: 10px;
-      background: var(--ambulance-red);
+      background: var(--accent-gold);
       display: flex;
       align-items: center;
       justify-content: center;
-      color: white;
+      color: var(--primary-blue);
       font-size: 20px;
       flex-shrink: 0;
     }
@@ -226,9 +226,9 @@
       font-size: 12px;
       text-transform: uppercase;
       margin-bottom: 10px;
-      background: rgba(231, 76, 60, 0.2);
-      color: var(--ambulance-light);
-      border: 1px solid rgba(231, 76, 60, 0.5);
+      background: rgba(243, 156, 18, 0.2);
+      color: var(--accent-gold);
+      border: 1px solid rgba(243, 156, 18, 0.5);
     }
 
     .reporter-info {
@@ -241,12 +241,12 @@
     .reporter-avatar {
       width: 40px;
       height: 40px;
-      background: linear-gradient(135deg, var(--ambulance-red), var(--ambulance-light));
+      background: linear-gradient(135deg, var(--accent-gold), #ffed4e);
       border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
-      color: white;
+      color: var(--primary-blue);
       font-size: 16px;
       font-weight: bold;
     }
@@ -319,16 +319,6 @@
       color: #3498db;
     }
 
-    .status-dispatched {
-      background: rgba(155, 89, 182, 0.2);
-      color: #9b59b6;
-    }
-
-    .status-responding {
-      background: rgba(231, 76, 60, 0.2);
-      color: #e74c3c;
-    }
-
     .status-resolved {
       background: rgba(46, 204, 113, 0.2);
       color: #2ecc71;
@@ -342,8 +332,8 @@
     }
 
     .responders-btn {
-      background: var(--ambulance-red);
-      color: white;
+      background: var(--accent-gold);
+      color: var(--primary-blue);
       border: none;
       padding: 10px 20px;
       border-radius: 8px;
@@ -360,7 +350,7 @@
     }
 
     .responders-btn:hover {
-      background: #c0392b;
+      background: #ffed4e;
       transform: translateY(-2px);
     }
 
@@ -411,7 +401,7 @@
     }
 
     .quick-route-btn {
-      background: #9b59b6;
+      background: #3498db;
       color: white;
       border: none;
       padding: 10px 20px;
@@ -428,14 +418,14 @@
     }
 
     .quick-route-btn:hover {
-      background: #8e44ad;
+      background: #2980b9;
       transform: translateY(-2px);
     }
 
     /* Ambulance specific styling */
     .ambulance-unit {
       background: rgba(231, 76, 60, 0.2);
-      color: var(--ambulance-light);
+      color: #e74c3c;
       padding: 8px 12px;
       border-radius: 6px;
       font-size: 12px;
@@ -581,8 +571,8 @@
 
     .modal-btn-primary {
       flex: 1;
-      background: var(--ambulance-red);
-      color: white;
+      background: var(--accent-gold);
+      color: var(--primary-blue);
       border: none;
       padding: 14px;
       border-radius: 10px;
@@ -597,7 +587,7 @@
     }
 
     .modal-btn-primary:hover {
-      background: #c0392b;
+      background: #ffed4e;
     }
 
     .modal-btn-secondary {
@@ -933,12 +923,12 @@
   <div id="respondersModal" class="modal-overlay">
     <div class="modal-content glass">
       <div class="modal-header">
-        <i class="fas fa-ambulance"></i> Medical Emergency Response
+        <i class="fas fa-ambulance"></i> Ambulance Response Assignment
       </div>
       
       <div class="modal-section">
         <div class="modal-section-title">
-          <i class="fas fa-id-card"></i> Incident Details
+          <i class="fas fa-id-card"></i> Emergency Details
         </div>
         <div style="background: rgba(0,0,0,0.3); padding: 12px; border-radius: 8px; margin-bottom: 10px;">
           <div style="color: var(--accent-gold); font-size: 12px; margin-bottom: 4px;">Emergency ID</div>
@@ -981,7 +971,7 @@
       
       <div class="modal-buttons">
         <button id="confirmRespondersBtn" class="modal-btn-primary">
-          <i class="fas fa-check"></i> Dispatch Ambulance
+          <i class="fas fa-check"></i> Assign Medical Team
         </button>
         <button onclick="closeModal('respondersModal')" class="modal-btn-secondary">
           <i class="fas fa-times"></i> Cancel
@@ -1059,7 +1049,7 @@
   <div id="resolveModal" class="modal-overlay">
     <div class="modal-content glass">
       <div class="modal-header">
-        <i class="fas fa-check-circle"></i> Complete Medical Emergency
+        <i class="fas fa-check-circle"></i> Resolve Medical Emergency
       </div>
       
       <div class="modal-section">
@@ -1077,14 +1067,14 @@
           <i class="fas fa-check-square"></i> Resolution Status
         </div>
         <select id="resolutionStatus" class="modal-select">
-          <option value="patient_transported">Patient Transported to Hospital</option>
-          <option value="treatment_completed">On-site Treatment Completed</option>
-          <option value="patient_stable">Patient Stabilized</option>
-          <option value="no_treatment_needed">No Medical Treatment Needed</option>
+          <option value="patient_transported">Patient Transported - Hospital Admission</option>
+          <option value="treatment_completed">Treatment Completed - On-site Care</option>
+          <option value="patient_stable">Patient Stabilized - Condition Improved</option>
+          <option value="no_treatment_needed">No Treatment Needed - Minor Issue</option>
           <option value="minor_injury">Minor Injury - First Aid Applied</option>
           <option value="false_alarm">False Alarm - No Medical Emergency</option>
-          <option value="transferred">Transferred to Other Medical Team</option>
-          <option value="patient_refused">Patient Refused Treatment</option>
+          <option value="handed_over">Handed Over - Transferred to Hospital</option>
+          <option value="patient_refused">Patient Refused - Treatment Declined</option>
         </select>
       </div>
       
@@ -1097,7 +1087,7 @@
       
       <div class="modal-buttons">
         <button id="confirmResolveBtn" class="modal-btn-primary" style="background: var(--success-green);">
-          <i class="fas fa-check-double"></i> Mark as Completed
+          <i class="fas fa-check-double"></i> Mark as Resolved
         </button>
         <button onclick="closeModal('resolveModal')" class="modal-btn-secondary">
           <i class="fas fa-times"></i> Cancel
@@ -1127,40 +1117,6 @@
         data: null,
         timestamp: null,
         ttl: 5 * 60 * 1000 // 5 minutes cache TTL
-    };
-
-    // Medical incident type configuration
-    const medicalIncidentTypes = {
-      medical_emergency: {
-        name: 'MEDICAL EMERGENCY',
-        icon: 'heartbeat',
-        color: '#e74c3c'
-      },
-      accident_injury: {
-        name: 'ACCIDENT INJURY',
-        icon: 'user-injured',
-        color: '#f39c12'
-      },
-      heart_attack: {
-        name: 'HEART ATTACK',
-        icon: 'heart',
-        color: '#e74c3c'
-      },
-      stroke: {
-        name: 'STROKE',
-        icon: 'brain',
-        color: '#3498db'
-      },
-      breathing_difficulty: {
-        name: 'BREATHING DIFFICULTY',
-        icon: 'lungs',
-        color: '#1abc9c'
-      },
-      default: {
-        name: 'MEDICAL EMERGENCY',
-        icon: 'plus-square',
-        color: '#e74c3c'
-      }
     };
 
     // ============ INITIALIZATION ============
@@ -1312,7 +1268,7 @@
       
       if (userCurrentLocation) {
         const userIcon = L.divIcon({
-          html: '<div style="background-color: #9b59b6; width: 36px; height: 36px; border-radius: 50%; border: 3px solid white; display: flex; align-items: center; justify-content: center; color: white; font-size: 14px;"><i class="fas fa-user-md"></i></div>',
+          html: '<div style="background-color: #3498db; width: 36px; height: 36px; border-radius: 50%; border: 3px solid white; display: flex; align-items: center; justify-content: center; color: white; font-size: 14px;"><i class="fas fa-user-md"></i></div>',
           iconSize: [42, 42],
           iconAnchor: [21, 21]
         });
@@ -1321,7 +1277,7 @@
           .addTo(fullscreenMap)
           .bindPopup(`
             <div style="color: #001f3f; font-weight: bold; font-size: 16px;">
-              <i class="fas fa-user-md" style="color: #9b59b6;"></i> AMBULANCE LOCATION
+              <i class="fas fa-user-md" style="color: #3498db;"></i> AMBULANCE LOCATION
             </div>
             <div style="margin-top: 8px; font-size: 14px;">
               <strong>Current ambulance position</strong><br>
@@ -1369,7 +1325,7 @@
       
       if (userCurrentLocation) {
         const startIcon = L.divIcon({
-          html: '<div style="background-color: #9b59b6; width: 28px; height: 28px; border-radius: 50%; border: 3px solid white; display: flex; align-items: center; justify-content: center; color: white; font-size: 12px;"><i class="fas fa-user-md"></i></div>',
+          html: '<div style="background-color: #3498db; width: 28px; height: 28px; border-radius: 50%; border: 3px solid white; display: flex; align-items: center; justify-content: center; color: white; font-size: 12px;"><i class="fas fa-user-md"></i></div>',
           iconSize: [34, 34],
           iconAnchor: [17, 17]
         });
@@ -1476,12 +1432,7 @@
               dbType.includes('unconscious') ||
               dbType.includes('bleeding') ||
               dbType.includes('fracture') ||
-              dbType.includes('burn') ||
-              dbType.includes('poisoning') ||
-              dbType.includes('allergic') ||
-              dbType.includes('asthma') ||
-              dbType.includes('diabetic') ||
-              dbType === 'medical_emergency'
+              dbType.includes('burn')
             );
           });
 
@@ -1533,25 +1484,19 @@
       
       // Determine incident type
       const dbType = (report.type || '').toString().toLowerCase().trim();
-      let incidentType = 'default';
+      let incidentType = 'medical_emergency';
       let incidentTypeName = 'MEDICAL EMERGENCY';
       
-      // Map to medical incident types
-      if (dbType.includes('medical') || dbType.includes('health') || dbType.includes('emergency')) {
-        incidentType = 'medical_emergency';
-        incidentTypeName = 'MEDICAL EMERGENCY';
-      } else if (dbType.includes('accident') || dbType.includes('injury')) {
-        incidentType = 'accident_injury';
+      if (dbType.includes('accident') || dbType.includes('injury')) {
         incidentTypeName = 'ACCIDENT INJURY';
       } else if (dbType.includes('heart')) {
-        incidentType = 'heart_attack';
         incidentTypeName = 'HEART ATTACK';
       } else if (dbType.includes('stroke')) {
-        incidentType = 'stroke';
         incidentTypeName = 'STROKE';
-      } else if (dbType.includes('breathing') || dbType.includes('asthma')) {
-        incidentType = 'breathing_difficulty';
+      } else if (dbType.includes('breathing')) {
         incidentTypeName = 'BREATHING DIFFICULTY';
+      } else if (dbType.includes('unconscious')) {
+        incidentTypeName = 'UNCONSCIOUS PERSON';
       }
       
       const reporterName = report.reporter || report.reporter_name || report.name || 'Anonymous';
@@ -1569,19 +1514,13 @@
       const status = (report.status || 'pending').toLowerCase();
       let statusClass = 'status-pending';
       let statusText = 'Pending';
-      
+
       if (status === 'investigating') {
         statusClass = 'status-investigating';
-        statusText = 'Reviewing';
-      } else if (status === 'dispatched') {
-        statusClass = 'status-dispatched';
-        statusText = 'Dispatched';
-      } else if (status === 'responding') {
-        statusClass = 'status-responding';
-        statusText = 'Responding';
+        statusText = 'Investigating';
       } else if (status === 'resolved') {
         statusClass = 'status-resolved';
-        statusText = 'Completed';
+        statusText = 'Resolved';
       }
       
       // Get assigned responders
@@ -1613,19 +1552,19 @@
       if (status === 'pending') {
         actionButtonsHTML = `
           <button class="responders-btn" onclick="openRespondersModal('${report.id}', '${reporterName.replace(/'/g, "\\'")}')">
-            <i class="fas fa-user-md"></i> DISPATCH AMBULANCE
+            <i class="fas fa-user-md"></i> AMBULANCE RESPOND
           </button>
           <button class="view-btn" onclick="viewOnMap(${report.latitude}, ${report.longitude}, '${report.id}')">
             <i class="fas fa-map-marker-alt"></i> VIEW ON MAP
           </button>
         `;
-      } else if (status === 'dispatched' || status === 'responding') {
+      } else if (status === 'investigating' || status === 'assigned') {
         actionButtonsHTML = `
           <button class="quick-route-btn" onclick="openQuickRouteModal('${report.id}', ${report.latitude}, ${report.longitude}, '${displayText.replace(/'/g, "\\'")}')">
             <i class="fas fa-route"></i> NAVIGATE TO PATIENT
           </button>
           <button class="resolve-btn" onclick="openResolveModal('${report.id}')">
-            <i class="fas fa-check-circle"></i> COMPLETE
+            <i class="fas fa-check-circle"></i> RESOLVE
           </button>
         `;
       } else {
@@ -1637,8 +1576,8 @@
       }
       
       card.innerHTML = `
-        <div class="incident-type" style="background: ${medicalIncidentTypes[incidentType]?.color + '20' || 'rgba(231, 76, 60, 0.2)'}; border-color: ${medicalIncidentTypes[incidentType]?.color + '50' || 'rgba(231, 76, 60, 0.5)'}; color: ${medicalIncidentTypes[incidentType]?.color || '#e74c3c'}">
-          <i class="fas fa-${medicalIncidentTypes[incidentType]?.icon || 'plus-square'}"></i> ${incidentTypeName}
+        <div class="incident-type">
+          <i class="fas fa-ambulance"></i> ${incidentTypeName}
         </div>
         
         <div class="reporter-info">
@@ -1684,7 +1623,7 @@
         
         <div style="margin-bottom: 15px; padding: 10px; background: rgba(255, 215, 0, 0.05); border-radius: 8px; border-left: 3px solid var(--accent-gold);">
           <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 5px;">
-            <i class="fas fa-user-md" style="color: var(--accent-gold); font-size: 14px;"></i>
+            <i class="fas fa-user-md" style="color: #e74c3c; font-size: 14px;"></i>
             <span style="color: var(--accent-gold); font-size: 12px; font-weight: bold;">ASSIGNED MEDICAL TEAM:</span>
           </div>
           <div style="color: white; font-size: 14px; font-weight: 600;">
@@ -1749,12 +1688,12 @@
       
       try {
         // Ambulance is automatically assigned for medical emergencies
-        const assignedUnit = 'AMBULANCE';
+        const assignedUnit = 'AMBULANCE SERVICE';
         const assignedRespondersText = responderName;
         
         // Prepare update data
         const updateData = {
-          status: 'dispatched',
+          status: 'investigating',
           updated_at: new Date().toISOString(),
           assigned_responders: assignedRespondersText,
           assigned_unit: assignedUnit,
@@ -1776,7 +1715,7 @@
         }
         
         // Show success message
-        alert('✅ Ambulance dispatched successfully!');
+        alert('✅ Medical team assigned successfully!');
         
         // Close modal and reset
         closeModal('respondersModal');
@@ -1787,8 +1726,8 @@
         loadReports(true);
         
       } catch (error) {
-        console.error('Error dispatching ambulance:', error);
-        alert('❌ Error dispatching ambulance. Please try again.');
+        console.error('Error assigning medical team:', error);
+        alert('❌ Error assigning medical team. Please try again.');
       }
     }
 
@@ -1852,9 +1791,9 @@
         let resolutionDescription = '';
         
         if (notes) {
-          resolutionDescription = `Medical outcome: ${statusText} - Medical Notes: ${notes}`;
+          resolutionDescription = `Resolution status: ${statusText} - Medical Notes: ${notes}`;
         } else {
-          resolutionDescription = `Medical outcome: ${statusText}`;
+          resolutionDescription = `Resolution status: ${statusText}`;
         }
         
         // Update description field based on available columns
@@ -1884,7 +1823,7 @@
         document.getElementById('resolutionNotes').value = '';
         
         // Show success message
-        alert('✅ Medical emergency marked as completed!');
+        alert('✅ Medical emergency marked as resolved!');
         
         // Reload reports
         setTimeout(() => {
@@ -1892,8 +1831,8 @@
         }, 500);
         
       } catch (error) {
-        console.error('Error completing emergency:', error);
-        alert('❌ Error marking medical emergency as completed. Please try again.');
+        console.error('Error resolving emergency:', error);
+        alert('❌ Error marking medical emergency as resolved. Please try again.');
       }
     }
 
@@ -1941,7 +1880,7 @@
             const duration = Math.round(summary.duration / 60);
             
             const routePolyline = L.polyline(latLngs, {
-              color: '#e74c3c',
+              color: '#ffd700',
               weight: 6,
               opacity: 0.9,
               lineCap: 'round',
@@ -1969,7 +1908,7 @@
       fullscreenMap.routeMarkers = [];
       
       const startIcon = L.divIcon({
-        html: '<div style="background-color: #9b59b6; width: 36px; height: 36px; border-radius: 50%; border: 3px solid white; display: flex; align-items: center; justify-content: center; color: white; font-size: 14px;"><i class="fas fa-user-md"></i></div>',
+        html: '<div style="background-color: #3498db; width: 36px; height: 36px; border-radius: 50%; border: 3px solid white; display: flex; align-items: center; justify-content: center; color: white; font-size: 14px;"><i class="fas fa-user-md"></i></div>',
         iconSize: [42, 42],
         iconAnchor: [21, 21]
       });
@@ -1978,7 +1917,7 @@
         .addTo(fullscreenMap)
         .bindPopup(`
           <div style="color: #001f3f; font-weight: bold;">
-            <i class="fas fa-user-md" style="color: #9b59b6;"></i> AMBULANCE LOCATION
+            <i class="fas fa-user-md" style="color: #3498db;"></i> AMBULANCE LOCATION
           </div>
           <div style="margin-top: 5px; font-size: 14px;">
             <strong>Your current location</strong><br>
@@ -2026,7 +1965,7 @@
       const duration = Math.round(distance * 3);
       
       const routePolyline = L.polyline(coordinates, {
-        color: '#e74c3c',
+        color: '#ffd700',
         weight: 5,
         opacity: 0.8,
         lineCap: 'round',
@@ -2049,7 +1988,7 @@
         fullscreenMap.setView([userCurrentLocation.lat, userCurrentLocation.lng], 16);
         
         const userIcon = L.divIcon({
-          html: '<div style="background-color: #3498db; width: 32px; height: 32px; border-radius: 50%; border: 3px solid white; display: flex; align-items: center; justify-content: center; color: white; font-size: 14px;"><i class="fas fa-user"></i></div>',
+          html: '<div style="background-color: #9b59b6; width: 32px; height: 32px; border-radius: 50%; border: 3px solid white; display: flex; align-items: center; justify-content: center; color: white; font-size: 14px;"><i class="fas fa-user"></i></div>',
           iconSize: [38, 38],
           iconAnchor: [19, 19]
         });
@@ -2062,7 +2001,7 @@
           .addTo(fullscreenMap)
           .bindPopup(`
             <div style="color: #001f3f; font-weight: bold; font-size: 14px;">
-              <i class="fas fa-user" style="color: #3498db;"></i> YOUR CURRENT LOCATION
+              <i class="fas fa-user" style="color: #9b59b6;"></i> YOUR CURRENT LOCATION
             </div>
             <div style="margin-top: 5px; font-size: 12px;">
               Latitude: ${userCurrentLocation.lat.toFixed(6)}<br>
@@ -2140,7 +2079,7 @@
             const duration = Math.round(summary.duration / 60);
             
             routeLine = L.polyline(latLngs, {
-              color: '#e74c3c',
+              color: '#ffd700',
               weight: 6,
               opacity: 0.9,
               lineCap: 'round',
@@ -2169,7 +2108,7 @@
         const duration = Math.round(distance * 3);
         
         routeLine = L.polyline(coordinates, {
-          color: '#e74c3c',
+          color: '#ffd700',
           weight: 5,
           opacity: 0.8,
           lineCap: 'round',
@@ -2224,7 +2163,7 @@
           // Only refresh if it's a medical-related incident
           if (payload.new) {
             const dbType = (payload.new.type || '').toString().toLowerCase().trim();
-            const isMedicalEmergency = 
+            if (
               dbType.includes('medical') || 
               dbType.includes('health') || 
               dbType.includes('emergency') ||
@@ -2239,14 +2178,9 @@
               dbType.includes('unconscious') ||
               dbType.includes('bleeding') ||
               dbType.includes('fracture') ||
-              dbType.includes('burn') ||
-              dbType.includes('poisoning') ||
-              dbType.includes('allergic') ||
-              dbType.includes('asthma') ||
-              dbType.includes('diabetic') ||
-              dbType === 'medical_emergency';
-              
-            if (isMedicalEmergency) {
+              dbType.includes('burn')
+            ) {
+              // Force refresh reports
               loadReports(true);
             }
           }
