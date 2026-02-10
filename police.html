@@ -3,10 +3,11 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Police Station - AidTracker Notifications</title>
+  <title>Police Station Dashboard - AidTracker</title>
 
-  <!-- Tailwind CSS -->
-  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Leaflet Map -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
   <!-- Font Awesome for icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -14,33 +15,20 @@
   <!-- Supabase Client -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 
-  <!-- Leaflet Map -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
-  <!-- Leaflet Routing Machine -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css" />
-  <script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
-
-  <!-- Leaflet Fullscreen -->
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet.fullscreen@2.4.0/Control.FullScreen.css" />
-  <script src="https://cdn.jsdelivr.net/npm/leaflet.fullscreen@2.4.0/Control.FullScreen.min.js"></script>
-
   <style>
     :root {
       --primary-blue: #001f3f;
-      --dark-blue: #003366;
       --accent-gold: #ffd700;
       --light-gold: #fff8dc;
       --danger-red: #e74c3c;
       --warning-orange: #f39c12;
       --success-green: #2ecc71;
-      --police-blue: #2c3e50;
-      --police-dark: #1a252f;
       --glass-bg: rgba(255, 255, 255, 0.1);
       --glass-border: rgba(255, 255, 255, 0.2);
       --shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
       --header-height: 70px;
+      --tab-bar-height: 60px;
+      --sidebar-width: 0px; /* Start at 0 for mobile */
     }
 
     * {
@@ -56,7 +44,7 @@
 
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-      background: linear-gradient(135deg, var(--primary-blue), var(--dark-blue));
+      background: linear-gradient(135deg, var(--primary-blue), #003366);
       background-attachment: fixed;
       color: #fff;
       min-height: 100vh;
@@ -193,119 +181,374 @@
       display: none;
     }
 
+    /* === Desktop Navigation === */
+    .desktop-nav {
+      display: none; /* Hidden on mobile by default */
+      position: fixed;
+      left: 0;
+      top: var(--header-height);
+      bottom: 0;
+      width: var(--sidebar-width);
+      z-index: 900;
+      border-right: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 20px 0;
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      overflow-y: auto;
+    }
+
+    .desktop-nav-btn {
+      width: 100%;
+      padding: 16px 0;
+      background: transparent;
+      border: none;
+      color: rgba(255, 255, 255, 0.8);
+      cursor: pointer;
+      transition: all 0.3s;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      text-decoration: none;
+    }
+
+    .desktop-nav-btn i {
+      font-size: 22px;
+      width: 30px;
+      height: 30px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .desktop-nav-btn:hover {
+      color: var(--accent-gold);
+      background: rgba(255, 215, 0, 0.1);
+    }
+
+    .desktop-nav-btn.active {
+      color: var(--accent-gold);
+      background: rgba(255, 215, 0, 0.15);
+      border-left: 3px solid var(--accent-gold);
+    }
+
+    /* === Tab Navigation (Mobile) === */
+    .tab-bar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: var(--tab-bar-height);
+      z-index: 1000;
+      display: flex; /* Visible on mobile */
+      padding: 8px 16px;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      gap: 8px;
+      background: rgba(0, 31, 63, 0.9);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+    }
+
+    .tab-btn {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      background: transparent;
+      border: none;
+      color: rgba(255, 255, 255, 0.8);
+      cursor: pointer;
+      transition: all 0.3s;
+      border-radius: 10px;
+      padding: 8px 0;
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    .tab-btn i {
+      font-size: 20px;
+    }
+
+    .tab-btn.active {
+      color: var(--accent-gold);
+      background: rgba(255, 215, 0, 0.1);
+    }
+
     /* === Main Content === */
     .main-content {
-      padding: calc(var(--header-height) + 16px) 16px 16px;
+      padding: calc(var(--header-height) + 16px) 16px calc(var(--tab-bar-height) + 16px);
       max-width: 100%;
       overflow-y: auto;
       -webkit-overflow-scrolling: touch;
     }
 
-    /* === Notification Cards === */
-    .notification-card {
-      background: rgba(255, 255, 255, 0.08);
-      border-radius: 12px;
-      padding: 20px;
+    .content-section {
+      display: none;
+      animation: fadeIn 0.3s ease;
+    }
+
+    .content-section.active {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* === Map Section === */
+    .map-section {
+      height: 300px;
+      border-radius: 16px;
+      overflow: hidden;
       margin-bottom: 16px;
-      border: 1px solid rgba(255, 215, 0, 0.3);
-      transition: all 0.3s ease;
       position: relative;
+      border: 2px solid var(--accent-gold);
     }
 
-    .notification-card:hover {
-      background: rgba(255, 255, 255, 0.12);
-      transform: translateY(-2px);
-      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+    #map {
+      width: 100%;
+      height: 100%;
     }
 
-    .incident-type {
-      display: inline-block;
-      padding: 6px 12px;
-      border-radius: 20px;
-      font-weight: 700;
-      font-size: 12px;
-      text-transform: uppercase;
-      margin-bottom: 10px;
-      background: rgba(243, 156, 18, 0.2);
-      color: var(--accent-gold);
-      border: 1px solid rgba(243, 156, 18, 0.5);
+    #fullMap {
+      width: 100%;
+      height: 100%;
     }
 
-    .reporter-info {
+    .map-controls {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      z-index: 1000;
       display: flex;
-      align-items: center;
-      gap: 12px;
-      margin-bottom: 15px;
+      gap: 8px;
+      flex-wrap: wrap;
     }
 
-    .reporter-avatar {
-      width: 40px;
-      height: 40px;
-      background: linear-gradient(135deg, var(--accent-gold), #ffed4e);
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: var(--primary-blue);
-      font-size: 16px;
-      font-weight: bold;
-    }
-
-    .reporter-details {
-      flex: 1;
-    }
-
-    .reporter-name {
-      font-size: 18px;
-      font-weight: 700;
-      color: #fff;
-      margin-bottom: 2px;
-    }
-
-    .reporter-time {
-      font-size: 12px;
-      color: var(--accent-gold);
-      opacity: 0.8;
-    }
-
-    .details-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-      gap: 10px;
-      margin-bottom: 15px;
-      background: rgba(0, 0, 0, 0.2);
-      padding: 12px;
+    .map-control {
+      padding: 8px 12px;
+      background: rgba(0, 0, 0, 0.8);
+      color: white;
       border-radius: 8px;
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.3s;
+      border: 1px solid var(--accent-gold);
+      display: flex;
+      align-items: center;
+      gap: 6px;
     }
 
-    .detail-item {
+    .map-control:hover {
+      background: rgba(0, 0, 0, 0.9);
+    }
+
+    /* === Stats Section === */
+    .stats-section {
+      margin-bottom: 16px;
+    }
+
+    .section-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--accent-gold);
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+    }
+
+    .stat-card {
+      padding: 16px;
+      border-radius: 12px;
+      text-align: center;
+      transition: transform 0.3s;
+    }
+
+    .stat-card:hover {
+      transform: translateY(-3px);
+    }
+
+    .stat-value {
+      font-size: 28px;
+      font-weight: 800;
+      margin: 8px 0;
+      color: #fff;
+    }
+
+    .stat-label {
+      font-size: 12px;
+      color: var(--light-gold);
+      opacity: 0.9;
+    }
+
+    /* === Quick Filters === */
+    .filter-section {
+      margin-bottom: 16px;
+    }
+
+    .filters-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+
+    .filter-btn {
+      padding: 12px 8px;
+      border-radius: 10px;
+      border: 1px solid var(--glass-border);
+      background: rgba(0, 0, 0, 0.3);
+      color: white;
+      cursor: pointer;
+      transition: all 0.3s;
+      font-weight: 600;
+      font-size: 12px;
       display: flex;
       flex-direction: column;
+      align-items: center;
+      gap: 6px;
     }
 
-    .detail-label {
-      font-size: 11px;
-      color: var(--accent-gold);
-      opacity: 0.8;
-      margin-bottom: 2px;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
+    .filter-btn i {
+      font-size: 16px;
     }
 
-    .detail-value {
-      font-size: 14px;
+    .filter-btn.active {
+      background: var(--accent-gold);
+      color: var(--primary-blue);
+      border-color: var(--accent-gold);
+    }
+
+    /* === Reports Section === */
+    .reports-section {
+      margin-bottom: 16px;
+    }
+
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .refresh-btn {
+      padding: 8px 16px;
+      background: var(--accent-gold);
+      color: var(--primary-blue);
+      border: none;
+      border-radius: 8px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.3s;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    .refresh-btn:hover {
+      background: #ffed4e;
+      transform: translateY(-2px);
+    }
+
+    .refresh-btn:disabled {
+      opacity: 0.7;
+      cursor: not-allowed;
+    }
+
+    .reports-list {
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    .report-item {
+      padding: 16px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      transition: all 0.3s;
+    }
+
+    .report-item:last-child {
+      border-bottom: none;
+    }
+
+    .report-item:hover {
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .report-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 8px;
+    }
+
+    .report-type {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .type-indicator {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+    }
+
+    .type-name {
       font-weight: 600;
+      font-size: 14px;
+    }
+
+    .report-id {
+      font-size: 12px;
+      color: var(--light-gold);
+      opacity: 0.7;
+    }
+
+    .report-details {
+      margin-bottom: 12px;
+    }
+
+    .report-location {
+      font-size: 13px;
       color: #fff;
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .report-time {
+      font-size: 11px;
+      color: var(--light-gold);
+      opacity: 0.7;
+    }
+
+    .report-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
     }
 
     .status-badge {
-      display: inline-block;
       padding: 6px 12px;
       border-radius: 20px;
-      font-size: 12px;
+      font-size: 11px;
       font-weight: 700;
       text-transform: uppercase;
-      min-width: 100px;
+      min-width: 80px;
       text-align: center;
     }
 
@@ -315,6 +558,11 @@
     }
 
     .status-investigating {
+      background: rgba(231, 76, 60, 0.2);
+      color: #e74c3c;
+    }
+
+    .status-assigned {
       background: rgba(52, 152, 219, 0.2);
       color: #3498db;
     }
@@ -324,118 +572,169 @@
       color: #2ecc71;
     }
 
-    .action-buttons {
-      display: flex;
-      gap: 10px;
-      margin-top: 15px;
-      flex-wrap: wrap;
-    }
-
-    .responders-btn {
+    .photo-btn {
+      padding: 6px 12px;
       background: var(--accent-gold);
       color: var(--primary-blue);
       border: none;
-      padding: 10px 20px;
-      border-radius: 8px;
-      font-weight: 700;
-      font-size: 14px;
+      border-radius: 6px;
+      font-weight: 600;
       cursor: pointer;
-      transition: all 0.3s ease;
+      font-size: 12px;
       display: flex;
       align-items: center;
-      gap: 8px;
-      flex: 1;
-      justify-content: center;
-      min-width: 140px;
+      gap: 4px;
+      transition: all 0.3s;
     }
 
-    .responders-btn:hover {
+    .photo-btn:hover {
       background: #ffed4e;
       transform: translateY(-2px);
     }
 
-    .view-btn {
-      background: transparent;
-      border: 1px solid var(--accent-gold);
-      color: var(--accent-gold);
-      padding: 10px 20px;
-      border-radius: 8px;
-      font-weight: 600;
-      font-size: 14px;
-      cursor: pointer;
-      transition: all 0.3s ease;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      flex: 1;
+    /* === Photo Modal === */
+    .photo-modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.95);
+      z-index: 2000;
       justify-content: center;
-      min-width: 140px;
-    }
-
-    .view-btn:hover {
-      background: rgba(255, 215, 0, 0.1);
-      transform: translateY(-2px);
-    }
-
-    .resolve-btn {
-      background: var(--success-green);
-      color: white;
-      border: none;
-      padding: 10px 20px;
-      border-radius: 8px;
-      font-weight: 700;
-      font-size: 14px;
-      cursor: pointer;
-      transition: all 0.3s ease;
-      display: flex;
       align-items: center;
-      gap: 8px;
-      flex: 1;
-      justify-content: center;
-      min-width: 140px;
+      padding: 16px;
     }
 
-    .resolve-btn:hover {
-      background: #27ae60;
-      transform: translateY(-2px);
-    }
-
-    .quick-route-btn {
-      background: #3498db;
-      color: white;
-      border: none;
-      padding: 10px 20px;
-      border-radius: 8px;
-      font-weight: 700;
-      font-size: 14px;
-      cursor: pointer;
-      transition: all 0.3s ease;
-      display: flex;
-      align-items: center;
-      gap: 8px;
+    .modal-content {
       width: 100%;
-      justify-content: center;
+      max-width: 500px;
+      max-height: 90%;
+      border-radius: 16px;
+      overflow: hidden;
+      border: 2px solid var(--accent-gold);
     }
 
-    .quick-route-btn:hover {
-      background: #2980b9;
-      transform: translateY(-2px);
+    .modal-img {
+      width: 100%;
+      height: auto;
+      max-height: 60vh;
+      object-fit: contain;
     }
 
-    /* Police specific styling */
-    .police-unit {
-      background: rgba(44, 62, 80, 0.2);
-      color: #2c3e50;
-      padding: 8px 12px;
-      border-radius: 6px;
-      font-size: 12px;
+    .modal-header {
+      padding: 16px;
+      background: rgba(0, 0, 0, 0.7);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--accent-gold);
+    }
+
+    .modal-title {
+      font-size: 16px;
       font-weight: bold;
-      margin-bottom: 10px;
-      text-align: center;
-      border: 1px solid rgba(44, 62, 80, 0.3);
+      color: var(--accent-gold);
     }
 
-    /* Loading States */
+    .modal-close {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: var(--danger-red);
+      color: white;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+    }
+
+    /* === Connection Status === */
+    .connection-status {
+      position: fixed;
+      top: calc(var(--header-height) + 16px);
+      right: 16px;
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      animation: slideIn 0.3s ease;
+    }
+
+    @keyframes slideIn {
+      from { transform: translateX(100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+
+    .connection-connected {
+      background: rgba(34, 197, 94, 0.2);
+      color: #86efac;
+      border: 1px solid rgba(34, 197, 94, 0.4);
+    }
+
+    .connection-disconnected {
+      background: rgba(239, 68, 68, 0.2);
+      color: #fca5a5;
+      border: 1px solid rgba(239, 68, 68, 0.4);
+    }
+
+    /* === Toast Notification === */
+    .toast {
+      position: fixed;
+      bottom: calc(var(--tab-bar-height) + 16px);
+      left: 16px;
+      right: 16px;
+      background: rgba(0, 0, 0, 0.9);
+      color: white;
+      padding: 12px 16px;
+      border-radius: 8px;
+      border-left: 4px solid var(--accent-gold);
+      z-index: 1000;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      animation: fadeInUp 0.3s ease-out;
+    }
+
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* === Empty State === */
+    .empty-state {
+      padding: 40px 20px;
+      text-align: center;
+      color: var(--light-gold);
+    }
+
+    .empty-state i {
+      font-size: 48px;
+      margin-bottom: 16px;
+      opacity: 0.5;
+    }
+
+    .empty-state h3 {
+      font-size: 18px;
+      margin-bottom: 8px;
+    }
+
+    .empty-state p {
+      font-size: 14px;
+      opacity: 0.7;
+    }
+
+    /* === Loading States === */
     .loading {
       display: flex;
       justify-content: center;
@@ -460,356 +759,42 @@
       100% { transform: rotate(360deg); }
     }
 
-    /* Empty State */
-    .empty-state {
-      padding: 60px 20px;
-      text-align: center;
-      color: var(--light-gold);
-    }
-
-    .empty-state i {
-      font-size: 48px;
-      margin-bottom: 16px;
-      opacity: 0.5;
-      color: var(--accent-gold);
-    }
-
-    .empty-state h3 {
-      font-size: 24px;
-      margin-bottom: 8px;
-      color: var(--accent-gold);
-    }
-
-    .empty-state p {
-      font-size: 14px;
-      opacity: 0.7;
-    }
-
-    /* Modals */
-    .modal-overlay {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0, 0, 0, 0.8);
-      display: none;
-      justify-content: center;
-      align-items: center;
-      z-index: 10000;
-      -webkit-backdrop-filter: blur(5px);
-      backdrop-filter: blur(5px);
-      animation: fadeIn 0.3s ease-out;
-    }
-
-    @keyframes fadeIn {
-      from { opacity: 0; }
-      to { opacity: 1; }
-    }
-
-    .modal-content {
-      background: linear-gradient(135deg, var(--primary-blue), var(--dark-blue));
-      width: 90%;
-      max-width: 500px;
-      border-radius: 16px;
-      border: 2px solid var(--accent-gold);
-      padding: 30px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-      max-height: 90vh;
-      overflow-y: auto;
-    }
-
-    .modal-header {
-      color: var(--accent-gold);
-      font-size: 24px;
-      font-weight: 700;
-      margin-bottom: 20px;
-      text-align: center;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 10px;
-    }
-
-    .modal-section {
-      margin-bottom: 25px;
-    }
-
-    .modal-section-title {
-      color: var(--accent-gold);
-      font-size: 16px;
-      font-weight: 600;
-      margin-bottom: 10px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .modal-input, .modal-select, .modal-textarea {
-      width: 100%;
-      padding: 12px;
-      border-radius: 8px;
-      background: rgba(0,0,0,0.3);
-      border: 1px solid rgba(255, 215, 0, 0.5);
-      color: white;
-      font-size: 16px;
-      outline: none;
-      font-family: inherit;
-      margin-bottom: 10px;
-    }
-
-    .modal-textarea {
-      min-height: 100px;
-      resize: vertical;
-    }
-
-    .modal-buttons {
-      display: flex;
-      gap: 15px;
-      margin-top: 30px;
-    }
-
-    .modal-btn-primary {
-      flex: 1;
-      background: var(--accent-gold);
-      color: var(--primary-blue);
-      border: none;
-      padding: 14px;
-      border-radius: 10px;
-      font-weight: 700;
-      font-size: 16px;
-      cursor: pointer;
-      transition: all 0.3s ease;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 10px;
-    }
-
-    .modal-btn-primary:hover {
-      background: #ffed4e;
-    }
-
-    .modal-btn-secondary {
-      flex: 1;
-      background: transparent;
-      border: 2px solid var(--accent-gold);
-      color: var(--accent-gold);
-      padding: 14px;
-      border-radius: 10px;
-      font-weight: 700;
-      font-size: 16px;
-      cursor: pointer;
-      transition: all 0.3s ease;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 10px;
-    }
-
-    .modal-btn-secondary:hover {
-      background: rgba(255, 215, 0, 0.1);
-    }
-
-    /* Map containers */
-    .route-map-container {
-      height: 300px;
-      border-radius: 10px;
-      overflow: hidden;
-      border: 2px solid rgba(255, 215, 0, 0.3);
-      margin-bottom: 20px;
-      position: relative;
-    }
-
-    #routeMap, #fullscreenMap {
-      width: 100%;
-      height: 100%;
-    }
-
-    /* Remove Leaflet default controls */
-    .leaflet-control-container .leaflet-control-zoom {
-      display: none !important;
-    }
-
-    .leaflet-control-attribution {
-      display: none !important;
-    }
-
-    /* Custom map controls */
-    .custom-map-controls {
-      position: absolute;
-      top: 10px;
-      right: 10px;
-      z-index: 1000;
-      display: flex;
-      flex-direction: column;
-      gap: 5px;
-    }
-
-    .custom-map-control-btn {
-      background: rgba(0, 31, 63, 0.9);
-      border: 1px solid rgba(255, 215, 0, 0.5);
-      color: var(--accent-gold);
-      width: 35px;
-      height: 35px;
-      border-radius: 5px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 16px;
-      cursor: pointer;
-      transition: all 0.3s ease;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.3);
-    }
-
-    .custom-map-control-btn:hover {
-      background: rgba(255, 215, 0, 0.2);
-      transform: scale(1.1);
-      border-color: var(--accent-gold);
-    }
-
-    /* Fullscreen map container */
-    .fullscreen-map-container {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      z-index: 20000;
-      background: var(--primary-blue);
-      display: none;
-    }
-
-    .fullscreen-header {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      background: rgba(0, 31, 63, 0.9);
-      color: var(--accent-gold);
-      padding: 15px 20px;
-      z-index: 1000;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      border-bottom: 2px solid var(--accent-gold);
-    }
-
-    .fullscreen-close {
-      background: rgba(255, 215, 0, 0.1);
-      border: 1px solid rgba(255, 215, 0, 0.5);
-      color: var(--accent-gold);
-      padding: 10px;
-      border-radius: 10px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.3s ease;
-      display: flex;
-      align-items: center;
-      font-size: 12px;
-    }
-
-    .fullscreen-close:hover {
-      background: rgba(255, 215, 0, 0.2);
-    }
-
-    .map-controls {
-      position: absolute;
-      top: 80px;
-      right: 20px;
-      z-index: 1000;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-
-    .map-control-btn {
-      background: rgba(0, 31, 63, 0.9);
-      border: 2px solid var(--accent-gold);
-      color: var(--accent-gold);
-      padding: 10px 15px;
-      border-radius: 8px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.3s ease;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      min-width: 180px;
-    }
-
-    .map-control-btn:hover {
-      background: rgba(255, 215, 0, 0.1);
-      transform: translateY(-2px);
-    }
-
-    /* Route info */
-    .route-info {
-      background: rgba(0, 0, 0, 0.3);
-      padding: 15px;
-      border-radius: 10px;
-      margin-top: 15px;
-    }
-
-    .route-info-item {
-      display: flex;
-      justify-content: space-between;
-      padding: 8px 0;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    }
-
-    .route-info-label {
-      color: var(--accent-gold);
-      font-weight: 600;
-      font-size: 14px;
-    }
-
-    .route-info-value {
-      color: white;
-      font-weight: 600;
-      font-size: 14px;
-    }
-
-    /* Responsive Design */
-    @media (max-width: 768px) {
-      .main-header {
-        font-size: 18px;
-        padding: 12px 15px;
-      }
-      
-      .action-buttons {
-        flex-direction: column;
-      }
-      
-      .responders-btn,
-      .view-btn,
-      .resolve-btn {
-        width: 100%;
-      }
-      
-      .modal-buttons {
-        flex-direction: column;
-      }
-      
-      .route-map-container {
-        height: 250px;
-      }
-      
-      .map-controls {
-        top: 100px;
-        right: 10px;
-      }
-      
-      .map-control-btn {
-        min-width: 160px;
-        padding: 8px 12px;
-        font-size: 14px;
-      }
-    }
-
+    /* ============================================
+       DESKTOP RESPONSIVE DESIGN
+       ============================================ */
     @media (min-width: 768px) {
       :root {
         --header-height: 80px;
+        --tab-bar-height: 0px;
+        --sidebar-width: 90px; /* Now sidebar appears */
+      }
+
+      /* HIDE mobile tab bar on desktop */
+      .tab-bar {
+        display: none !important;
+      }
+
+      /* SHOW desktop navigation on desktop */
+      .desktop-nav {
+        display: flex !important;
+        flex-direction: column;
+        align-items: center;
+        background: rgba(0, 31, 63, 0.9);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border-right: 1px solid rgba(255, 215, 0, 0.2);
+      }
+
+      /* Adjust main content for sidebar */
+      .main-content {
+        padding: calc(var(--header-height) + 24px) 24px 24px calc(var(--sidebar-width) + 24px) !important;
+        max-width: 100%;
+      }
+
+      .main-header {
+        padding-left: calc(var(--sidebar-width) + 24px) !important;
+        padding-right: 24px !important;
+        background: rgba(0, 31, 63, 0.9);
       }
 
       .main-title {
@@ -820,34 +805,208 @@
         font-size: 13px;
       }
 
-      .main-content {
-        padding: calc(var(--header-height) + 24px) 24px 24px;
-        max-width: 1200px;
-        margin: 0 auto;
+      .live-badge {
+        font-size: 11px;
       }
 
-      .details-grid {
-        grid-template-columns: repeat(4, 1fr);
-      }
-
-      .route-map-container {
+      /* Improve map sizing */
+      .map-section {
         height: 400px;
+        margin-bottom: 24px;
+      }
+
+      /* Dashboard grid layout */
+      .dashboard-grid {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 24px;
+        margin-bottom: 24px;
+      }
+
+      .stats-section {
+        margin-bottom: 0;
+      }
+
+      .filter-section {
+        grid-column: 1 / -1;
+        margin-bottom: 0;
+      }
+
+      .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 16px;
+      }
+
+      .filters-grid {
+        grid-template-columns: repeat(6, 1fr);
+        gap: 12px;
+      }
+
+      .filter-btn {
+        padding: 16px 12px;
+        font-size: 13px;
+      }
+
+      .filter-btn i {
+        font-size: 18px;
+      }
+
+      /* Reports section */
+      .reports-section {
+        margin-bottom: 0;
+      }
+
+      /* Toast positioning */
+      .toast {
+        left: auto;
+        right: 24px;
+        bottom: 24px;
+        max-width: 400px;
+      }
+
+      /* Connection status positioning */
+      .connection-status {
+        top: calc(var(--header-height) + 24px);
+        right: 24px;
+      }
+
+      /* Desktop nav button improvements */
+      .desktop-nav-btn {
+        padding: 18px 0;
+        font-size: 13px;
+        color: rgba(255, 255, 255, 0.9);
+      }
+
+      .desktop-nav-btn i {
+        font-size: 24px;
+        margin-bottom: 4px;
+      }
+
+      .desktop-nav-btn.active {
+        color: var(--accent-gold);
+        background: rgba(255, 215, 0, 0.2);
+        border-left: 4px solid var(--accent-gold);
       }
     }
 
-    /* High Contrast Mode Support */
+    /* Larger desktop screens */
+    @media (min-width: 1024px) {
+      :root {
+        --sidebar-width: 100px;
+      }
+
+      .main-content {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding-left: calc(var(--sidebar-width) + 32px) !important;
+        padding-right: 32px !important;
+      }
+
+      .main-header {
+        padding-left: calc(var(--sidebar-width) + 32px) !important;
+        padding-right: 32px !important;
+      }
+
+      .dashboard-grid {
+        grid-template-columns: 3fr 1fr;
+        gap: 32px;
+      }
+
+      .map-section {
+        height: 500px;
+      }
+
+      .stat-card {
+        padding: 20px;
+      }
+
+      .stat-value {
+        font-size: 32px;
+      }
+
+      .stat-label {
+        font-size: 14px;
+      }
+
+      .desktop-nav-btn {
+        padding: 20px 0;
+        font-size: 14px;
+      }
+
+      .desktop-nav-btn i {
+        font-size: 26px;
+      }
+    }
+
+    /* Extra large screens */
+    @media (min-width: 1200px) {
+      .dashboard-grid {
+        grid-template-columns: 3fr 1fr;
+      }
+      
+      .map-section {
+        height: 550px;
+      }
+    }
+
+    /* === iPhone Notch & Safe Area Support === */
+    @supports (padding: max(0px)) {
+      .main-header {
+        padding-left: max(16px, env(safe-area-inset-left)) !important;
+        padding-right: max(16px, env(safe-area-inset-right)) !important;
+        padding-top: env(safe-area-inset-top);
+        height: calc(var(--header-height) + env(safe-area-inset-top));
+      }
+
+      .tab-bar {
+        padding-left: max(16px, env(safe-area-inset-left));
+        padding-right: max(16px, env(safe-area-inset-right));
+        padding-bottom: env(safe-area-inset-bottom);
+        height: calc(var(--tab-bar-height) + env(safe-area-inset-bottom));
+      }
+
+      .main-content {
+        padding-left: max(16px, env(safe-area-inset-left)) !important;
+        padding-right: max(16px, env(safe-area-inset-right)) !important;
+      }
+      
+      @media (min-width: 768px) {
+        .main-header {
+          padding-left: calc(var(--sidebar-width) + max(24px, env(safe-area-inset-left))) !important;
+        }
+        
+        .main-content {
+          padding-left: calc(var(--sidebar-width) + max(24px, env(safe-area-inset-left))) !important;
+        }
+        
+        .desktop-nav {
+          padding-top: calc(20px + env(safe-area-inset-top));
+        }
+      }
+    }
+
+    /* === High Contrast Mode Support === */
     @media (prefers-contrast: high) {
       .glass {
         background: rgba(0, 0, 0, 0.9);
         border: 2px solid white;
       }
 
-      .notification-card {
-        border: 2px solid var(--accent-gold);
+      .stat-card {
+        border: 1px solid white;
+      }
+      
+      .desktop-nav-btn {
+        color: white;
+      }
+      
+      .desktop-nav-btn.active {
+        color: var(--accent-gold);
+        background: rgba(255, 215, 0, 0.3);
       }
     }
 
-    /* Reduced Motion Support */
+    /* === Reduced Motion Support === */
     @media (prefers-reduced-motion: reduce) {
       * {
         animation-duration: 0.01ms !important;
@@ -859,6 +1018,46 @@
 </head>
 
 <body>
+  <!-- Photo Modal -->
+  <div id="photoModal" class="photo-modal">
+    <div class="modal-content glass">
+      <div class="modal-header">
+        <div class="modal-title" id="modalTitle">Incident Photo</div>
+        <button class="modal-close" onclick="closePhotoModal()">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <img id="modalImage" class="modal-img" src="" alt="Incident Photo" loading="lazy">
+    </div>
+  </div>
+
+  <!-- Connection Status Indicator -->
+  <div id="connectionStatus" class="connection-status" style="display: none;">
+    <i class="fas fa-circle"></i>
+    <span>Connected</span>
+  </div>
+
+  <!-- Desktop Navigation Sidebar -->
+  <nav class="desktop-nav glass">
+    <button class="desktop-nav-btn active" onclick="switchTab('overview')" data-tab="overview">
+      <i class="fas fa-home"></i>
+      <span>Overview</span>
+    </button>
+    <button class="desktop-nav-btn" onclick="switchTab('map')" data-tab="map">
+      <i class="fas fa-map"></i>
+      <span>Map</span>
+    </button>
+    <button class="desktop-nav-btn" onclick="switchTab('reports')" data-tab="reports">
+      <i class="fas fa-list"></i>
+      <span>Cases</span>
+    </button>
+    <div style="flex: 1;"></div>
+    <button class="desktop-nav-btn" onclick="logout()">
+      <i class="fas fa-sign-out-alt"></i>
+      <span>Logout</span>
+    </button>
+  </nav>
+
   <!-- Main Header -->
   <header class="main-header glass">
     <div class="header-left">
@@ -871,1366 +1070,1304 @@
             <i class="fas fa-broadcast-tower"></i> LIVE
           </span>
         </div>
-        <div class="subtitle">Emergency Police Response Notifications</div>
+        <div class="subtitle">Emergency Response Dashboard</div>
       </div>
     </div>
 
     <div class="header-actions">
-      <div class="notification-btn glass" onclick="goBack()" title="Back to Dashboard">
-        <i class="fas fa-arrow-left"></i>
+      <div class="notification-btn glass" onclick="window.location.href='#'" title="Notifications">
+        <i class="fas fa-bell"></i>
+        <span class="notif-dot" id="notifDot"></span>
       </div>
     </div>
   </header>
 
+  <!-- Tab Navigation (Mobile) -->
+  <nav class="tab-bar glass">
+    <button class="tab-btn active" onclick="switchTab('overview')">
+      <i class="fas fa-home"></i>
+      <span>Overview</span>
+    </button>
+    <button class="tab-btn" onclick="switchTab('map')">
+      <i class="fas fa-map"></i>
+      <span>Map</span>
+    </button>
+    <button class="tab-btn" onclick="switchTab('reports')">
+      <i class="fas fa-list"></i>
+      <span>Cases</span>
+    </button>
+    <button class="tab-btn" onclick="logout()">
+      <i class="fas fa-sign-out-alt"></i>
+      <span>Logout</span>
+    </button>
+  </nav>
+
   <!-- Main Content -->
   <main class="main-content">
-    <div id="status" class="loading">
-      <div class="loading-spinner"></div>
-      <span>Loading police incidents...</span>
-    </div>
-    
-    <div id="notificationList"></div>
+    <!-- Overview Tab -->
+    <section id="overviewTab" class="content-section active">
+      <!-- Dashboard Grid for Desktop -->
+      <div class="dashboard-grid">
+        <!-- Map Section -->
+        <div class="map-section glass">
+          <div class="map-controls">
+            <button class="map-control" onclick="fitAllMarkers()">
+              <i class="fas fa-expand"></i> Show All
+            </button>
+            <button class="map-control" onclick="clearFilters()">
+              <i class="fas fa-times"></i> Clear
+            </button>
+          </div>
+          <div id="map"></div>
+        </div>
+
+        <!-- Quick Stats -->
+        <div class="stats-section">
+          <h2 class="section-title">
+            <i class="fas fa-chart-bar"></i> Incident Overview
+          </h2>
+          <div class="stats-grid">
+            <div class="stat-card glass">
+              <div class="stat-value" id="totalIncidents">0</div>
+              <div class="stat-label">Total Cases</div>
+            </div>
+            <div class="stat-card glass">
+              <div class="stat-value" id="pendingIncidents">0</div>
+              <div class="stat-label">Pending</div>
+            </div>
+            <div class="stat-card glass">
+              <div class="stat-value" id="assignedIncidents">0</div>
+              <div class="stat-label">Assigned</div>
+            </div>
+            <div class="stat-card glass">
+              <div class="stat-value" id="resolvedIncidents">0</div>
+              <div class="stat-label">Resolved</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quick Filters -->
+        <div class="filter-section">
+          <h2 class="section-title">
+            <i class="fas fa-filter"></i> Quick Filters
+          </h2>
+          <div class="filters-grid">
+            <button class="filter-btn active" onclick="filterByType('all', this)">
+              <i class="fas fa-layer-group"></i>
+              <span>All</span>
+            </button>
+            <button class="filter-btn" onclick="filterByType('motor_accident', this)">
+              <i class="fas fa-car-crash"></i>
+              <span>Accidents</span>
+            </button>
+            <button class="filter-btn" onclick="filterByType('assault_crime', this)">
+              <i class="fas fa-user-injured"></i>
+              <span>Crimes</span>
+            </button>
+            <button class="filter-btn" onclick="filterByStatus('pending', this)">
+              <i class="fas fa-clock"></i>
+              <span>Pending</span>
+            </button>
+            <button class="filter-btn" onclick="filterByStatus('investigating', this)">
+              <i class="fas fa-search"></i>
+              <span>Investigating</span>
+            </button>
+            <button class="filter-btn" onclick="filterByStatus('resolved', this)">
+              <i class="fas fa-check"></i>
+              <span>Resolved</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recent Reports -->
+      <div class="reports-section">
+        <div class="section-header">
+          <h2 class="section-title">
+            <i class="fas fa-list-alt"></i> Recent Cases
+          </h2>
+          <button class="refresh-btn" onclick="manualRefresh()" id="refreshBtn">
+            <i class="fas fa-sync-alt"></i> Refresh
+          </button>
+        </div>
+        <div class="reports-list glass" id="recentReportsList">
+          <div class="loading">
+            <div class="loading-spinner"></div>
+            <span>Loading cases...</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Map Tab -->
+    <section id="mapTab" class="content-section">
+      <div class="map-section glass" style="height: calc(100vh - var(--header-height) - 48px);">
+        <div class="map-controls">
+          <button class="map-control" onclick="fitAllMarkers()">
+            <i class="fas fa-expand"></i> Show All
+          </button>
+          <button class="map-control" onclick="clearFilters()">
+            <i class="fas fa-times"></i> Clear
+          </button>
+          <button class="map-control" onclick="manualRefresh()">
+            <i class="fas fa-sync-alt"></i> Refresh
+          </button>
+        </div>
+        <div id="fullMap"></div>
+      </div>
+    </section>
+
+    <!-- Reports Tab -->
+    <section id="reportsTab" class="content-section">
+      <div class="reports-section">
+        <div class="section-header">
+          <h2 class="section-title">
+            <i class="fas fa-clipboard-list"></i> All Cases
+            <span id="tableFilterInfo" style="font-size: 12px; color: var(--light-gold); margin-left: 8px;"></span>
+          </h2>
+          <button class="refresh-btn" onclick="manualRefresh()">
+            <i class="fas fa-sync-alt"></i> Refresh
+          </button>
+        </div>
+        <div class="reports-list glass" id="allReportsList">
+          <div class="loading">
+            <div class="loading-spinner"></div>
+            <span>Loading all cases...</span>
+          </div>
+        </div>
+      </div>
+    </section>
   </main>
-
-  <!-- Fullscreen Map Container -->
-  <div id="fullscreenMapContainer" class="fullscreen-map-container">
-    <div class="fullscreen-header">
-      <div style="display: flex; align-items: center; gap: 10px;">
-        <i class="fas fa-shield-alt"></i>
-        <span>Police Department Navigation</span>
-      </div>
-      <button class="fullscreen-close" onclick="closeFullscreenMap()">
-        <i class="fas fa-times"></i> Close
-      </button>
-    </div>
-    
-    <div id="fullscreenMap"></div>
-    
-    <div class="map-controls">
-      <button class="map-control-btn" onclick="calculateDirectRoute()">
-        <i class="fas fa-route"></i> Show Route
-      </button>
-      <button class="map-control-btn" onclick="locateUserOnMap()">
-        <i class="fas fa-crosshairs"></i> My Location
-      </button>
-      <button class="map-control-btn" onclick="showIncidentDetails()">
-        <i class="fas fa-info-circle"></i> Incident Info
-      </button>
-    </div>
-  </div>
-
-  <!-- Responders Modal -->
-  <div id="respondersModal" class="modal-overlay">
-    <div class="modal-content glass">
-      <div class="modal-header">
-        <i class="fas fa-shield-alt"></i> Police Response Assignment
-      </div>
-      
-      <div class="modal-section">
-        <div class="modal-section-title">
-          <i class="fas fa-id-card"></i> Incident Details
-        </div>
-        <div style="background: rgba(0,0,0,0.3); padding: 12px; border-radius: 8px; margin-bottom: 10px;">
-          <div style="color: var(--accent-gold); font-size: 12px; margin-bottom: 4px;">Incident ID</div>
-          <div id="modalIncidentId" style="color: white; font-weight: bold; font-size: 16px;"></div>
-        </div>
-        <div style="background: rgba(0,0,0,0.3); padding: 12px; border-radius: 8px;">
-          <div style="color: var(--accent-gold); font-size: 12px; margin-bottom: 4px;">Reporter</div>
-          <div id="modalReporterName" style="color: white; font-size: 16px;"></div>
-        </div>
-      </div>
-      
-      <div class="modal-section">
-        <div class="modal-section-title">
-          <i class="fas fa-users"></i> Police Unit Assigned
-        </div>
-        <div class="police-unit">
-          <i class="fas fa-shield-alt"></i> POLICE STATION
-        </div>
-        <div style="color: var(--accent-gold); font-size: 12px; text-align: center; margin-bottom: 10px;">
-          This is a police-related incident. Police unit has been automatically assigned.
-        </div>
-      </div>
-      
-      <div class="modal-section">
-        <div class="modal-section-title">
-          <i class="fas fa-user-shield"></i> Officer Information
-        </div>
-        <div style="background: rgba(0, 0, 0, 0.2); border: 1px solid rgba(255, 215, 0, 0.3); border-radius: 8px; padding: 15px; margin-bottom: 10px;">
-          <label style="display: block; color: var(--accent-gold); font-size: 12px; margin-bottom: 5px; font-weight: 600;">
-            Officer Name (max 20 characters)
-          </label>
-          <input type="text" id="responderName" class="modal-input" placeholder="Enter officer name" maxlength="20" pattern="[A-Za-z\s]+" title="Please enter letters only">
-          
-          <label style="display: block; color: var(--accent-gold); font-size: 12px; margin-bottom: 5px; font-weight: 600; margin-top: 10px;">
-            Contact Number (11 digits)
-          </label>
-          <input type="text" id="responderContact" class="modal-input" placeholder="Enter contact number" maxlength="11" pattern="[0-9]*" inputmode="numeric" title="Please enter 11 digits only">
-        </div>
-      </div>
-      
-      <div class="modal-buttons">
-        <button id="confirmRespondersBtn" class="modal-btn-primary">
-          <i class="fas fa-check"></i> Assign Police Officer
-        </button>
-        <button onclick="closeModal('respondersModal')" class="modal-btn-secondary">
-          <i class="fas fa-times"></i> Cancel
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Quick Route Modal -->
-  <div id="quickRouteModal" class="modal-overlay">
-    <div class="modal-content glass">
-      <div class="modal-header">
-        <i class="fas fa-route"></i> Police Navigation to Incident
-      </div>
-      
-      <div class="modal-section">
-        <div class="modal-section-title">
-          <i class="fas fa-map-marker-alt"></i> Incident Location
-        </div>
-        <div id="routeDestination" style="background: rgba(0,0,0,0.3); padding: 12px; border-radius: 8px; color: white; font-size: 16px; margin-bottom: 15px;">
-          Loading location...
-        </div>
-        
-        <div class="route-map-container">
-          <div id="routeMap"></div>
-          <!-- Custom map controls -->
-          <div class="custom-map-controls">
-            <button class="custom-map-control-btn" onclick="zoomInRouteMap()" title="Zoom In">
-              <i class="fas fa-plus"></i>
-            </button>
-            <button class="custom-map-control-btn" onclick="zoomOutRouteMap()" title="Zoom Out">
-              <i class="fas fa-minus"></i>
-            </button>
-            <button class="custom-map-control-btn" onclick="centerOnRoute()" title="Center on Incident">
-              <i class="fas fa-bullseye"></i>
-            </button>
-          </div>
-        </div>
-        
-        <div class="route-info">
-          <div class="route-info-item">
-            <span class="route-info-label">Responding Unit:</span>
-            <span id="assignedUnits" class="route-info-value">POLICE</span>
-          </div>
-          <div class="route-info-item">
-            <span class="route-info-label">Route Status:</span>
-            <span id="routeStatus" class="route-info-value">Click "Show Route" to calculate</span>
-          </div>
-          <div class="route-info-item">
-            <span class="route-info-label">Distance:</span>
-            <span id="routeDistance" class="route-info-value">-- km</span>
-          </div>
-          <div class="route-info-item">
-            <span class="route-info-label">Estimated Time:</span>
-            <span id="routeTime" class="route-info-value">-- minutes</span>
-          </div>
-        </div>
-      </div>
-      
-      <div class="modal-buttons">
-        <button onclick="showRouteOnMap()" class="modal-btn-primary" style="background: #3498db;">
-          <i class="fas fa-route"></i> Show Route
-        </button>
-        <button onclick="openFullscreenMap()" class="modal-btn-secondary" style="background: #9b59b6;">
-          <i class="fas fa-expand"></i> Fullscreen Map
-        </button>
-        <button onclick="closeModal('quickRouteModal')" class="modal-btn-secondary">
-          <i class="fas fa-times"></i> Close
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Resolve Modal -->
-  <div id="resolveModal" class="modal-overlay">
-    <div class="modal-content glass">
-      <div class="modal-header">
-        <i class="fas fa-check-circle"></i> Resolve Police Incident
-      </div>
-      
-      <div class="modal-section">
-        <div class="modal-section-title">
-          <i class="fas fa-info-circle"></i> Incident Details
-        </div>
-        <div style="background: rgba(0,0,0,0.3); padding: 12px; border-radius: 8px; margin-bottom: 10px;">
-          <div style="color: var(--accent-gold); font-size: 12px; margin-bottom: 4px;">Incident ID</div>
-          <div id="resolveIncidentId" style="color: white; font-weight: bold; font-size: 16px;"></div>
-        </div>
-      </div>
-      
-      <div class="modal-section">
-        <div class="modal-section-title">
-          <i class="fas fa-check-square"></i> Resolution Status
-        </div>
-        <select id="resolutionStatus" class="modal-select">
-          <option value="suspect_apprehended">Suspect Apprehended - Case Closed</option>
-          <option value="situation_resolved">Situation Resolved - Peace Restored</option>
-          <option value="case_filed">Case Filed - Investigation Complete</option>
-          <option value="victim_assisted">Victim Assisted - Support Provided</option>
-          <option value="area_secured">Area Secured - Public Safety Restored</option>
-          <option value="false_alarm">False Alarm - No Police Action Required</option>
-          <option value="handed_over">Handed Over - Transferred to Other Agency</option>
-          <option value="no_action_needed">No Action Needed - Situation Normal</option>
-        </select>
-      </div>
-      
-      <div class="modal-section">
-        <div class="modal-section-title">
-          <i class="fas fa-sticky-note"></i> Police Report <span style="color: white;">(optional)</span>
-        </div>
-        <textarea id="resolutionNotes" class="modal-textarea" placeholder="Describe police actions taken, evidence collected, suspects involved, and outcome..."></textarea>
-      </div>
-      
-      <div class="modal-buttons">
-        <button id="confirmResolveBtn" class="modal-btn-primary" style="background: var(--success-green);">
-          <i class="fas fa-check-double"></i> Mark as Resolved
-        </button>
-        <button onclick="closeModal('resolveModal')" class="modal-btn-secondary">
-          <i class="fas fa-times"></i> Cancel
-        </button>
-      </div>
-    </div>
-  </div>
 
   <script>
     // ============ CONFIGURATION ============
     const SUPABASE_URL = 'https://gwvepxupoxyyydnisulb.supabase.co';
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd3dmVweHVwb3h5eXlkbmlzdWxiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ4MDE4ODcsImV4cCI6MjA4MDM3Nzg4N30.Ku9SXTAKNMvHilgEpxj5HcVA-0TPt4ziuEq0Irao5Qc';
-    const OPENROUTE_API_KEY = 'eyJvcmciOiI1YjNjZTM1OTc4NTExMTAwMDFjZjYyNDgiLCJpZCI6ImJjYzMxOGQ0MGYwMTQ3YTBhZDJlNWU3ZDkxOGNhNGJiIiwiaCI6Im11cm11cjY0In0=';
+    const OPENCAGE_API_KEY = '0a78fbd8bcd74be398f210b34682c77c';
 
     // ============ GLOBAL VARIABLES ============
     let supabaseClient = null;
-    let currentReportId = null;
-    let currentReportData = null;
-    let tableColumns = [];
-    let routeMap = null;
-    let fullscreenMap = null;
-    let routeLine = null;
-    let assignedRespondersList = [];
-    let userCurrentLocation = null;
-    let isLoading = false;
-    let reportsCache = {
-        data: null,
-        timestamp: null,
-        ttl: 5 * 60 * 1000 // 5 minutes cache TTL
+    let map = null;
+    let fullMap = null;
+    let markers = [];
+    let allReports = [];
+    let filteredReports = [];
+    let currentFilter = { type: 'all', status: 'all' };
+    let realtimeSubscription = null;
+    let addressCache = new Map();
+    let isInitialLoad = true;
+    let touchStartX = 0;
+    let touchEndX = 0;
+    let currentTab = 'overview'; // Track current tab
+
+    // Incident Type Configuration
+    const typeConfig = {
+      motor_accident: {
+        name: 'Vehicular Accident',
+        icon: 'car-crash',
+        color: '#e74c3c'
+      },
+      assault_crime: {
+        name: 'Assault Crime',
+        icon: 'user-injured',
+        color: '#9b59b6'
+      },
+      general_incident: {
+        name: 'General Incident',
+        icon: 'exclamation-triangle',
+        color: '#3498db'
+      },
+      medical_emergency: {
+        name: 'Medical Emergency',
+        icon: 'ambulance',
+        color: '#e67e22'
+      },
+      fire_emergency: {
+        name: 'Fire Emergency',
+        icon: 'fire',
+        color: '#e74c3c'
+      },
+      default: {
+        name: 'Incident',
+        icon: 'exclamation-triangle',
+        color: '#3498db'
+      }
     };
 
     // ============ INITIALIZATION ============
     document.addEventListener('DOMContentLoaded', async () => {
-      console.log('👮 Police Department Notifications Initializing...');
+      console.log('🚔 Mobile Police Dashboard Initializing...');
       
       // Initialize Supabase
       supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
       
-      // Get user location
-      await getUserLocation();
+      // Check authentication
+      if (!checkAuthentication()) return;
       
-      // Get table columns
-      await getTableColumns();
-      
-      // Load initial reports
-      loadReports();
-      
-      // Setup real-time subscription
-      setupRealtimeSubscription();
+      // Initialize maps
+      initializeMaps();
       
       // Setup event listeners
       setupEventListeners();
       
-      console.log('✅ Police Department Notifications ready');
+      // Load initial data
+      await loadInitialData();
+      
+      // Setup realtime subscription
+      setupRealtimeSubscription();
+      
+      // Make functions globally available
+      exposeGlobalFunctions();
     });
 
-    // ============ HELPER FUNCTIONS ============
-    async function getUserLocation() {
-      return new Promise((resolve, reject) => {
-        if (!navigator.geolocation) {
-          userCurrentLocation = { lat: 12.4048, lng: 121.9829 };
-          resolve(userCurrentLocation);
-          return;
+    // ============ AUTHENTICATION ============
+    function checkAuthentication() {
+      try {
+        // Check for token in URL parameters (from login redirect)
+        const urlParams = new URLSearchParams(window.location.search);
+        const tokenFromUrl = urlParams.get('token');
+
+        if (tokenFromUrl) {
+          // Store token from URL
+          localStorage.setItem('token', tokenFromUrl);
+          // Clean up URL
+          window.history.replaceState({}, document.title, window.location.pathname);
         }
-        
-        navigator.geolocation.getCurrentPosition(
-          (position) => {
-            userCurrentLocation = {
-              lat: position.coords.latitude,
-              lng: position.coords.longitude
-            };
-            resolve(userCurrentLocation);
-          },
-          () => {
-            userCurrentLocation = { lat: 12.4048, lng: 121.9829 };
-            resolve(userCurrentLocation);
-          }
-        );
-      });
-    }
 
-    function goBack() {
-      window.location.href = "police.html";
-    }
+        const user = localStorage.getItem('user');
+        const token = localStorage.getItem('token');
 
-    function openModal(modalId) {
-      document.getElementById(modalId).style.display = 'flex';
-      
-      if (modalId === 'quickRouteModal' && currentReportData) {
-        setTimeout(() => {
-          initRouteMap();
-        }, 100);
+        if (!user || !token) {
+          window.location.href = 'index.html';
+          return false;
+        }
+
+        const userData = JSON.parse(user);
+
+        // Check for police station access
+        if (userData.station === 'police' ||
+            userData.email === 'policeadmin@gmail.com' ||
+            userData.role === 'admin') {
+          console.log('✅ User authenticated for police dashboard');
+          return true;
+        }
+
+        alert('⚠️ Access denied. Police dashboard only.');
+        window.location.href = 'index.html';
+        return false;
+
+      } catch (error) {
+        console.error('Auth error:', error);
+        window.location.href = 'index.html';
+        return false;
       }
     }
 
-    function closeModal(modalId) {
-      document.getElementById(modalId).style.display = 'none';
-      if (modalId === 'respondersModal') {
-        document.getElementById('responderName').value = '';
-        document.getElementById('responderContact').value = '';
-      }
-      if (modalId === 'quickRouteModal') {
-        if (routeLine && routeMap) {
-          routeMap.removeLayer(routeLine);
-          routeLine = null;
+    function logout() {
+      if (confirm('Are you sure you want to logout?')) {
+        localStorage.removeItem('user');
+        if (realtimeSubscription) {
+          supabaseClient.removeChannel(realtimeSubscription);
         }
-        if (routeMap) {
-          routeMap.remove();
-          routeMap = null;
-        }
+        window.location.href = 'index.html';
       }
     }
 
     // ============ MAP FUNCTIONS ============
-    function openFullscreenMap() {
-      if (!currentReportData) return;
-      
-      document.getElementById('fullscreenMapContainer').style.display = 'block';
-      document.body.style.overflow = 'hidden';
-      
-      setTimeout(() => {
-        initFullscreenMap();
-      }, 100);
+    function initializeMaps() {
+      // Main overview map
+      map = L.map("map").setView([12.4048, 121.9829], 15);
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        maxZoom: 19,
+        attribution: "© OpenStreetMap"
+      }).addTo(map);
+
+      // Full screen map
+      fullMap = L.map("fullMap").setView([12.4048, 121.9829], 15);
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        maxZoom: 19,
+        attribution: "© OpenStreetMap"
+      }).addTo(fullMap);
+
+      console.log('🗺️ Maps initialized');
     }
 
-    function closeFullscreenMap() {
-      document.getElementById('fullscreenMapContainer').style.display = 'none';
-      document.body.style.overflow = 'auto';
+    function createCustomIcon(type, status = 'pending') {
+      const config = typeConfig[type] || { 
+        name: 'Unknown', 
+        icon: 'exclamation-triangle', 
+        color: '#3498db' 
+      };
       
-      if (fullscreenMap) {
-        fullscreenMap.remove();
-        fullscreenMap = null;
+      // Adjust color based on status
+      let statusColor = config.color;
+      if (status === 'pending') statusColor = '#f39c12';
+      if (status === 'resolved') statusColor = '#2ecc71';
+      if (status === 'investigating') statusColor = '#e74c3c';
+      if (status === 'assigned') statusColor = '#3498db';
+      
+      return L.divIcon({
+        html: `
+          <div style="
+            background-color: ${statusColor};
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            border: 3px solid white;
+            box-shadow: 0 0 10px rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 14px;
+          ">
+            <i class="fas fa-${config.icon}"></i>
+          </div>
+        `,
+        className: 'custom-marker',
+        iconSize: [36, 36],
+        iconAnchor: [18, 18]
+      });
+    }
+
+    function clearMarkers() {
+      console.log('🗑️ Clearing markers...');
+      markers.forEach(marker => {
+        // Remove from both maps to be safe
+        if (map) map.removeLayer(marker);
+        if (fullMap) fullMap.removeLayer(marker);
+      });
+      markers = [];
+      console.log('✅ Markers cleared');
+    }
+
+    function addReportMarker(report, targetMap = null) {
+      if (!report.latitude || !report.longitude) {
+        console.warn('⚠️ No coordinates for report:', report.id);
+        return null;
+      }
+
+      try {
+        const icon = createCustomIcon(report.type, report.status);
+        const marker = L.marker([report.latitude, report.longitude], { icon });
+        
+        // Determine which map to add to based on current tab
+        let target = targetMap;
+        if (!target) {
+          if (currentTab === 'overview') {
+            target = 'overview';
+          } else if (currentTab === 'map') {
+            target = 'full';
+          }
+        }
+        
+        if (target === 'overview' || target === 'both') {
+          if (map) {
+            marker.addTo(map);
+            console.log(`📍 Added marker to overview map for report #${report.id}`);
+          }
+        }
+        if (target === 'full' || target === 'both') {
+          if (fullMap) {
+            marker.addTo(fullMap);
+            console.log(`📍 Added marker to full map for report #${report.id}`);
+          }
+        }
+
+        // Create popup content
+        const popupContent = createPopupContent(report);
+        marker.bindPopup(popupContent);
+        
+        markers.push(marker);
+        return marker;
+      } catch (error) {
+        console.error('Error adding marker:', error, report);
+        return null;
       }
     }
 
-    function initFullscreenMap() {
-      if (!currentReportData || !document.getElementById('fullscreenMap')) return;
+    function createPopupContent(report) {
+      const photoUrl = getPhotoUrl(report);
+      const statusColor = getStatusColor(report.status);
+      const shortLocation = report.location.length > 50 ? 
+        report.location.substring(0, 50) + '...' : report.location;
       
-      const centerLat = userCurrentLocation ? userCurrentLocation.lat : currentReportData.latitude;
-      const centerLng = userCurrentLocation ? userCurrentLocation.lng : currentReportData.longitude;
+      return `
+        <div style="min-width: 250px; max-width: 300px; padding: 10px; font-family: -apple-system, sans-serif;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px solid #eee;">
+            <div style="width: 12px; height: 12px; border-radius: 50%; background: ${typeConfig[report.type]?.color || '#3498db'};"></div>
+            <strong style="color: #333; font-size: 14px;">${typeConfig[report.type]?.name || 'Incident'}</strong>
+            <span style="margin-left: auto; font-size: 11px; color: #666; font-weight: bold;">#${report.id}</span>
+          </div>
+          
+          <div style="margin-bottom: 8px;">
+            <div style="font-size: 11px; color: #666; margin-bottom: 2px;">Location</div>
+            <div style="font-size: 13px; color: #222;">${shortLocation}</div>
+          </div>
+          
+          <div style="margin-bottom: 8px;">
+            <div style="font-size: 11px; color: #666; margin-bottom: 2px;">Status</div>
+            <span style="
+              display: inline-block;
+              padding: 4px 10px;
+              border-radius: 12px;
+              font-size: 11px;
+              font-weight: bold;
+              background: ${statusColor.bg};
+              color: ${statusColor.text};
+            ">
+              ${report.status.charAt(0).toUpperCase() + report.status.slice(1)}
+            </span>
+          </div>
+          
+          <div style="font-size: 11px; color: #666; margin-top: 10px;">
+            <i class="fas fa-clock"></i> ${formatDateTime(report.created_at)}
+          </div>
+          
+          ${photoUrl ? `
+            <div style="margin-top: 12px;">
+              <button onclick="window.showPhotoModal('${photoUrl}', 'Report #${report.id}')"
+                style="
+                  width: 100%;
+                  padding: 8px;
+                  background: ${typeConfig[report.type]?.color || '#3498db'};
+                  color: white;
+                  border: none;
+                  border-radius: 6px;
+                  font-size: 12px;
+                  cursor: pointer;
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  gap: 6px;
+                ">
+                <i class="fas fa-camera"></i> View Photo
+              </button>
+            </div>
+          ` : ''}
+        </div>
+      `;
+    }
+
+    function getStatusColor(status) {
+      switch(status) {
+        case 'pending': return { bg: '#fff3cd', text: '#856404' };
+        case 'investigating': return { bg: '#d1ecf1', text: '#0c5460' };
+        case 'assigned': return { bg: '#cce5ff', text: '#004085' };
+        case 'resolved': return { bg: '#d4edda', text: '#155724' };
+        default: return { bg: '#f8d7da', text: '#721c24' };
+      }
+    }
+
+    function fitAllMarkers() {
+      console.log('🔍 Fitting all markers to view...');
       
-      // Initialize map with NO default zoom controls
-      fullscreenMap = L.map('fullscreenMap', {
-        zoomControl: false, // Disable default zoom controls
-        attributionControl: false, // Disable attribution
-        dragging: true,
-        touchZoom: true,
-        doubleClickZoom: true,
-        scrollWheelZoom: true,
-        boxZoom: true,
-        keyboard: true,
-        tap: true
-      }).setView([centerLat, centerLng], 14);
+      // Determine which map is currently active based on currentTab
+      let currentMap;
+      if (currentTab === 'overview') {
+        currentMap = map;
+      } else if (currentTab === 'map') {
+        currentMap = fullMap;
+      } else {
+        console.error('❌ No active tab found for map');
+        showToast('Map not available', 'error');
+        return;
+      }
       
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        maxZoom: 19
-      }).addTo(fullscreenMap);
+      if (!currentMap) {
+        console.error('❌ Map not initialized');
+        showToast('Map not available', 'error');
+        return;
+      }
       
-      const incidentIcon = L.divIcon({
-        html: '<div style="background-color: #2c3e50; width: 40px; height: 40px; border-radius: 50%; border: 3px solid white; display: flex; align-items: center; justify-content: center; color: white; font-size: 18px;"><i class="fas fa-shield-alt"></i></div>',
-        iconSize: [46, 46],
-        iconAnchor: [23, 23]
+      // Get markers that are on the current map
+      const validMarkers = markers.filter(m => {
+        const latLng = m.getLatLng();
+        return latLng && m._map === currentMap;
       });
       
-      L.marker([currentReportData.latitude, currentReportData.longitude], { icon: incidentIcon })
-        .addTo(fullscreenMap)
-        .bindPopup(`
-          <div style="color: #001f3f; font-weight: bold; font-size: 16px;">
-            <i class="fas fa-shield-alt" style="color: #2c3e50;"></i> POLICE INCIDENT
-          </div>
-          <div style="margin-top: 8px; font-size: 14px;">
-            <strong>Location:</strong> ${currentReportData.latitude.toFixed(6)}, ${currentReportData.longitude.toFixed(6)}<br>
-            <strong>Status:</strong> INVESTIGATING<br>
-            <strong>Assigned:</strong> POLICE
-          </div>
-        `)
-        .openPopup();
+      console.log(`📍 Found ${validMarkers.length} valid markers on current map`);
       
-      if (userCurrentLocation) {
-        const userIcon = L.divIcon({
-          html: '<div style="background-color: #3498db; width: 36px; height: 36px; border-radius: 50%; border: 3px solid white; display: flex; align-items: center; justify-content: center; color: white; font-size: 14px;"><i class="fas fa-user-shield"></i></div>',
-          iconSize: [42, 42],
-          iconAnchor: [21, 21]
-        });
-        
-        L.marker([userCurrentLocation.lat, userCurrentLocation.lng], { icon: userIcon })
-          .addTo(fullscreenMap)
-          .bindPopup(`
-            <div style="color: #001f3f; font-weight: bold; font-size: 16px;">
-              <i class="fas fa-user-shield" style="color: #3498db;"></i> POLICE LOCATION
-            </div>
-            <div style="margin-top: 8px; font-size: 14px;">
-              <strong>Current police position</strong><br>
-              <strong>Coordinates:</strong> ${userCurrentLocation.lat.toFixed(6)}, ${userCurrentLocation.lng.toFixed(6)}
-            </div>
-          `);
-      }
-    }
-
-    function initRouteMap() {
-      if (!currentReportData || !document.getElementById('routeMap')) return;
-      
-      const centerLat = userCurrentLocation ? userCurrentLocation.lat : currentReportData.latitude;
-      const centerLng = userCurrentLocation ? userCurrentLocation.lng : currentReportData.longitude;
-      
-      // Initialize map with NO default zoom controls
-      routeMap = L.map('routeMap', {
-        zoomControl: false, // Disable default zoom controls
-        attributionControl: false, // Disable attribution
-        dragging: true,
-        touchZoom: true,
-        doubleClickZoom: true,
-        scrollWheelZoom: true,
-        boxZoom: true
-      }).setView([centerLat, centerLng], 13);
-      
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        maxZoom: 19
-      }).addTo(routeMap);
-      
-      const destIcon = L.divIcon({
-        html: '<div style="background-color: #2c3e50; width: 32px; height: 32px; border-radius: 50%; border: 3px solid white; display: flex; align-items: center; justify-content: center; color: white; font-size: 14px;"><i class="fas fa-shield-alt"></i></div>',
-        iconSize: [38, 38],
-        iconAnchor: [19, 19]
-      });
-      
-      L.marker([currentReportData.latitude, currentReportData.longitude], { icon: destIcon })
-        .addTo(routeMap)
-        .bindPopup(`
-          <b>Police Incident Location</b><br>
-          Police incident requiring response<br>
-          Assigned: POLICE
-        `)
-        .openPopup();
-      
-      if (userCurrentLocation) {
-        const startIcon = L.divIcon({
-          html: '<div style="background-color: #3498db; width: 28px; height: 28px; border-radius: 50%; border: 3px solid white; display: flex; align-items: center; justify-content: center; color: white; font-size: 12px;"><i class="fas fa-user-shield"></i></div>',
-          iconSize: [34, 34],
-          iconAnchor: [17, 17]
-        });
-        
-        L.marker([userCurrentLocation.lat, userCurrentLocation.lng], { icon: startIcon })
-          .addTo(routeMap)
-          .bindPopup('<b>Police Current Location</b><br>Officer position');
-      }
-    }
-
-    // Custom map control functions
-    function zoomInRouteMap() {
-      if (routeMap) routeMap.zoomIn();
-    }
-
-    function zoomOutRouteMap() {
-      if (routeMap) routeMap.zoomOut();
-    }
-
-    function centerOnRoute() {
-      if (routeMap && currentReportData) {
-        routeMap.setView([currentReportData.latitude, currentReportData.longitude], 15);
+      if (validMarkers.length > 0) {
+        const group = L.featureGroup(validMarkers);
+        currentMap.fitBounds(group.getBounds().pad(0.1));
+        showToast(`Showing ${validMarkers.length} incidents on map`, 'success');
+      } else {
+        console.warn('⚠️ No markers to display');
+        showToast('No incidents to display on map', 'warning');
       }
     }
 
     // ============ DATA FUNCTIONS ============
-    async function getTableColumns() {
+    async function getReadableAddress(lat, lng) {
+      const cacheKey = `${lat.toFixed(6)},${lng.toFixed(6)}`;
+      if (addressCache.has(cacheKey)) {
+        return addressCache.get(cacheKey);
+      }
+
       try {
-        const { data, error } = await supabaseClient
-          .from('reports')
-          .select('*')
-          .limit(1);
+        const url = `https://api.opencagedata.com/geocode/v1/json?q=${lat}+${lng}&key=${OPENCAGE_API_KEY}&language=en&limit=1`;
+        const response = await fetch(url);
+        if (!response.ok) throw new Error('Geocoding API error');
         
-        if (error) throw error;
+        const data = await response.json();
         
-        if (data && data.length > 0) {
-          tableColumns = Object.keys(data[0]);
-          return true;
+        if (data.results?.[0]?.formatted) {
+          const address = data.results[0].formatted;
+          addressCache.set(cacheKey, address);
+          return address;
         }
-        return false;
-      } catch {
-        tableColumns = ['id', 'type', 'latitude', 'longitude', 'reporter', 'status', 'created_at', 'assigned_responders', 'assigned_unit', 'contact'];
-        return false;
+        return `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+      } catch (error) {
+        console.error('Geocoding error:', error);
+        return `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
       }
     }
 
-    async function loadReports(forceRefresh = false) {
-      const statusEl = document.getElementById('status');
-      const container = document.getElementById('notificationList');
+    function getPhotoUrl(report) {
+      // Check photo_url field first
+      if (report.photo_url && report.photo_url.trim() && report.photo_url !== 'null') {
+        return report.photo_url.trim();
+      }
+      
+      // Check photo field (could be base64 or path)
+      if (report.photo && report.photo.trim() && report.photo !== 'null') {
+        // If it's a base64 image
+        if (report.photo.startsWith('data:image')) {
+          return report.photo;
+        }
+        
+        // If it's a Supabase storage path
+        if (report.photo.startsWith('incident_photos/')) {
+          const { data } = supabaseClient.storage
+            .from('incident_photos')
+            .getPublicUrl(report.photo);
+          return data?.publicUrl || null;
+        }
+        
+        // Assume it's a direct URL
+        return report.photo;
+      }
+      
+      // Check image_url field
+      if (report.image_url && report.image_url.trim() && report.image_url !== 'null') {
+        return report.image_url.trim();
+      }
+      
+      return null;
+    }
 
-      if (isLoading && !forceRefresh) return;
-      isLoading = true;
+    async function processReport(rawReport) {
+      try {
+        // Determine incident type - process designated police incidents
+        let incidentType = '';
+        const dbType = (rawReport.type || '').toString().toLowerCase().trim();
+
+        // Process motor accidents and assault crimes (designated police incidents)
+        if (dbType.includes('motor') || dbType.includes('accident') || dbType.includes('vehicle') || dbType.includes('car') ||
+            dbType.includes('traffic') || dbType.includes('road') || dbType.includes('collision') || dbType.includes('crash') ||
+            dbType.includes('vehicular') || dbType.includes('automobile') || dbType.includes('truck') || dbType.includes('bus')) {
+          incidentType = 'motor_accident';
+        } else if (dbType.includes('assault') || dbType.includes('crime') || dbType.includes('violence') ||
+                  dbType.includes('fight') || dbType.includes('robbery') || dbType.includes('theft') ||
+                  dbType.includes('burglary') || dbType.includes('vandalism') || dbType.includes('attack') ||
+                  dbType.includes('battery') || dbType.includes('murder') || dbType.includes('rape')) {
+          incidentType = 'assault_crime';
+        } else {
+          // Skip non-police incidents
+          console.log('Skipping non-police incident:', dbType);
+          return null;
+        }
+
+        // Get location coordinates
+        const lat = parseFloat(rawReport.latitude);
+        const lng = parseFloat(rawReport.longitude);
+        let location = 'Location not specified';
+
+        if (!isNaN(lat) && !isNaN(lng)) {
+          location = await getReadableAddress(lat, lng);
+        } else if (rawReport.location_name && rawReport.location_name.trim()) {
+          location = rawReport.location_name.trim();
+        } else if (rawReport.location && rawReport.location.trim()) {
+          location = rawReport.location.trim();
+        }
+
+        // Get reporter name
+        const reporterName = rawReport.reporter ||
+                           rawReport.reporter_name ||
+                           rawReport.name ||
+                           rawReport.reporter_email ||
+                           'Anonymous';
+
+        // Get photo URL
+        const photoUrl = getPhotoUrl(rawReport);
+
+        // Parse timestamp
+        const createdAt = rawReport.created_at ||
+                         rawReport.reported_at ||
+                         rawReport.timestamp ||
+                         new Date().toISOString();
+
+        // Determine status
+        const status = (rawReport.status || 'pending').toLowerCase();
+
+        return {
+          id: rawReport.id,
+          type: incidentType,
+          location: location,
+          reporter_name: reporterName,
+          created_at: createdAt,
+          status: status,
+          latitude: isNaN(lat) ? 12.4048 : lat,
+          longitude: isNaN(lng) ? 121.9829 : lng,
+          description: rawReport.description || rawReport.details || rawReport.incident_details || '',
+          photo_url: photoUrl,
+          photo: rawReport.photo || rawReport.photo_url || rawReport.image_url || null,
+          original_data: rawReport
+        };
+      } catch (error) {
+        console.error('Error processing report:', error, rawReport);
+        return null;
+      }
+    }
+
+    async function loadInitialData() {
+      const refreshBtn = document.getElementById('refreshBtn');
+      const originalHTML = refreshBtn.innerHTML;
+      
+      refreshBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading...';
+      refreshBtn.disabled = true;
 
       try {
-        await getTableColumns();
+        console.log('📥 Loading initial data...');
+        
+        const { data, error } = await supabaseClient
+          .from('reports')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(100);
 
-        // Check cache first (unless force refresh)
-        const now = Date.now();
-        let data = null;
-        let fromCache = false;
+        if (error) {
+          console.error('Supabase error:', error);
+          throw error;
+        }
 
-        if (!forceRefresh && reportsCache.data && reportsCache.timestamp &&
-            (now - reportsCache.timestamp) < reportsCache.ttl) {
-          data = reportsCache.data;
-          fromCache = true;
-          console.log('Loading reports from cache');
+        console.log(`📊 Retrieved ${data?.length || 0} raw reports`);
+
+        // Process all reports
+        const reportPromises = (data || []).map(processReport);
+        const processedReports = await Promise.all(reportPromises);
+        
+        // Filter out null reports (non-police incidents)
+        allReports = processedReports.filter(report => report !== null);
+        
+        console.log(`🚔 Filtered to ${allReports.length} police cases`);
+
+        // Apply filters and update UI
+        applyFilters();
+        updateStatistics();
+        updateRecentReports();
+        updateAllReports();
+        
+        if (allReports.length > 0) {
+          showToast(`Loaded ${allReports.length} police cases`, 'success');
         } else {
-          // Fetch fresh data from Supabase - ONLY POLICE-RELATED INCIDENTS
-          const selectQuery = 'id, type, latitude, longitude, reporter, status, created_at, assigned_responders, assigned_unit, contact, description';
-
-          const { data: allData, error } = await supabaseClient
-            .from('reports')
-            .select(selectQuery)
-            .order('created_at', { ascending: false });
-
-          if (error) {
-            // If error, try without the new columns
-            const { data: simpleData, error: simpleError } = await supabaseClient
-              .from('reports')
-              .select('id, type, latitude, longitude, reporter, status, created_at, description')
-              .order('created_at', { ascending: false });
-
-            if (simpleError) throw simpleError;
-            data = simpleData;
-          } else {
-            data = allData;
-          }
-
-          // Filter to show ONLY police-related incidents
-          data = data.filter(report => {
-            const dbType = (report.type || '').toString().toLowerCase().trim();
-            return (
-              dbType.includes('crime') || 
-              dbType.includes('theft') || 
-              dbType.includes('robbery') ||
-              dbType.includes('assault') ||
-              dbType.includes('police') ||
-              dbType.includes('disturbance') ||
-              dbType.includes('suspicious') ||
-              dbType.includes('violence') ||
-              dbType.includes('fight') ||
-              dbType.includes('burglary') ||
-              dbType.includes('vandalism') ||
-              dbType.includes('harassment') ||
-              dbType.includes('danger') ||
-              dbType.includes('threat')
-            );
-          });
-
-          // Update cache
-          reportsCache.data = data;
-          reportsCache.timestamp = now;
-          console.log('Fetched fresh police reports from Supabase');
+          showToast('No police cases found in database', 'info');
         }
-
-        if (!data || data.length === 0) {
-          statusEl.innerHTML = `
-            <div class="empty-state">
-              <i class="fas fa-shield-alt"></i>
-              <h3>No Police Incidents</h3>
-              <p>Police-related reports will appear here once submitted.</p>
-            </div>
-          `;
-          isLoading = false;
-          return;
-        }
-
-        statusEl.style.display = 'none';
-
-        // Process and display reports
-        container.innerHTML = '';
-        data.forEach(report => {
-          renderNotificationCard(report);
-        });
 
       } catch (error) {
         console.error('Error loading reports:', error);
-        statusEl.innerHTML = `
+        showToast(`Error loading data: ${error.message}`, 'error');
+        
+        // Show empty state
+        document.getElementById('recentReportsList').innerHTML = `
           <div class="empty-state">
             <i class="fas fa-exclamation-triangle"></i>
             <h3>Unable to Load Data</h3>
             <p>Please check your connection and try again</p>
-            <button class="resolve-btn" onclick="loadReports(true)" style="margin-top: 16px;">
+            <button class="refresh-btn" onclick="manualRefresh()" style="margin-top: 16px;">
               <i class="fas fa-redo"></i> Retry
             </button>
           </div>
         `;
+        
+        document.getElementById('allReportsList').innerHTML = `
+          <div class="empty-state">
+            <i class="fas fa-exclamation-triangle"></i>
+            <h3>Unable to Load Data</h3>
+            <p>Please check your connection and try again</p>
+          </div>
+        `;
+
       } finally {
-        isLoading = false;
+        refreshBtn.innerHTML = originalHTML;
+        refreshBtn.disabled = false;
+        isInitialLoad = false;
       }
     }
 
-    function renderNotificationCard(report) {
-      const container = document.getElementById('notificationList');
+    // ============ FILTER FUNCTIONS ============
+    function applyFilters() {
+      console.log('🔍 Applying filters:', currentFilter, 'on tab:', currentTab);
       
-      // Determine incident type
-      const dbType = (report.type || '').toString().toLowerCase().trim();
-      let incidentType = 'crime_theft';
-      let incidentTypeName = 'CRIME/THEFT';
+      // Clear existing markers
+      clearMarkers();
       
-      if (dbType.includes('assault') || dbType.includes('violence') || dbType.includes('fight')) {
-        incidentTypeName = 'ASSAULT';
-      } else if (dbType.includes('robbery') || dbType.includes('burglary')) {
-        incidentTypeName = 'ROBBERY';
-      } else if (dbType.includes('disturbance')) {
-        incidentTypeName = 'DISTURBANCE';
-      } else if (dbType.includes('suspicious')) {
-        incidentTypeName = 'SUSPICIOUS ACTIVITY';
-      }
-      
-      const reporterName = report.reporter || report.reporter_name || report.name || 'Anonymous';
-      const reporterInitials = reporterName.charAt(0).toUpperCase();
-      
-      const reportDate = new Date(report.created_at || report.timestamp || new Date());
-      const timeString = reportDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      const dateString = reportDate.toLocaleDateString();
-      const fullDateTime = reportDate.toLocaleString();
-      
-      const locationText = report.latitude && report.longitude 
-        ? `${report.latitude.toFixed(4)}, ${report.longitude.toFixed(4)}`
-        : 'Location not specified';
-      
-      const status = (report.status || 'pending').toLowerCase();
-      let statusClass = 'status-pending';
-      let statusText = 'Pending';
-      
-      if (status === 'investigating' || status === 'assigned') {
-        statusClass = 'status-investigating';
-        statusText = 'Investigating';
-      } else if (status === 'resolved') {
-        statusClass = 'status-resolved';
-        statusText = 'Resolved';
-      }
-      
-      // Get assigned responders
-      const assignedResponders = report.assigned_responders || '';
-      const assignedUnit = report.assigned_unit || '';
-      const contact = report.contact || '';
-      
-      let displayText = '';
-      if (assignedUnit && assignedResponders) {
-        displayText = `${assignedUnit} - ${assignedResponders}`;
-        if (contact) {
-          displayText += ` - ${contact}`;
+      // Filter reports based on current filter
+      filteredReports = allReports.filter(report => {
+        // Type filter
+        if (currentFilter.type !== 'all' && report.type !== currentFilter.type) {
+          return false;
         }
-      } else if (assignedResponders) {
-        displayText = assignedResponders;
-        if (contact) {
-          displayText += ` - ${contact}`;
+        // Status filter
+        if (currentFilter.status !== 'all' && report.status !== currentFilter.status) {
+          return false;
         }
+        return true;
+      });
+      
+      console.log(`📋 Filtered to ${filteredReports.length} reports`);
+      
+      // Add markers for filtered reports based on current tab
+      filteredReports.forEach(report => {
+        addReportMarker(report);
+      });
+      
+      // Update UI components
+      updateRecentReports();
+      updateAllReports();
+      updateStatistics();
+      updateFilterInfo();
+      
+      // Auto-fit map if we have markers and it's not initial load
+      if (filteredReports.length > 0 && !isInitialLoad && (currentTab === 'overview' || currentTab === 'map')) {
+        setTimeout(() => {
+          fitAllMarkers();
+        }, 100);
+      }
+    }
+
+    function filterByType(type, buttonElement) {
+      if (buttonElement) {
+        // Update button states
+        document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+        buttonElement.classList.add('active');
       }
       
-      const hasAssignedResponders = displayText.trim() !== '';
+      currentFilter.type = type;
+      currentFilter.status = 'all'; // Reset status filter when type changes
       
-      const card = document.createElement('div');
-      card.className = 'notification-card glass';
-      card.dataset.reportId = report.id;
-      card.dataset.assignedResponders = displayText;
+      applyFilters();
       
-      let actionButtonsHTML = '';
-      if (status === 'pending') {
-        actionButtonsHTML = `
-          <button class="responders-btn" onclick="openRespondersModal('${report.id}', '${reporterName.replace(/'/g, "\\'")}')">
-            <i class="fas fa-user-shield"></i> POLICE RESPOND
-          </button>
-          <button class="view-btn" onclick="viewOnMap(${report.latitude}, ${report.longitude}, '${report.id}')">
-            <i class="fas fa-map-marker-alt"></i> VIEW ON MAP
-          </button>
-        `;
-      } else if (status === 'investigating' || status === 'assigned') {
-        actionButtonsHTML = `
-          <button class="quick-route-btn" onclick="openQuickRouteModal('${report.id}', ${report.latitude}, ${report.longitude}, '${displayText.replace(/'/g, "\\'")}')">
-            <i class="fas fa-route"></i> NAVIGATE TO INCIDENT
-          </button>
-          <button class="resolve-btn" onclick="openResolveModal('${report.id}')">
-            <i class="fas fa-check-circle"></i> RESOLVE
-          </button>
-        `;
+      if (type !== 'all') {
+        showToast(`Showing ${typeConfig[type]?.name || type} cases`, 'info');
+      }
+    }
+
+    function filterByStatus(status, buttonElement) {
+      if (buttonElement) {
+        // Update button states
+        document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+        buttonElement.classList.add('active');
+      }
+      
+      currentFilter.status = status;
+      currentFilter.type = 'all'; // Reset type filter when status changes
+      
+      applyFilters();
+      
+      if (status !== 'all') {
+        showToast(`Showing ${status} cases`, 'info');
+      }
+    }
+
+    function clearFilters() {
+      currentFilter = { type: 'all', status: 'all' };
+      
+      // Reset filter buttons
+      document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+      document.querySelector('.filter-btn[onclick*="filterByType(\'all\'"]').classList.add('active');
+      
+      applyFilters();
+      showToast('All filters cleared', 'info');
+    }
+
+    // ============ UI UPDATE FUNCTIONS ============
+    function updateStatistics() {
+      const total = allReports.length;
+      const pending = allReports.filter(r => r.status === 'pending').length;
+      const assigned = allReports.filter(r => r.status === 'assigned' || r.status === 'investigating').length;
+      const resolved = allReports.filter(r => r.status === 'resolved').length;
+
+      document.getElementById('totalIncidents').textContent = total;
+      document.getElementById('pendingIncidents').textContent = pending;
+      document.getElementById('assignedIncidents').textContent = assigned;
+      document.getElementById('resolvedIncidents').textContent = resolved;
+
+      // Update notification dot
+      const notifDot = document.getElementById('notifDot');
+      if (pending > 0) {
+        notifDot.style.display = 'block';
       } else {
-        actionButtonsHTML = `
-          <button class="view-btn" onclick="viewOnMap(${report.latitude}, ${report.longitude}, '${report.id}')" style="flex: 1;">
-            <i class="fas fa-map-marker-alt"></i> VIEW LOCATION
-          </button>
-        `;
+        notifDot.style.display = 'none';
+      }
+    }
+
+    function updateRecentReports() {
+      const container = document.getElementById('recentReportsList');
+      const recentReports = filteredReports.slice(0, 5); // Show only 5 most recent
+      
+      if (recentReports.length === 0) {
+        container.innerHTML = createEmptyState(
+          allReports.length === 0 ? 
+            'No police cases in database yet' : 
+            'No cases match current filters'
+        );
+        return;
       }
       
-      card.innerHTML = `
-        <div class="incident-type">
-          <i class="fas fa-shield-alt"></i> ${incidentTypeName}
-        </div>
-        
-        <div class="reporter-info">
-          <div class="reporter-avatar">
-            ${reporterInitials}
-          </div>
-          <div class="reporter-details">
-            <div class="reporter-name">${reporterName}</div>
-            <div class="reporter-time">${fullDateTime}</div>
-          </div>
-        </div>
-        
-        <div class="details-grid">
-          <div class="detail-item">
-            <span class="detail-label">Time</span>
-            <span class="detail-value">${timeString}</span>
-          </div>
-          <div class="detail-item">
-            <span class="detail-label">Date</span>
-            <span class="detail-value">${dateString}</span>
-          </div>
-          <div class="detail-item">
-            <span class="detail-label">Location</span>
-            <span class="detail-value">${locationText}</span>
-          </div>
-          <div class="detail-item">
-            <span class="detail-label">Report ID</span>
-            <span class="detail-value">${report.id ? '#' + report.id.substring(0, 8) : 'N/A'}</span>
-          </div>
-        </div>
-        
-        ${report.description ? `
-          <div style="margin-bottom: 15px; padding: 10px; background: rgba(255, 215, 0, 0.05); border-radius: 8px; border-left: 3px solid var(--accent-gold);">
-            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 5px;">
-              <i class="fas fa-clipboard" style="color: var(--accent-gold); font-size: 14px;"></i>
-              <span style="color: var(--accent-gold); font-size: 12px; font-weight: bold;">DESCRIPTION:</span>
+      container.innerHTML = recentReports.map(report => createReportCard(report)).join('');
+    }
+
+    function updateAllReports() {
+      const container = document.getElementById('allReportsList');
+      
+      if (filteredReports.length === 0) {
+        container.innerHTML = createEmptyState(
+          allReports.length === 0 ? 
+            'No police cases in database yet' : 
+            'No cases match current filters'
+        );
+        return;
+      }
+      
+      container.innerHTML = filteredReports.map(report => createReportCard(report)).join('');
+    }
+
+    function createReportCard(report) {
+      const photoUrl = getPhotoUrl(report);
+      const statusClass = `status-${report.status}`;
+      const time = new Date(report.created_at);
+      const timeString = formatTime(time);
+      const dateString = formatDate(time);
+      
+      return `
+        <div class="report-item" data-report-id="${report.id}">
+          <div class="report-header">
+            <div class="report-type">
+              <div class="type-indicator" style="background-color: ${typeConfig[report.type]?.color || '#3498db'}"></div>
+              <div class="type-name">${typeConfig[report.type]?.name || 'Unknown'}</div>
             </div>
-            <div style="color: white; font-size: 14px; font-weight: 400; line-height: 1.4;">
-              ${report.description}
+            <div class="report-id">#${report.id}</div>
+          </div>
+          
+          <div class="report-details">
+            <div class="report-location" title="${report.location}">
+              <i class="fas fa-map-marker-alt"></i>
+              ${truncateText(report.location, 40)}
+            </div>
+            <div class="report-time">
+              <i class="fas fa-clock"></i>
+              ${timeString} • ${dateString}
             </div>
           </div>
-        ` : ''}
-        
-        <div style="margin-bottom: 15px; padding: 10px; background: rgba(255, 215, 0, 0.05); border-radius: 8px; border-left: 3px solid var(--accent-gold);">
-          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 5px;">
-            <i class="fas fa-user-shield" style="color: #2c3e50; font-size: 14px;"></i>
-            <span style="color: var(--accent-gold); font-size: 12px; font-weight: bold;">ASSIGNED POLICE OFFICER:</span>
+          
+          <div class="report-footer">
+            <span class="status-badge ${statusClass}">
+              ${report.status.charAt(0).toUpperCase() + report.status.slice(1)}
+            </span>
+            
+            ${photoUrl ? `
+              <button class="photo-btn" onclick="showPhotoModal('${photoUrl}', 'Report #${report.id}')">
+                <i class="fas fa-camera"></i> Photo
+              </button>
+            ` : `
+              <span style="color: #95a5a6; font-size: 11px;">No photo</span>
+            `}
           </div>
-          <div style="color: white; font-size: 14px; font-weight: 600;">
-            ${hasAssignedResponders ? displayText : 'No police officer assigned yet'}
-          </div>
-        </div>
-        
-        <div style="margin-bottom: 15px;">
-          <span style="color: var(--light-gold); font-size: 12px; margin-right: 8px;">Status:</span>
-          <span class="status-badge ${statusClass}">${statusText}</span>
-        </div>
-        
-        <div class="action-buttons">
-          ${actionButtonsHTML}
         </div>
       `;
-      
-      container.appendChild(card);
     }
 
-    // ============ NOTIFICATION FUNCTIONS ============
-    function openRespondersModal(reportId, reporterName) {
-      currentReportId = reportId;
-      
-      document.getElementById('modalIncidentId').textContent = reportId ? '#' + reportId.substring(0, 12) : 'N/A';
-      document.getElementById('modalReporterName').textContent = reporterName;
-      
-      openModal('respondersModal');
+    function createEmptyState(message) {
+      return `
+        <div class="empty-state">
+          <i class="fas fa-inbox"></i>
+          <h3>No Cases Found</h3>
+          <p>${message}</p>
+          ${allReports.length === 0 ? '' : `
+            <button class="filter-btn" onclick="clearFilters()" style="margin-top: 12px;">
+              <i class="fas fa-times"></i> Clear Filters
+            </button>
+          `}
+        </div>
+      `;
     }
 
-    async function assignResponders() {
-      const responderName = document.getElementById('responderName').value.trim();
-      const responderContact = document.getElementById('responderContact').value.trim();
+    function updateFilterInfo() {
+      const filterInfo = document.getElementById('tableFilterInfo');
+      const activeFilters = [];
       
-      if (!responderName) {
-        alert('Please enter police officer name.');
-        return;
+      if (currentFilter.type !== 'all') {
+        activeFilters.push(typeConfig[currentFilter.type]?.name || currentFilter.type);
+      }
+      if (currentFilter.status !== 'all') {
+        activeFilters.push(currentFilter.status.charAt(0).toUpperCase() + currentFilter.status.slice(1));
       }
       
-      if (responderName.length > 20) {
-        alert('Officer name must be 20 characters or less.');
-        return;
-      }
-      
-      // Validate that name contains only letters and spaces
-      const lettersOnly = /^[A-Za-z\s]+$/;
-      if (!lettersOnly.test(responderName)) {
-        alert('Officer name can only contain letters (A-Z, a-z) and spaces.');
-        return;
-      }
-      
-      if (responderContact && responderContact.length !== 11) {
-        alert('Contact number must be exactly 11 digits.');
-        return;
-      }
-      
-      // Validate contact number contains only digits
-      if (responderContact && !/^\d+$/.test(responderContact)) {
-        alert('Contact number can only contain digits (0-9).');
-        return;
-      }
-      
-      try {
-        // Police is automatically assigned for police incidents
-        const assignedUnit = 'POLICE STATION';
-        const assignedRespondersText = responderName;
-        
-        // Prepare update data
-        const updateData = {
-          status: 'investigating',
-          updated_at: new Date().toISOString(),
-          assigned_responders: assignedRespondersText,
-          assigned_unit: assignedUnit,
-          contact: responderContact || ''
-        };
-        
-        // Update the report in Supabase
-        const { error } = await supabaseClient
-          .from('reports')
-          .update(updateData)
-          .eq('id', currentReportId);
-        
-        if (error) throw error;
-        
-        // Format display text as "POLICE - Name"
-        let displayText = `${assignedUnit} - ${responderName}`;
-        if (responderContact) {
-          displayText += ` - ${responderContact}`;
-        }
-        
-        // Show success message
-        alert('✅ Police officer assigned successfully!');
-        
-        // Close modal and reset
-        closeModal('respondersModal');
-        document.getElementById('responderName').value = '';
-        document.getElementById('responderContact').value = '';
-        
-        // Reload reports to show updated data
-        loadReports(true);
-        
-      } catch (error) {
-        console.error('Error assigning police officer:', error);
-        alert('❌ Error assigning police officer. Please try again.');
-      }
+      filterInfo.textContent = activeFilters.length > 0 ? `(${activeFilters.join(' • ')})` : '';
     }
 
-    function openQuickRouteModal(reportId, latitude, longitude, assignedResponders = '') {
-      currentReportId = reportId;
-      
-      // If coordinates aren't provided, we'll get them from the database
-      if (!latitude || !longitude) {
-        supabaseClient
-          .from('reports')
-          .select('latitude, longitude')
-          .eq('id', reportId)
-          .single()
-          .then(({ data, error }) => {
-            if (data) {
-              currentReportData = data;
-              document.getElementById('routeDestination').textContent = `Coordinates: ${data.latitude.toFixed(4)}, ${data.longitude.toFixed(4)}`;
-            }
-          });
-      } else {
-        currentReportData = { latitude, longitude };
-        document.getElementById('routeDestination').textContent = `Coordinates: ${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
-      }
-      
-      if (assignedResponders) {
-        assignedRespondersList = [assignedResponders];
-      } else {
-        const card = document.querySelector(`[data-report-id="${reportId}"]`);
-        if (card && card.dataset.assignedResponders) {
-          assignedRespondersList = [card.dataset.assignedResponders];
-        }
-      }
-      
-      document.getElementById('assignedUnits').textContent = 'POLICE';
-      document.getElementById('routeStatus').textContent = 'Ready for route calculation';
-      
-      openModal('quickRouteModal');
-    }
-
-    function openResolveModal(reportId) {
-      currentReportId = reportId;
-      document.getElementById('resolveIncidentId').textContent = reportId ? '#' + reportId.substring(0, 12) : 'N/A';
-      openModal('resolveModal');
-    }
-
-    async function resolveIncident() {
-      const statusSelect = document.getElementById('resolutionStatus');
-      const selectedOption = statusSelect.options[statusSelect.selectedIndex];
-      const statusValue = selectedOption.value;
-      const statusText = selectedOption.text.split(' - ')[0].trim();
-      
-      const notes = document.getElementById('resolutionNotes').value.trim();
-      
-      try {
-        const updateData = {
-          status: 'resolved',
-          updated_at: new Date().toISOString()
-        };
-        
-        // Construct resolution description
-        let resolutionDescription = '';
-        
-        if (notes) {
-          resolutionDescription = `Resolution status: ${statusText} - Police Report: ${notes}`;
-        } else {
-          resolutionDescription = `Resolution status: ${statusText}`;
-        }
-        
-        // Update description field based on available columns
-        if (tableColumns.includes('description')) {
-          updateData.description = resolutionDescription;
-        } else if (tableColumns.includes('notes')) {
-          updateData.notes = resolutionDescription;
-        }
-        
-        // Set resolution_status if column exists
-        if (tableColumns.includes('resolution_status')) {
-          updateData.resolution_status = statusValue;
-        }
-        
-        const { error } = await supabaseClient
-          .from('reports')
-          .update(updateData)
-          .eq('id', currentReportId);
-        
-        if (error) throw error;
-        
-        // Success - close modal and refresh
-        closeModal('resolveModal');
-        
-        // Reset form
-        document.getElementById('resolutionStatus').selectedIndex = 0;
-        document.getElementById('resolutionNotes').value = '';
-        
-        // Show success message
-        alert('✅ Police incident marked as resolved!');
-        
-        // Reload reports
-        setTimeout(() => {
-          loadReports(true);
-        }, 500);
-        
-      } catch (error) {
-        console.error('Error resolving incident:', error);
-        alert('❌ Error marking police incident as resolved. Please try again.');
-      }
-    }
-
-    // ============ MAP ROUTING FUNCTIONS ============
-    async function calculateDirectRoute() {
-      if (!fullscreenMap || !currentReportData) return;
-      
-      if (fullscreenMap._routeLine) {
-        fullscreenMap.removeLayer(fullscreenMap._routeLine);
-      }
-      
-      if (fullscreenMap.routeMarkers) {
-        fullscreenMap.routeMarkers.forEach(marker => fullscreenMap.removeLayer(marker));
-        fullscreenMap.routeMarkers = [];
-      }
-      
-      const startLocation = userCurrentLocation || { lat: 12.4048, lng: 121.9829 };
-      const startLat = startLocation.lat;
-      const startLng = startLocation.lng;
-      const endLat = currentReportData.latitude;
-      const endLng = currentReportData.longitude;
-      
-      try {
-        const start = `${startLng},${startLat}`;
-        const end = `${endLng},${endLat}`;
-        
-        const url = `https://api.openrouteservice.org/v2/directions/driving-car?api_key=${OPENROUTE_API_KEY}&start=${start}&end=${end}`;
-        
-        const response = await fetch(url, {
-          method: 'GET',
-          headers: {
-            'Accept': 'application/json, application/geo+json, application/gpx+xml, img/png; charset=utf-8'
-          }
-        });
-        
-        if (response.ok) {
-          const data = await response.json();
-          
-          if (data.features && data.features.length > 0) {
-            const coordinates = data.features[0].geometry.coordinates;
-            const latLngs = coordinates.map(coord => [coord[1], coord[0]]);
-            
-            const summary = data.features[0].properties.segments[0];
-            const distance = (summary.distance / 1000).toFixed(2);
-            const duration = Math.round(summary.duration / 60);
-            
-            const routePolyline = L.polyline(latLngs, {
-              color: '#ffd700',
-              weight: 6,
-              opacity: 0.9,
-              lineCap: 'round',
-              lineJoin: 'round'
-            }).addTo(fullscreenMap);
-            
-            fullscreenMap._routeLine = routePolyline;
-            
-            addRouteMarkersToFullscreen(startLat, startLng, endLat, endLng, distance, duration);
-            
-            const bounds = L.latLngBounds(latLngs);
-            fullscreenMap.fitBounds(bounds, { padding: [50, 50] });
-          }
-        }
-      } catch {
-        calculateSimpleRoute(fullscreenMap, startLat, startLng, endLat, endLng);
-      }
-    }
-
-    function addRouteMarkersToFullscreen(startLat, startLng, endLat, endLng, distance, duration) {
-      if (fullscreenMap.routeMarkers) {
-        fullscreenMap.routeMarkers.forEach(marker => fullscreenMap.removeLayer(marker));
-      }
-      
-      fullscreenMap.routeMarkers = [];
-      
-      const startIcon = L.divIcon({
-        html: '<div style="background-color: #3498db; width: 36px; height: 36px; border-radius: 50%; border: 3px solid white; display: flex; align-items: center; justify-content: center; color: white; font-size: 14px;"><i class="fas fa-user-shield"></i></div>',
-        iconSize: [42, 42],
-        iconAnchor: [21, 21]
-      });
-      
-      const startMarker = L.marker([startLat, startLng], { icon: startIcon })
-        .addTo(fullscreenMap)
-        .bindPopup(`
-          <div style="color: #001f3f; font-weight: bold;">
-            <i class="fas fa-user-shield" style="color: #3498db;"></i> POLICE LOCATION
-          </div>
-          <div style="margin-top: 5px; font-size: 14px;">
-            <strong>Your current location</strong><br>
-            <strong>Distance to incident:</strong> ${distance} km<br>
-            <strong>Estimated response time:</strong> ${duration} minutes
-          </div>
-        `);
-      
-      fullscreenMap.routeMarkers.push(startMarker);
-      
-      const endIcon = L.divIcon({
-        html: '<div style="background-color: #2c3e50; width: 40px; height: 40px; border-radius: 50%; border: 3px solid white; display: flex; align-items: center; justify-content: center; color: white; font-size: 16px;"><i class="fas fa-shield-alt"></i></div>',
-        iconSize: [46, 46],
-        iconAnchor: [23, 23]
-      });
-      
-      const endMarker = L.marker([endLat, endLng], { icon: endIcon })
-        .addTo(fullscreenMap)
-        .bindPopup(`
-          <div style="color: #001f3f; font-weight: bold;">
-            <i class="fas fa-shield-alt" style="color: #2c3e50;"></i> POLICE INCIDENT
-          </div>
-          <div style="margin-top: 5px; font-size: 14px;">
-            <strong>Distance from police:</strong> ${distance} km<br>
-            <strong>Estimated response time:</strong> ${duration} minutes<br>
-            <strong>Responding unit:</strong> POLICE
-          </div>
-        `)
-        .openPopup();
-      
-      fullscreenMap.routeMarkers.push(endMarker);
-    }
-
-    function calculateSimpleRoute(map, startLat, startLng, endLat, endLng) {
-      const coordinates = [[startLat, startLng], [endLat, endLng]];
-      
-      const R = 6371;
-      const dLat = (endLat - startLat) * Math.PI / 180;
-      const dLon = (endLng - startLng) * Math.PI / 180;
-      const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-                Math.cos(startLat * Math.PI / 180) * Math.cos(endLat * Math.PI / 180) * 
-                Math.sin(dLon/2) * Math.sin(dLon/2);
-      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-      const distance = R * c;
-      const duration = Math.round(distance * 3);
-      
-      const routePolyline = L.polyline(coordinates, {
-        color: '#ffd700',
-        weight: 5,
-        opacity: 0.8,
-        lineCap: 'round',
-        lineJoin: 'round',
-        dashArray: '10, 5'
-      }).addTo(map);
-      
-      addRouteMarkersToFullscreen(startLat, startLng, endLat, endLng, distance.toFixed(2), duration);
-      
-      const bounds = L.latLngBounds(coordinates);
-      map.fitBounds(bounds, { padding: [50, 50] });
-      
-      map._routeLine = routePolyline;
-    }
-
-    function locateUserOnMap() {
-      if (!fullscreenMap) return;
-      
-      if (userCurrentLocation) {
-        fullscreenMap.setView([userCurrentLocation.lat, userCurrentLocation.lng], 16);
-        
-        const userIcon = L.divIcon({
-          html: '<div style="background-color: #9b59b6; width: 32px; height: 32px; border-radius: 50%; border: 3px solid white; display: flex; align-items: center; justify-content: center; color: white; font-size: 14px;"><i class="fas fa-user"></i></div>',
-          iconSize: [38, 38],
-          iconAnchor: [19, 19]
-        });
-        
-        if (fullscreenMap.userMarker) {
-          fullscreenMap.removeLayer(fullscreenMap.userMarker);
-        }
-        
-        fullscreenMap.userMarker = L.marker([userCurrentLocation.lat, userCurrentLocation.lng], { icon: userIcon })
-          .addTo(fullscreenMap)
-          .bindPopup(`
-            <div style="color: #001f3f; font-weight: bold; font-size: 14px;">
-              <i class="fas fa-user" style="color: #9b59b6;"></i> YOUR CURRENT LOCATION
-            </div>
-            <div style="margin-top: 5px; font-size: 12px;">
-              Latitude: ${userCurrentLocation.lat.toFixed(6)}<br>
-              Longitude: ${userCurrentLocation.lng.toFixed(6)}
-            </div>
-          `)
-          .openPopup();
-      } else {
-        getUserLocation().then(location => {
-          fullscreenMap.setView([location.lat, location.lng], 16);
-        });
-      }
-    }
-
-    function showIncidentDetails() {
-      if (!fullscreenMap || !currentReportData) return;
-      
-      L.popup()
-        .setLatLng([currentReportData.latitude, currentReportData.longitude])
-        .setContent(`
-          <div style="color: #001f3f; font-weight: bold; font-size: 16px;">
-            <i class="fas fa-shield-alt" style="color: #2c3e50;"></i> POLICE INCIDENT DETAILS
-          </div>
-          <div style="margin-top: 8px; font-size: 14px;">
-            <strong>Location:</strong> ${currentReportData.latitude.toFixed(6)}, ${currentReportData.longitude.toFixed(6)}<br>
-            <strong>Report ID:</strong> ${currentReportId ? '#' + currentReportId.substring(0, 12) : 'N/A'}<br>
-            <strong>Assigned Responders:</strong> POLICE<br>
-            <strong>Status:</strong> ACTIVE
-          </div>
-        `)
-        .openOn(fullscreenMap);
-    }
-
-    async function showRouteOnMap() {
-      if (!routeMap || !currentReportData) return;
-      
-      if (routeLine) {
-        routeMap.removeLayer(routeLine);
-        routeLine = null;
-      }
-      
-      if (routeMap.routeMarkers) {
-        routeMap.routeMarkers.forEach(marker => routeMap.removeLayer(marker));
-        routeMap.routeMarkers = [];
-      }
-      
-      const startLocation = userCurrentLocation || { lat: 12.4048, lng: 121.9829 };
-      const startLat = startLocation.lat;
-      const startLng = startLocation.lng;
-      const endLat = currentReportData.latitude;
-      const endLng = currentReportData.longitude;
-      
-      try {
-        const start = `${startLng},${startLat}`;
-        const end = `${endLng},${endLat}`;
-        
-        const url = `https://api.openrouteservice.org/v2/directions/driving-car?api_key=${OPENROUTE_API_KEY}&start=${start}&end=${end}`;
-        
-        const response = await fetch(url, {
-          method: 'GET',
-          headers: {
-            'Accept': 'application/json, application/geo+json, application/gpx+xml, img/png; charset=utf-8'
-          }
-        });
-        
-        if (response.ok) {
-          const data = await response.json();
-          
-          if (data.features && data.features.length > 0) {
-            const coordinates = data.features[0].geometry.coordinates;
-            const latLngs = coordinates.map(coord => [coord[1], coord[0]]);
-            
-            const summary = data.features[0].properties.segments[0];
-            const distance = (summary.distance / 1000).toFixed(2);
-            const duration = Math.round(summary.duration / 60);
-            
-            routeLine = L.polyline(latLngs, {
-              color: '#ffd700',
-              weight: 6,
-              opacity: 0.9,
-              lineCap: 'round',
-              lineJoin: 'round'
-            }).addTo(routeMap);
-            
-            document.getElementById('routeStatus').textContent = 'Route Calculated';
-            document.getElementById('routeDistance').textContent = distance + ' km';
-            document.getElementById('routeTime').textContent = duration + ' minutes';
-            
-            const bounds = L.latLngBounds(latLngs);
-            routeMap.fitBounds(bounds, { padding: [50, 50] });
-          }
-        }
-      } catch {
-        const coordinates = [[startLat, startLng], [endLat, endLng]];
-        
-        const R = 6371;
-        const dLat = (endLat - startLat) * Math.PI / 180;
-        const dLon = (endLng - startLng) * Math.PI / 180;
-        const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-                  Math.cos(startLat * Math.PI / 180) * Math.cos(endLat * Math.PI / 180) * 
-                  Math.sin(dLon/2) * Math.sin(dLon/2);
-        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-        const distance = R * c;
-        const duration = Math.round(distance * 3);
-        
-        routeLine = L.polyline(coordinates, {
-          color: '#ffd700',
-          weight: 5,
-          opacity: 0.8,
-          lineCap: 'round',
-          lineJoin: 'round',
-          dashArray: '10, 5'
-        }).addTo(routeMap);
-        
-        document.getElementById('routeStatus').textContent = 'Direct Route';
-        document.getElementById('routeDistance').textContent = distance.toFixed(2) + ' km';
-        document.getElementById('routeTime').textContent = duration + ' minutes';
-        
-        const bounds = L.latLngBounds(coordinates);
-        routeMap.fitBounds(bounds, { padding: [50, 50] });
-      }
-    }
-
-    // ============ VIEW ON MAP FUNCTION ============
-    function viewOnMap(latitude, longitude, reportId) {
-      const lat = parseFloat(latitude);
-      const lng = parseFloat(longitude);
-      
-      if (!isNaN(lat) && !isNaN(lng) && lat !== 0 && lng !== 0) {
-        // Store the location data and report ID
-        sessionStorage.setItem('viewLocation', JSON.stringify({ 
-          lat: lat, 
-          lng: lng 
-        }));
-        
-        // Store the report ID
-        if (reportId) {
-          sessionStorage.setItem('viewReportId', reportId);
-        }
-        
-        // Redirect to the view-report page
-        window.location.href = "view-report.html";
-      } else {
-        alert('Location coordinates not available or invalid.');
-      }
-    }
-
-    // ============ REALTIME SUBSCRIPTION ============
+    // ============ REALTIME FUNCTIONS ============
     function setupRealtimeSubscription() {
-      const channel = supabaseClient
-        .channel('reports_changes')
-        .on('postgres_changes', {
-          event: '*',
-          schema: 'public',
-          table: 'reports'
-        }, (payload) => {
-          console.log('Real-time update received:', payload.eventType, payload.new || payload.old);
+      console.log('📡 Setting up realtime subscription...');
+      
+      if (realtimeSubscription) {
+        supabaseClient.removeChannel(realtimeSubscription);
+      }
 
-          // Only refresh if it's a police-related incident
-          if (payload.new) {
-            const dbType = (payload.new.type || '').toString().toLowerCase().trim();
-            if (
-              dbType.includes('crime') || 
-              dbType.includes('theft') || 
-              dbType.includes('robbery') ||
-              dbType.includes('assault') ||
-              dbType.includes('police') ||
-              dbType.includes('disturbance') ||
-              dbType.includes('suspicious') ||
-              dbType.includes('violence') ||
-              dbType.includes('fight') ||
-              dbType.includes('burglary') ||
-              dbType.includes('vandalism') ||
-              dbType.includes('harassment') ||
-              dbType.includes('danger') ||
-              dbType.includes('threat')
-            ) {
-              // Force refresh reports
-              loadReports(true);
+      realtimeSubscription = supabaseClient
+        .channel('reports-realtime')
+        .on('postgres_changes', 
+          { 
+            event: '*', 
+            schema: 'public', 
+            table: 'reports' 
+          }, 
+          async (payload) => {
+            console.log('📨 Realtime update:', payload.eventType, payload.new?.id);
+            
+            try {
+              if (payload.eventType === 'INSERT') {
+                const processed = await processReport(payload.new);
+                if (processed) {
+                  allReports.unshift(processed);
+                  applyFilters();
+                  showToast(`New ${typeConfig[processed.type]?.name || 'case'} reported`, 'info');
+                  highlightNewReport(processed.id);
+                }
+              } else if (payload.eventType === 'UPDATE') {
+                const processed = await processReport(payload.new);
+                if (processed) {
+                  const index = allReports.findIndex(r => r.id === processed.id);
+                  if (index >= 0) {
+                    allReports[index] = processed;
+                  } else {
+                    allReports.unshift(processed); // Add if not found
+                  }
+                  applyFilters();
+                }
+              } else if (payload.eventType === 'DELETE') {
+                const index = allReports.findIndex(r => r.id === payload.old.id);
+                if (index >= 0) {
+                  allReports.splice(index, 1);
+                  applyFilters();
+                }
+              }
+              
+              updateConnectionStatus(true);
+            } catch (error) {
+              console.error('Error processing realtime update:', error);
             }
           }
-        })
+        )
         .subscribe((status) => {
-          console.log('Realtime subscription status:', status);
+          console.log('📡 Realtime subscription status:', status);
+          
+          if (status === 'SUBSCRIBED') {
+            updateConnectionStatus(true);
+          } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+            updateConnectionStatus(false);
+            // Attempt to reconnect after 5 seconds
+            setTimeout(() => {
+              if (realtimeSubscription) {
+                realtimeSubscription.unsubscribe();
+                setupRealtimeSubscription();
+              }
+            }, 5000);
+          }
         });
+    }
+
+    function highlightNewReport(reportId) {
+      const items = document.querySelectorAll(`[data-report-id="${reportId}"]`);
+      items.forEach(item => {
+        item.style.animation = 'none';
+        setTimeout(() => {
+          item.style.animation = 'pulse 1s 2';
+        }, 10);
+      });
+    }
+
+    // ============ UTILITY FUNCTIONS ============
+    function switchTab(tabName) {
+      console.log('🔄 Switching to tab:', tabName);
+      
+      // Update currentTab variable
+      currentTab = tabName;
+      
+      // Update mobile tab buttons
+      document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+      document.querySelectorAll(`.tab-btn[onclick*="${tabName}"]`).forEach(btn => btn.classList.add('active'));
+      
+      // Update desktop nav buttons
+      document.querySelectorAll('.desktop-nav-btn').forEach(btn => btn.classList.remove('active'));
+      document.querySelectorAll(`.desktop-nav-btn[data-tab="${tabName}"]`).forEach(btn => btn.classList.add('active'));
+      
+      // Show selected tab content
+      document.querySelectorAll('.content-section').forEach(section => {
+        section.classList.remove('active');
+      });
+      document.getElementById(`${tabName}Tab`).classList.add('active');
+      
+      // Clear and re-add markers for the current tab
+      applyFilters();
+      
+      // Refresh map if needed
+      setTimeout(() => {
+        if (tabName === 'map' && fullMap) {
+          fullMap.invalidateSize();
+          if (filteredReports.length > 0) {
+            fitAllMarkers();
+          }
+        } else if (tabName === 'overview' && map) {
+          map.invalidateSize();
+          if (filteredReports.length > 0) {
+            fitAllMarkers();
+          }
+        }
+      }, 100);
+    }
+
+    async function manualRefresh() {
+      console.log('🔄 Manual refresh triggered');
+      const btn = document.getElementById('refreshBtn');
+      const originalHTML = btn.innerHTML;
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+      btn.disabled = true;
+      
+      try {
+        // Reload data from database
+        const { data, error } = await supabaseClient
+          .from('reports')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(100);
+
+        if (error) throw error;
+
+        // Process all reports
+        const reportPromises = (data || []).map(processReport);
+        const processedReports = await Promise.all(reportPromises);
+        
+        // Filter out null reports
+        allReports = processedReports.filter(report => report !== null);
+        
+        // Re-apply filters
+        applyFilters();
+        
+        showToast(`Refreshed ${allReports.length} cases`, 'success');
+        
+      } catch (error) {
+        console.error('Refresh error:', error);
+        showToast('Refresh failed: ' + error.message, 'error');
+        
+      } finally {
+        setTimeout(() => {
+          btn.innerHTML = originalHTML;
+          btn.disabled = false;
+        }, 1000);
+      }
+    }
+
+    function showPhotoModal(imageUrl, title = 'Incident Photo') {
+      if (imageUrl && imageUrl !== 'null' && imageUrl !== 'undefined') {
+        const modalImage = document.getElementById('modalImage');
+        modalImage.src = imageUrl;
+        document.getElementById('modalTitle').textContent = title;
+        document.getElementById('photoModal').style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+      } else {
+        showToast('No photo available for this incident', 'warning');
+      }
+    }
+
+    function closePhotoModal() {
+      document.getElementById('photoModal').style.display = 'none';
+      document.body.style.overflow = 'auto';
+      // Clear the image source
+      document.getElementById('modalImage').src = '';
+    }
+
+    function updateConnectionStatus(connected) {
+      const statusEl = document.getElementById('connectionStatus');
+      if (connected) {
+        statusEl.innerHTML = '<i class="fas fa-circle"></i> Realtime Connected';
+        statusEl.className = 'connection-status connection-connected';
+        statusEl.style.display = 'flex';
+        setTimeout(() => {
+          statusEl.style.display = 'none';
+        }, 3000);
+      } else {
+        statusEl.innerHTML = '<i class="fas fa-circle"></i> Connection Lost';
+        statusEl.className = 'connection-status connection-disconnected';
+        statusEl.style.display = 'flex';
+      }
+    }
+
+    function showToast(message, type = 'info') {
+      // Remove existing toasts
+      document.querySelectorAll('.toast').forEach(toast => toast.remove());
+      
+      const colors = {
+        info: 'var(--accent-gold)',
+        success: 'var(--success-green)',
+        error: 'var(--danger-red)',
+        warning: 'var(--warning-orange)'
+      };
+      
+      const icons = {
+        info: 'info-circle',
+        success: 'check-circle',
+        error: 'exclamation-circle',
+        warning: 'exclamation-triangle'
+      };
+      
+      const toast = document.createElement('div');
+      toast.className = 'toast glass';
+      toast.innerHTML = `
+        <i class="fas fa-${icons[type]}" style="color: ${colors[type]};"></i>
+        <span>${message}</span>
+      `;
+      
+      document.body.appendChild(toast);
+      
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(20px)';
+        setTimeout(() => {
+          if (toast.parentNode) {
+            toast.parentNode.removeChild(toast);
+          }
+        }, 300);
+      }, 3000);
+    }
+
+    function formatDateTime(dateString) {
+      const date = new Date(dateString);
+      return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+
+    function formatTime(date) {
+      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+
+    function formatDate(date) {
+      return date.toLocaleDateString();
+    }
+
+    function truncateText(text, maxLength) {
+      if (text.length <= maxLength) return text;
+      return text.substring(0, maxLength) + '...';
     }
 
     // ============ EVENT LISTENERS ============
     function setupEventListeners() {
-      // Setup modal button event listeners
-      document.getElementById('confirmRespondersBtn').onclick = assignResponders;
-      document.getElementById('confirmResolveBtn').onclick = resolveIncident;
+      console.log('🎯 Setting up event listeners...');
       
-      // Add input validation for contact number - only digits
-      const contactInput = document.getElementById('responderContact');
-      if (contactInput) {
-        contactInput.addEventListener('input', function(e) {
-          this.value = this.value.replace(/[^0-9]/g, '');
-          if (this.value.length > 11) {
-            this.value = this.value.substring(0, 11);
+      // Keyboard shortcuts
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'r' && (e.ctrlKey || e.metaKey)) {
+          e.preventDefault();
+          manualRefresh();
+        }
+        if (e.key === 'Escape') {
+          closePhotoModal();
+        }
+        // Tab switching with arrow keys
+        if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+          const tabs = ['overview', 'map', 'reports'];
+          const currentIndex = tabs.indexOf(currentTab);
+          if (e.key === 'ArrowRight' && currentIndex < tabs.length - 1) {
+            switchTab(tabs[currentIndex + 1]);
+          } else if (e.key === 'ArrowLeft' && currentIndex > 0) {
+            switchTab(tabs[currentIndex - 1]);
           }
-        });
+        }
+      });
+      
+      // Page visibility
+      document.addEventListener('visibilitychange', () => {
+        if (!document.hidden && !realtimeSubscription) {
+          console.log('🔁 Page visible, reconnecting...');
+          setupRealtimeSubscription();
+        }
+      });
+      
+      // Swipe gestures for mobile tabs
+      document.addEventListener('touchstart', e => {
+        touchStartX = e.changedTouches[0].screenX;
+      });
+      
+      document.addEventListener('touchend', e => {
+        touchEndX = e.changedTouches[0].screenX;
+        handleSwipe();
+      });
+      
+      function handleSwipe() {
+        const swipeThreshold = 50;
+        const swipeDistance = touchEndX - touchStartX;
+        
+        if (Math.abs(swipeDistance) > swipeThreshold) {
+          const tabs = ['overview', 'map', 'reports'];
+          const currentIndex = tabs.indexOf(currentTab);
+          
+          if (swipeDistance > 0 && currentIndex > 0) {
+            // Swipe right - go to previous tab
+            switchTab(tabs[currentIndex - 1]);
+          } else if (swipeDistance < 0 && currentIndex < tabs.length - 1) {
+            // Swipe left - go to next tab
+            switchTab(tabs[currentIndex + 1]);
+          }
+        }
       }
       
-      // Add input validation for name - only letters and spaces
-      const nameInput = document.getElementById('responderName');
-      if (nameInput) {
-        nameInput.addEventListener('input', function(e) {
-          // Remove any non-letter characters (allow only letters and spaces)
-          this.value = this.value.replace(/[^A-Za-z\s]/g, '');
-          if (this.value.length > 20) {
-            this.value = this.value.substring(0, 20);
-          }
-        });
-      }
+      // Handle window resize
+      let resizeTimeout;
+      window.addEventListener('resize', () => {
+        clearTimeout(resizeTimeout);
+        resizeTimeout = setTimeout(() => {
+          if (map) map.invalidateSize();
+          if (fullMap) fullMap.invalidateSize();
+          // Re-apply filters to ensure markers are on correct map
+          applyFilters();
+        }, 250);
+      });
     }
 
-    // ============ EXPOSE FUNCTIONS TO GLOBAL SCOPE ============
-    window.openFullscreenMap = openFullscreenMap;
-    window.closeFullscreenMap = closeFullscreenMap;
-    window.calculateDirectRoute = calculateDirectRoute;
-    window.locateUserOnMap = locateUserOnMap;
-    window.showIncidentDetails = showIncidentDetails;
-    window.showRouteOnMap = showRouteOnMap;
-    window.zoomInRouteMap = zoomInRouteMap;
-    window.zoomOutRouteMap = zoomOutRouteMap;
-    window.centerOnRoute = centerOnRoute;
+    // ============ GLOBAL FUNCTION EXPOSURE ============
+    function exposeGlobalFunctions() {
+      window.showPhotoModal = showPhotoModal;
+      window.closePhotoModal = closePhotoModal;
+      window.filterByType = filterByType;
+      window.filterByStatus = filterByStatus;
+      window.clearFilters = clearFilters;
+      window.fitAllMarkers = fitAllMarkers;
+      window.manualRefresh = manualRefresh;
+      window.switchTab = switchTab;
+      window.logout = logout;
+    }
 
     // ============ CLEANUP ============
     window.addEventListener('beforeunload', () => {
       console.log('🧹 Cleaning up...');
+      if (realtimeSubscription) {
+        supabaseClient.removeChannel(realtimeSubscription);
+      }
     });
+
+    // Initialize on load
+    console.log('✅ Police Dashboard ready');
   </script>
 </body>
 </html>
