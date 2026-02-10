@@ -1237,63 +1237,7 @@
   </main>
 
   <script>
-    // ============ AUTHENTICATION CHECK ============
-function checkNotificationAuth() {
-    try {
-        const user = localStorage.getItem('user');
-        if (!user) {
-            // Redirect to login with return URL
-            const currentPage = window.location.pathname;
-            window.location.href = `/index.html?redirect=${encodeURIComponent(currentPage)}`;
-            return false;
-        }
-        
-        const userData = JSON.parse(user);
-        
-        // Check if user has access to this specific notification page
-        if (!userData.station || userData.station !== 'fire') {
-            alert('⚠️ Access denied. Fire notifications only.');
-            window.location.href = 'fire.html';
-            return false;
-        }
-        
-        console.log('✅ User authenticated for fire notifications');
-        return true;
-        
-    } catch (error) {
-        console.error('Auth error:', error);
-        window.location.href = 'index.html';
-        return false;
-    }
-}
 
-// ============ INITIALIZATION ============
-document.addEventListener('DOMContentLoaded', async () => {
-    console.log('🔥 Fire Department Notifications Initializing...');
-    
-    // Check authentication first
-    if (!checkNotificationAuth()) return;
-    
-    // Initialize Supabase
-    supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-    
-    // Get user location
-    await getUserLocation();
-    
-    // Get table columns
-    await getTableColumns();
-    
-    // Load initial reports
-    loadReports();
-    
-    // Setup real-time subscription
-    setupRealtimeSubscription();
-    
-    // Setup event listeners
-    setupEventListeners();
-    
-    console.log('✅ Fire Department Notifications ready');
-});
     // ============ CONFIGURATION ============
     const SUPABASE_URL = 'https://gwvepxupoxyyydnisulb.supabase.co';
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd3dmVweHVwb3h5eXlkbmlzdWxiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ4MDE4ODcsImV4cCI6MjA4MDM3Nzg4N30.Ku9SXTAKNMvHilgEpxj5HcVA-0TPt4ziuEq0Irao5Qc';
