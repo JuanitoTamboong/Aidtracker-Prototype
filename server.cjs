@@ -70,8 +70,8 @@ const activeSessions = new Map();
 async function verifyAuth(req, res, next) {
     try {
         // Skip auth for login page, root, and static files
-        if (req.path === '/' ||
-            req.path === '/login' ||
+        if (req.path === '/' || 
+            req.path === '/login' || 
             req.path === '/index.html' ||
             req.path.includes('.css') ||
             req.path.includes('.js') ||
@@ -91,16 +91,13 @@ async function verifyAuth(req, res, next) {
         if (!token) {
             console.log('❌ No token found for protected route:', req.path);
             
-        // For dashboard/station pages, redirect to login
-        if (req.path === '/dashboard' ||
-            req.path === '/police' ||
-            req.path === '/fire' ||
-            req.path === '/ambulance' ||
-            req.path === '/police-notif' ||
-            req.path === '/fire-notif' ||
-            req.path === '/ambulance-notif') {
-          return res.redirect('/?redirect=' + encodeURIComponent(req.originalUrl));
-        }
+            // For dashboard/station pages, redirect to login
+            if (req.path === '/dashboard' || 
+                req.path === '/police' || 
+                req.path === '/fire' || 
+                req.path === '/ambulance') {
+                return res.redirect('/?redirect=' + encodeURIComponent(req.originalUrl));
+            }
             
             // For API endpoints, return JSON error
             return res.status(401).json({ error: 'No token provided' });
@@ -121,13 +118,10 @@ async function verifyAuth(req, res, next) {
             console.error('❌ Supabase token verification failed:', error?.message);
             
             // For dashboard/station pages, redirect to login
-            if (req.path === '/dashboard' ||
-                req.path === '/police' ||
-                req.path === '/fire' ||
-                req.path === '/ambulance' ||
-                req.path === '/police-notif' ||
-                req.path === '/fire-notif' ||
-                req.path === '/ambulance-notif') {
+            if (req.path === '/dashboard' || 
+                req.path === '/police' || 
+                req.path === '/fire' || 
+                req.path === '/ambulance') {
                 return res.redirect('/?session=expired&redirect=' + encodeURIComponent(req.originalUrl));
             }
             
@@ -262,14 +256,14 @@ app.get("/ambulance", verifyAuth, (req, res) => {
     if (req.user.role !== 'admin' || req.user.station !== 'ambulance') {
         return res.redirect('/?error=access_denied');
     }
-
+    
     const htmlPath = path.join(__dirname, "ambulance.html");
     fs.readFile(htmlPath, 'utf8', (err, html) => {
         if (err) {
             console.error('Error reading ambulance.html:', err);
             return res.sendFile(htmlPath);
         }
-
+        
         const modifiedHtml = html.replace(
             '</head>',
             `<script>
@@ -282,96 +276,7 @@ app.get("/ambulance", verifyAuth, (req, res) => {
             </script>
             </head>`
         );
-
-        res.send(modifiedHtml);
-    });
-});
-
-app.get("/ambulance-notif", verifyAuth, (req, res) => {
-    if (req.user.role !== 'admin' || req.user.station !== 'ambulance') {
-        return res.redirect('/?error=access_denied');
-    }
-
-    const htmlPath = path.join(__dirname, "ambulance-notif.html");
-    fs.readFile(htmlPath, 'utf8', (err, html) => {
-        if (err) {
-            console.error('Error reading ambulance-notif.html:', err);
-            return res.sendFile(htmlPath);
-        }
-
-        const modifiedHtml = html.replace(
-            '</head>',
-            `<script>
-                const urlParams = new URLSearchParams(window.location.search);
-                const token = urlParams.get('token');
-                if (token) {
-                    localStorage.setItem('token', token);
-                    localStorage.setItem('lastLogin', Date.now());
-                    localStorage.setItem('user', JSON.stringify(${JSON.stringify(req.user)}));
-                }
-            </script>
-            </head>`
-        );
-
-        res.send(modifiedHtml);
-    });
-});
-
-app.get("/police-notif", verifyAuth, (req, res) => {
-    if (req.user.role !== 'admin' || req.user.station !== 'police') {
-        return res.redirect('/?error=access_denied');
-    }
-
-    const htmlPath = path.join(__dirname, "police-notif.html");
-    fs.readFile(htmlPath, 'utf8', (err, html) => {
-        if (err) {
-            console.error('Error reading police-notif.html:', err);
-            return res.sendFile(htmlPath);
-        }
-
-        const modifiedHtml = html.replace(
-            '</head>',
-            `<script>
-                const urlParams = new URLSearchParams(window.location.search);
-                const token = urlParams.get('token');
-                if (token) {
-                    localStorage.setItem('token', token);
-                    localStorage.setItem('lastLogin', Date.now());
-                }
-            </script>
-            </head>`
-        );
-
-        res.send(modifiedHtml);
-    });
-});
-
-app.get("/fire-notif", verifyAuth, (req, res) => {
-    if (req.user.role !== 'admin' || req.user.station !== 'fire') {
-        return res.redirect('/?error=access_denied');
-    }
-
-    const htmlPath = path.join(__dirname, "fire-notif.html");
-    fs.readFile(htmlPath, 'utf8', (err, html) => {
-        if (err) {
-            console.error('Error reading fire-notif.html:', err);
-            return res.sendFile(htmlPath);
-        }
-
-        const modifiedHtml = html.replace(
-            '</head>',
-            `<script>
-                const urlParams = new URLSearchParams(window.location.search);
-                const token = urlParams.get('token');
-                if (token) {
-                    localStorage.setItem('token', token);
-                    localStorage.setItem('lastLogin', Date.now());
-                    localStorage.setItem('user', JSON.stringify(${JSON.stringify(req.user)}));
-                }
-            </script>
-            </head>`
-        );
-
+        
         res.send(modifiedHtml);
     });
 });
@@ -635,28 +540,6 @@ app.put("/api/reports/:id/status", verifyAuth, async (req, res) => {
     }
 });
 
-// Notification pages with authentication
-app.get('/police-notif', verifyAuth, (req, res) => {
-    if (req.user.role !== 'admin' || req.user.station !== 'police') {
-        return res.redirect('/?error=access_denied');
-    }
-    res.sendFile(path.join(__dirname, 'police-notif.html'));
-});
-
-app.get('/fire-notif', verifyAuth, (req, res) => {
-    if (req.user.role !== 'admin' || req.user.station !== 'fire') {
-        return res.redirect('/?error=access_denied');
-    }
-    res.sendFile(path.join(__dirname, 'fire-notif.html'));
-});
-
-app.get('/ambulance-notif', verifyAuth, (req, res) => {
-    if (req.user.role !== 'admin' || req.user.station !== 'ambulance') {
-        return res.redirect('/?error=access_denied');
-    }
-    res.sendFile(path.join(__dirname, 'ambulance-notif.html'));
-});
-
 // ------------------ CATCH-ALL ROUTE ------------------ //
 // This handles client-side routing
 app.get('*', (req, res) => {
@@ -664,13 +547,13 @@ app.get('*', (req, res) => {
     if (req.path.startsWith('/api/')) {
         return res.status(404).json({ error: 'API endpoint not found' });
     }
-
+    
     // Don't interfere with static files that exist
     const staticPath = path.join(__dirname, req.path);
     if (fs.existsSync(staticPath) && !fs.lstatSync(staticPath).isDirectory()) {
         return res.sendFile(staticPath);
     }
-
+    
     // For all other routes, serve the login page
     res.sendFile(path.join(__dirname, 'index.html'));
 });
