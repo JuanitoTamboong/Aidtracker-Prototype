@@ -76,6 +76,7 @@ async function verifyAuth(req, res, next) {
             req.path.includes('.css') ||
             req.path.includes('.js') ||
             req.path.includes('.ico') ||
+             req.path.includes('-notif.html') ||  // Add this line
             req.path.startsWith('/uploads/')) {
             return next();
         }
