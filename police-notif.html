@@ -1198,14 +1198,10 @@
     }
 
     async function goBack() {
-         const token = localStorage.getItem('token');
-         if (token) {
-             window.location.href = "/police?token=" + encodeURIComponent(token);
-         } else {
-             window.location.href = "/police";
-         }
-    }
 
+             window.location.href = "police.html";
+         }
+    
     function openModal(modalId) {
       document.getElementById(modalId).style.display = 'flex';
       

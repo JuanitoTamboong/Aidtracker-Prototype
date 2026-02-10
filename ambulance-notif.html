@@ -1191,13 +1191,8 @@
     }
 
     function goBack() {
-      const token = localStorage.getItem('token');
-      if (token) {
-          window.location.href = "/ambulance?token=" + encodeURIComponent(token);
-      } else {
-          window.location.href = "/ambulance";
+          window.location.href = "ambulance.html";
       }
-    }
 
     function openModal(modalId) {
       document.getElementById(modalId).style.display = 'flex';
