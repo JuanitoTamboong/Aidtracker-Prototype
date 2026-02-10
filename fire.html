@@ -2315,7 +2315,7 @@
     // ============ NOTIFICATION FUNCTION ============
     function goToNotifications() {
       const token = localStorage.getItem('token');
-      window.location.href = token ? `/fire-notif?token=${token}` : "/fire-notif";
+      window.location.href = token ? `fire-notif.html?token=${token}` : "fire-notif.html";
     }
 
     // ============ CLEANUP ============
