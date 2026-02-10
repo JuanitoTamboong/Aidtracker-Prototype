@@ -69,14 +69,14 @@ const activeSessions = new Map();
 // ------------------ AUTH MIDDLEWARE ------------------ //
 async function verifyAuth(req, res, next) {
     try {
-        // Skip auth for login page, root, and static files
+        // Skip auth for login page, root, static files, AND notification pages
         if (req.path === '/' || 
             req.path === '/login' || 
             req.path === '/index.html' ||
             req.path.includes('.css') ||
             req.path.includes('.js') ||
             req.path.includes('.ico') ||
-             req.path.includes('-notif.html') ||  // Add this line
+            req.path.includes('-notif.html') ||  // ADDED: Exclude notification pages
             req.path.startsWith('/uploads/')) {
             return next();
         }
