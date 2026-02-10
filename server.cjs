@@ -150,7 +150,7 @@ app.get("/health", (req, res) => {
 
 // ------------------ PAGE ROUTES ------------------ //
 app.get("/", (req, res) => {
-    res.redirect("/login");
+    res.sendFile(path.join(__dirname, "index.html"));
 });
 
 app.get("/login", (req, res) => {
