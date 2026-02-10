@@ -2356,11 +2356,11 @@ function logout() {
       window.logout = logout;
     }
 
-    // ============ NOTIFICATION FUNCTION ============
-    function goToNotifications() {
-      const token = localStorage.getItem('token');
-      window.location.href = token ? `/police-notif?token=${token}` : "/police-notif";
-    }
+ // ============ NOTIFICATION FUNCTION ============
+function goToNotifications() {
+    const token = localStorage.getItem('token');
+    window.location.href = token ? `police-notif.html?token=${token}` : "police-notif.html";
+}
 
     // ============ CLEANUP ============
     window.addEventListener('beforeunload', () => {
