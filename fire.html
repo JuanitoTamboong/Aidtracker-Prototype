@@ -1076,10 +1076,10 @@
     </div>
 
     <div class="header-actions">
-    <a href="/fire-notif" class="notification-btn glass" title="Notifications">
+    <button onclick="goToNotifications()" class="notification-btn glass" title="Notifications">
         <i class="fas fa-bell"></i>
         <span class="notif-dot" id="notifDot"></span>
-    </a>
+    </button>
 </div>
   </header>
 
@@ -2311,6 +2311,15 @@
       window.manualRefresh = manualRefresh;
       window.switchTab = switchTab;
       window.logout = logout;
+    }
+     // ============ NOTIFICATION FUNCTION ============
+    function goToNotifications() {
+      const token = localStorage.getItem('token');
+      if (token) {
+        window.location.href = "/fire-notif?token=" + token;
+      } else {
+        window.location.href = "/";
+      }
     }
 
     // ============ CLEANUP ============
