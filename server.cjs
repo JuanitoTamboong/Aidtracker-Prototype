@@ -92,13 +92,16 @@ async function verifyAuth(req, res, next) {
         if (!token) {
             console.log('❌ No token found for protected route:', req.path);
             
-            // For dashboard/station pages, redirect to login
-            if (req.path === '/dashboard' || 
-                req.path === '/police' || 
-                req.path === '/fire' || 
-                req.path === '/ambulance') {
-                return res.redirect('/?redirect=' + encodeURIComponent(req.originalUrl));
-            }
+        // For dashboard/station pages, redirect to login
+        if (req.path === '/dashboard' ||
+            req.path === '/police' ||
+            req.path === '/fire' ||
+            req.path === '/ambulance' ||
+            req.path === '/police-notif' ||
+            req.path === '/fire-notif' ||
+            req.path === '/ambulance-notif') {
+          return res.redirect('/?redirect=' + encodeURIComponent(req.originalUrl));
+        }
             
             // For API endpoints, return JSON error
             return res.status(401).json({ error: 'No token provided' });
@@ -119,10 +122,13 @@ async function verifyAuth(req, res, next) {
             console.error('❌ Supabase token verification failed:', error?.message);
             
             // For dashboard/station pages, redirect to login
-            if (req.path === '/dashboard' || 
-                req.path === '/police' || 
-                req.path === '/fire' || 
-                req.path === '/ambulance') {
+            if (req.path === '/dashboard' ||
+                req.path === '/police' ||
+                req.path === '/fire' ||
+                req.path === '/ambulance' ||
+                req.path === '/police-notif' ||
+                req.path === '/fire-notif' ||
+                req.path === '/ambulance-notif') {
                 return res.redirect('/?session=expired&redirect=' + encodeURIComponent(req.originalUrl));
             }
             

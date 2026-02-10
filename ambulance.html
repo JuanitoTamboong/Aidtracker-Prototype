@@ -2244,12 +2244,7 @@
 
     // ============ NOTIFICATION FUNCTION ============
     function goToNotifications() {
-      const token = localStorage.getItem('token');
-      if (token) {
-        window.location.href = "/ambulance-notif?token=" + token;
-      } else {
-        window.location.href = "/";
-      }
+      window.location.href = "/ambulance-notif";
     }
 
     // ============ CLEANUP ============
