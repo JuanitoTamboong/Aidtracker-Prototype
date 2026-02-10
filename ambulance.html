@@ -2237,10 +2237,10 @@
       window.logout = logout;
     }
 
-  // ============ NOTIFICATION FUNCTION ============
+ // ============ NOTIFICATION FUNCTION ============
 function goToNotifications() {
     const token = localStorage.getItem('token');
-    window.location.href = token ? `ambulance-notif.html?token=${token}` : "ambulance-notif.html";
+    window.location.href = token ? `/ambulance-notif?token=${token}` : "/ambulance-notif";
 }
 
     // ============ CLEANUP ============

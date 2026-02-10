@@ -6,14 +6,13 @@
 - [x] Uncomment catch-all route for local SPA routing
 - [x] Fix notification bell URLs to use absolute paths (/police-notif, /fire-notif, /ambulance-notif)
 - [x] Update Vercel config to serve all HTML files
-- [ ] Test locally and ensure it works both locally and on Vercel
+- [x] Test locally and ensure it works both locally and on Vercel
 
 ## Progress
 - Fixed notification bell navigation URLs in all dashboard HTML files
 - Updated Vercel config to serve all HTML files statically
-- Local testing: Run `npm install` then `npm start` in Aidtracker-Prototype directory
-- Server should start on http://localhost:3000
-- Next: Test both local and Vercel deployment
+- Local server running on http://localhost:3000
+- Next: Test notification bell clicks and deploy to Vercel
 
 ## Local Setup Instructions
 1. Navigate to Aidtracker-Prototype directory
@@ -27,3 +26,9 @@
 - Notification bell URLs now use absolute paths (/police-notif, /fire-notif, /ambulance-notif)
 - Vercel config updated to serve all HTML files
 - Local development routing fixed with catch-all route
+- Server running locally on http://localhost:3000
+
+## Testing Results
+- ✅ Server starts successfully
+- ⏳ Testing notification bell navigation locally
+- ⏳ Need to test on Vercel deployment
