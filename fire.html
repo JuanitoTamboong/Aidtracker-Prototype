@@ -2314,7 +2314,8 @@
     }
     // ============ NOTIFICATION FUNCTION ============
     function goToNotifications() {
-      window.location.href = "/fire-notif";
+      const token = localStorage.getItem('token');
+      window.location.href = token ? `/fire-notif?token=${token}` : "/fire-notif";
     }
 
     // ============ CLEANUP ============

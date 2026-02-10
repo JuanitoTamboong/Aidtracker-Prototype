@@ -76,7 +76,6 @@ async function verifyAuth(req, res, next) {
             req.path.includes('.css') ||
             req.path.includes('.js') ||
             req.path.includes('.ico') ||
-            req.path.includes('-notif') ||  // Skip auth for notification routes
             req.path.startsWith('/uploads/')) {
             return next();
         }
@@ -308,6 +307,7 @@ app.get("/ambulance-notif", verifyAuth, (req, res) => {
                 if (token) {
                     localStorage.setItem('token', token);
                     localStorage.setItem('lastLogin', Date.now());
+                    localStorage.setItem('user', JSON.stringify(${JSON.stringify(req.user)}));
                 }
             </script>
             </head>`
@@ -366,6 +366,7 @@ app.get("/fire-notif", verifyAuth, (req, res) => {
                 if (token) {
                     localStorage.setItem('token', token);
                     localStorage.setItem('lastLogin', Date.now());
+                    localStorage.setItem('user', JSON.stringify(${JSON.stringify(req.user)}));
                 }
             </script>
             </head>`
