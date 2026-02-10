@@ -1123,10 +1123,7 @@
     document.addEventListener('DOMContentLoaded', async () => {
       console.log('👮 Police Department Notifications Initializing...');
 
-      // Check authentication from URL token
-      if (!await checkAuthentication()) return;
-
-      // Initialize Supabase
+      // Initialize Supabase (no authentication required for notifications)
       supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
       // Get user location

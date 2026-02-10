@@ -2244,7 +2244,8 @@
 
     // ============ NOTIFICATION FUNCTION ============
     function goToNotifications() {
-      window.location.href = "/ambulance-notif";
+      const token = localStorage.getItem('token');
+      window.location.href = token ? `/ambulance-notif?token=${token}` : "/ambulance-notif";
     }
 
     // ============ CLEANUP ============
