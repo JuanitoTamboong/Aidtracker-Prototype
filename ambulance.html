@@ -151,7 +151,7 @@
       flex-shrink: 0;
     }
 
-    .notification-btn {
+  .notification-btn {
       position: relative;
       width: 40px;
       height: 40px;
@@ -164,8 +164,8 @@
       color: var(--accent-gold);
       font-size: 18px;
       flex-shrink: 0;
+      text-decoration: none;
     }
-
     .notification-btn:hover {
       background: rgba(255, 215, 0, 0.1);
     }
@@ -1075,10 +1075,10 @@
     </div>
 
     <div class="header-actions">
-      <div class="notification-btn glass" onclick="window.location.href='ambulance-notif.html'" title="Notifications">
+      <a href="ambulance-notif.html" class="notification-btn glass" title="Notifications">
         <i class="fas fa-bell"></i>
         <span class="notif-dot" id="notifDot"></span>
-      </div>
+      </a>
     </div>
   </header>
 
