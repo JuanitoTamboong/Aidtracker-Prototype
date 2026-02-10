@@ -8,8 +8,39 @@
   ],
   "routes": [
     {
-      "src": "/(.*)",
+      "src": "/api/(.*)",
       "dest": "/server.cjs"
+    },
+    {
+      "src": "/police",
+      "dest": "/server.cjs",
+      "methods": ["GET"]
+    },
+    {
+      "src": "/fire",
+      "dest": "/server.cjs",
+      "methods": ["GET"]
+    },
+    {
+      "src": "/ambulance",
+      "dest": "/server.cjs",
+      "methods": ["GET"]
+    },
+    {
+      "src": "/",
+      "dest": "/index.html"
+    },
+    {
+      "src": "/login",
+      "dest": "/index.html"
+    },
+    {
+      "src": "/dashboard",
+      "dest": "/index.html"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/index.html"
     }
   ],
   "functions": {

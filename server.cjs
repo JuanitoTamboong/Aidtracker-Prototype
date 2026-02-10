@@ -29,51 +29,26 @@ app.use(cors({
         // Allow requests with no origin (mobile apps, curl, etc.)
         if (!origin) return callback(null, true);
 
-        // Allow localhost for development
-        if (origin.includes('localhost') || origin.includes('127.0.0.1')) return callback(null, true);
-
-        // Allow all origins for production
+        // Allow all origins for now
         return callback(null, true);
     },
     credentials: true
 }));
 app.use(express.json({ limit: "100mb" }));
 
-// Static files
+// IMPORTANT: In Vercel, we need to handle static files differently
+// Serve static files from the current directory
 app.use(express.static(__dirname));
 
-// Static files for uploads
-app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+// Serve uploads if directory exists
+const uploadsPath = path.join(__dirname, "uploads");
+if (fs.existsSync(uploadsPath)) {
+    app.use("/uploads", express.static(uploadsPath));
+}
 
 // ------------------ FILE PATHS / STORAGE ------------------ //
 let reportsData = [];
 let notificationsData = [];
-
-if (!isProduction) {
-    const REPORTS_FILE = path.join(__dirname, "reports.json");
-    const NOTIFICATIONS_FILE = path.join(__dirname, "notifications.json");
-
-    // Initialize files for development
-    if (!fs.existsSync(REPORTS_FILE)) {
-        fs.writeFileSync(REPORTS_FILE, JSON.stringify([]));
-    }
-    if (!fs.existsSync(NOTIFICATIONS_FILE)) {
-        fs.writeFileSync(NOTIFICATIONS_FILE, JSON.stringify([]));
-    }
-
-    // Load data from files in development
-    try {
-        reportsData = JSON.parse(fs.readFileSync(REPORTS_FILE, "utf8"));
-    } catch (e) {
-        reportsData = [];
-    }
-
-    try {
-        notificationsData = JSON.parse(fs.readFileSync(NOTIFICATIONS_FILE, "utf8"));
-    } catch (e) {
-        notificationsData = [];
-    }
-}
 
 // Store active sessions
 const activeSessions = new Map();
@@ -81,16 +56,26 @@ const activeSessions = new Map();
 // ------------------ AUTH MIDDLEWARE ------------------ //
 async function verifyAuth(req, res, next) {
     try {
+        // Skip auth for login page and root
+        if (req.path === '/' || req.path === '/login' || req.path === '/index.html') {
+            return next();
+        }
+
         // Check token in multiple locations
         const token = req.query.token || 
                      req.headers.authorization?.split(' ')[1] ||
                      req.body?.token;
 
-        if (!token) {
-            return res.status(401).json({ error: 'No token provided' });
-        }
+        console.log('🔐 Verifying token for path:', req.path, 'Token exists:', !!token);
 
-        console.log('🔐 Verifying token:', token.substring(0, 20) + '...');
+        if (!token) {
+            // For API endpoints, return JSON error
+            if (req.path.startsWith('/api/')) {
+                return res.status(401).json({ error: 'No token provided' });
+            }
+            // For HTML pages, redirect to login
+            return res.redirect('/login');
+        }
 
         // Check active sessions first
         const sessionData = activeSessions.get(token);
@@ -105,7 +90,10 @@ async function verifyAuth(req, res, next) {
 
         if (error || !user) {
             console.error('❌ Supabase token verification failed:', error?.message);
-            return res.status(401).json({ error: 'Invalid or expired token' });
+            if (req.path.startsWith('/api/')) {
+                return res.status(401).json({ error: 'Invalid or expired token' });
+            }
+            return res.redirect('/login');
         }
 
         // Check if user is admin
@@ -129,7 +117,10 @@ async function verifyAuth(req, res, next) {
         next();
     } catch (error) {
         console.error('Auth error:', error);
-        return res.status(401).json({ error: 'Authentication failed' });
+        if (req.path.startsWith('/api/')) {
+            return res.status(401).json({ error: 'Authentication failed' });
+        }
+        return res.redirect('/login');
     }
 }
 
@@ -148,7 +139,8 @@ app.get("/health", (req, res) => {
     res.json({ status: "OK", timestamp: new Date().toISOString() });
 });
 
-// ------------------ PAGE ROUTES ------------------ //
+// ------------------ STATIC FILE ROUTES (FOR VERCEL) ------------------ //
+// Serve HTML files directly
 app.get("/", (req, res) => {
     res.sendFile(path.join(__dirname, "index.html"));
 });
@@ -157,25 +149,28 @@ app.get("/login", (req, res) => {
     res.sendFile(path.join(__dirname, "index.html"));
 });
 
-// Station dashboard routes - FIXED to pass token in query params
+app.get("/dashboard", (req, res) => {
+    res.sendFile(path.join(__dirname, "index.html"));
+});
+
+// ------------------ STATION DASHBOARD ROUTES ------------------ //
 app.get("/police", verifyAuth, (req, res) => {
     if (req.user.role !== 'admin' || req.user.station !== 'police') {
-        return res.status(403).send('Access denied');
+        return res.redirect('/login');
     }
-    // Pass token as query parameter to the HTML page
     res.sendFile(path.join(__dirname, "police.html"));
 });
 
 app.get("/fire", verifyAuth, (req, res) => {
     if (req.user.role !== 'admin' || req.user.station !== 'fire') {
-        return res.status(403).send('Access denied');
+        return res.redirect('/login');
     }
     res.sendFile(path.join(__dirname, "fire.html"));
 });
 
 app.get("/ambulance", verifyAuth, (req, res) => {
     if (req.user.role !== 'admin' || req.user.station !== 'ambulance') {
-        return res.status(403).send('Access denied');
+        return res.redirect('/login');
     }
     res.sendFile(path.join(__dirname, "ambulance.html"));
 });
@@ -307,91 +302,77 @@ app.post("/api/logout", async (req, res) => {
 });
 
 // ------------------ REPORT ROUTES ------------------ //
+// Initialize data file for Vercel
+const REPORTS_FILE = path.join(__dirname, "reports.json");
+const NOTIFICATIONS_FILE = path.join(__dirname, "notifications.json");
+
+// Ensure files exist
+if (!fs.existsSync(REPORTS_FILE)) {
+    fs.writeFileSync(REPORTS_FILE, JSON.stringify([]));
+}
+if (!fs.existsSync(NOTIFICATIONS_FILE)) {
+    fs.writeFileSync(NOTIFICATIONS_FILE, JSON.stringify([]));
+}
+
 app.get("/api/reports", (req, res) => {
-    if (isProduction) {
-        res.json(reportsData);
-    } else {
-        if (!fs.existsSync(REPORTS_FILE)) fs.writeFileSync(REPORTS_FILE, "[]");
-        let data = [];
-        try {
-            data = JSON.parse(fs.readFileSync(REPORTS_FILE, "utf8"));
-        } catch (parseError) {
-            console.error('Error parsing reports.json:', parseError);
-            fs.writeFileSync(REPORTS_FILE, JSON.stringify([]));
-        }
-        res.json(data);
+    let data = [];
+    try {
+        data = JSON.parse(fs.readFileSync(REPORTS_FILE, "utf8"));
+    } catch (parseError) {
+        console.error('Error parsing reports.json:', parseError);
+        fs.writeFileSync(REPORTS_FILE, JSON.stringify([]));
     }
+    res.json(data);
 });
 
 app.post("/api/reports", (req, res) => {
-    if (isProduction) {
-        const report = req.body;
-        report.id = Date.now().toString();
-        report.reporter = report.reporter || "Unknown";
-        report.createdAt = new Date().toISOString();
-        report.status = 'pending';
-
-        // In production, don't handle file uploads for now
-        if (report.photo) {
-            report.photo = null; // Remove photo in production for simplicity
-        }
-
-        reportsData.push(report);
-        res.json({
-            success: true,
-            message: "Report saved successfully",
-            report
-        });
-    } else {
-        if (!fs.existsSync(REPORTS_FILE)) fs.writeFileSync(REPORTS_FILE, "[]");
-        let data = [];
-        try {
-            data = JSON.parse(fs.readFileSync(REPORTS_FILE, "utf8"));
-        } catch (parseError) {
-            console.error('Error parsing reports.json in POST:', parseError);
-            fs.writeFileSync(REPORTS_FILE, JSON.stringify([]));
-            data = [];
-        }
-
-        const report = req.body;
-        report.id = Date.now().toString();
-        report.reporter = report.reporter || "Unknown";
-        report.createdAt = new Date().toISOString();
-        report.status = 'pending';
-
-        // Handle Base64 photo
-        if (report.photo) {
-            try {
-                const matches = report.photo.match(/^data:(image\/\w+);base64,(.+)$/);
-                if (!matches || matches.length !== 3) throw new Error("Invalid base64 data");
-
-                const mimeType = matches[1];
-                const imageData = matches[2];
-                const ext = mimeType.split("/")[1];
-                const fileName = `report_${Date.now()}.${ext}`;
-                const uploadDir = path.join(__dirname, "uploads");
-
-                if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
-
-                const filePath = path.join(uploadDir, fileName);
-                fs.writeFileSync(filePath, Buffer.from(imageData, "base64"));
-
-                report.photo = `/uploads/${fileName}`;
-            } catch (err) {
-                console.error("⚠️ Failed to save photo:", err);
-                report.photo = null;
-            }
-        }
-
-        data.push(report);
-        fs.writeFileSync(REPORTS_FILE, JSON.stringify(data, null, 2));
-
-        res.json({
-            success: true,
-            message: "Report saved successfully",
-            report
-        });
+    let data = [];
+    try {
+        data = JSON.parse(fs.readFileSync(REPORTS_FILE, "utf8"));
+    } catch (parseError) {
+        console.error('Error parsing reports.json in POST:', parseError);
+        fs.writeFileSync(REPORTS_FILE, JSON.stringify([]));
+        data = [];
     }
+
+    const report = req.body;
+    report.id = Date.now().toString();
+    report.reporter = report.reporter || "Unknown";
+    report.createdAt = new Date().toISOString();
+    report.status = 'pending';
+
+    // Handle Base64 photo
+    if (report.photo) {
+        try {
+            const matches = report.photo.match(/^data:(image\/\w+);base64,(.+)$/);
+            if (!matches || matches.length !== 3) throw new Error("Invalid base64 data");
+
+            const mimeType = matches[1];
+            const imageData = matches[2];
+            const ext = mimeType.split("/")[1];
+            const fileName = `report_${Date.now()}.${ext}`;
+            const uploadDir = path.join(__dirname, "uploads");
+
+            if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+
+            const filePath = path.join(uploadDir, fileName);
+            fs.writeFileSync(filePath, Buffer.from(imageData, "base64"));
+
+            report.photo = `/uploads/${fileName}`;
+        } catch (err) {
+            console.error("⚠️ Failed to save photo:", err);
+            report.photo = null;
+        }
+    }
+
+    data.push(report);
+    fs.writeFileSync(REPORTS_FILE, JSON.stringify(data, null, 2));
+
+    res.json({
+        success: true,
+        message: "Report saved successfully",
+        report
+    });
 });
 
 // ------------------ STATION DASHBOARD API ROUTES ------------------ //
@@ -404,62 +385,39 @@ app.get("/api/station/:station/reports", verifyAuth, async (req, res) => {
         return res.status(403).json({ error: 'Access denied to this station' });
     }
 
-    if (isProduction) {
+    try {
+        if (!fs.existsSync(REPORTS_FILE)) {
+            fs.writeFileSync(REPORTS_FILE, "[]");
+        }
+
+        let allReports = [];
+        try {
+            allReports = JSON.parse(fs.readFileSync(REPORTS_FILE, 'utf8'));
+        } catch (parseError) {
+            console.error('Error parsing reports.json:', parseError);
+            fs.writeFileSync(REPORTS_FILE, JSON.stringify([]));
+        }
+
         // Filter reports based on station
         let stationReports = [];
         if (station === 'police') {
-            // Police station sees all reports for comprehensive emergency response
-            stationReports = reportsData;
+            stationReports = allReports;
         } else if (station === 'fire') {
-            stationReports = reportsData.filter(report => {
+            stationReports = allReports.filter(report => {
                 const type = (report.type || '').toString().toLowerCase().trim();
                 return type.includes('fire');
             });
         } else if (station === 'ambulance') {
-            stationReports = reportsData.filter(report => {
+            stationReports = allReports.filter(report => {
                 const type = (report.type || '').toString().toLowerCase().trim();
                 return type.includes('motor') || type.includes('accident') || type.includes('fire') || type.includes('medical') || type.includes('emergency');
             });
         }
 
         res.json(stationReports);
-    } else {
-        try {
-            if (!fs.existsSync(REPORTS_FILE)) {
-                fs.writeFileSync(REPORTS_FILE, "[]");
-            }
-
-            let allReports = [];
-            try {
-                allReports = JSON.parse(fs.readFileSync(REPORTS_FILE, 'utf8'));
-            } catch (parseError) {
-                console.error('Error parsing reports.json:', parseError);
-                // Reset to empty array if corrupted
-                fs.writeFileSync(REPORTS_FILE, JSON.stringify([]));
-            }
-
-            // Filter reports based on station
-            let stationReports = [];
-            if (station === 'police') {
-                // Police station sees all reports for comprehensive emergency response
-                stationReports = allReports;
-            } else if (station === 'fire') {
-                stationReports = allReports.filter(report => {
-                    const type = (report.type || '').toString().toLowerCase().trim();
-                    return type.includes('fire');
-                });
-            } else if (station === 'ambulance') {
-                stationReports = allReports.filter(report => {
-                    const type = (report.type || '').toString().toLowerCase().trim();
-                    return type.includes('motor') || type.includes('accident') || type.includes('fire') || type.includes('medical') || type.includes('emergency');
-                });
-            }
-
-            res.json(stationReports);
-        } catch (error) {
-            console.error('Error fetching station reports:', error);
-            res.status(500).json({ error: 'Server error' });
-        }
+    } catch (error) {
+        console.error('Error fetching station reports:', error);
+        res.status(500).json({ error: 'Server error' });
     }
 });
 
@@ -493,13 +451,23 @@ app.put("/api/reports/:id/status", verifyAuth, async (req, res) => {
     }
 });
 
+// ------------------ CATCH-ALL ROUTE FOR SPA ------------------ //
+// This handles client-side routing for React/Vue/Angular apps
+app.get('*', (req, res) => {
+    // Don't interfere with API routes
+    if (req.path.startsWith('/api/')) {
+        return res.status(404).json({ error: 'API endpoint not found' });
+    }
+    
+    // Don't interfere with static files that exist
+    const staticPath = path.join(__dirname, req.path);
+    if (fs.existsSync(staticPath) && !fs.lstatSync(staticPath).isDirectory()) {
+        return res.sendFile(staticPath);
+    }
+    
+    // For all other routes, serve the main app (index.html)
+    res.sendFile(path.join(__dirname, 'index.html'));
+});
+
 // ------------------ EXPORT FOR VERCEL ------------------ //
 module.exports = app;
-
-// For local development
-if (!isProduction) {
-    const port = process.env.PORT || 3000;
-    app.listen(port, () => {
-        console.log(`Server running on port ${port}`);
-    });
-}
