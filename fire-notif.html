@@ -1114,65 +1114,7 @@
         timestamp: null,
         ttl: 5 * 60 * 1000 // 5 minutes cache TTL
     };
-
-    // ============ INITIALIZATION ============
-    document.addEventListener('DOMContentLoaded', async () => {
-      console.log('🔥 Fire Department Notifications Initializing...');
-      
-      // Initialize Supabase
-      supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-      
-      // Get user location
-      await getUserLocation();
-      
-      // Get table columns
-      await getTableColumns();
-      
-      // Load initial reports
-      loadReports();
-      
-      // Setup real-time subscription
-      setupRealtimeSubscription();
-      
-      // Setup event listeners
-      setupEventListeners();
-      
-      console.log('✅ Fire Department Notifications ready');
-    });
-
-    // ============ AUTHENTICATION ============
-    async function checkAuthentication() {
-      try {
-        // Get token from URL parameters
-        const urlParams = new URLSearchParams(window.location.search);
-        const token = urlParams.get('token');
-
-        if (!token) {
-          console.log('No token found in URL, redirecting to login');
-          window.location.href = 'index.html';
-          return false;
-        }
-
-        // Store token in localStorage
-        localStorage.setItem('token', token);
-
-        // For fire notifications, assume fire department access
-        const userData = {
-          email: 'fireadmin@gmail.com',
-          station: 'fire',
-          role: 'admin'
-        };
-        localStorage.setItem('user', JSON.stringify(userData));
-
-        console.log('✅ Token stored successfully for fire notifications');
-        return true;
-      } catch (error) {
-        console.error('Authentication error:', error);
-        window.location.href = 'index.html';
-        return false;
-      }
-    }
-
+    
     // ============ HELPER FUNCTIONS ============
     async function getUserLocation() {
       return new Promise((resolve, reject) => {
@@ -1196,7 +1138,6 @@
           }
         );
       });
-    }
 
     function goBack() {
       window.location.href = "fire.html";
