@@ -1120,10 +1120,36 @@
     let assignedRespondersList = [];
     let userCurrentLocation = null;
     let isLoading = false;
+    let currentFilter = { type: 'all', status: 'all' };
     let reportsCache = {
         data: null,
         timestamp: null,
         ttl: 5 * 60 * 1000 // 5 minutes cache TTL
+    };
+
+    // Incident Type Configuration (POLICE RELATED)
+    const typeConfig = {
+      all: {
+        name: 'Police Incidents'
+      },
+      crime_theft: {
+        name: 'Crime/Theft'
+      },
+      assault: {
+        name: 'Assault'
+      },
+      vehicular_accident: {
+        name: 'Vehicular Accident'
+      },
+      robbery: {
+        name: 'Robbery'
+      },
+      disturbance: {
+        name: 'Disturbance'
+      },
+      suspicious: {
+        name: 'Suspicious Activity'
+      }
     };
 
     // ============ INITIALIZATION ============

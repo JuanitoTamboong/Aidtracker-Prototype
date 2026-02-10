@@ -1435,15 +1435,17 @@
             data = allData;
           }
 
-          // Filter to show ONLY medical-related incidents
+          // Filter to show ONLY vehicular and medical-related incidents
           data = data.filter(report => {
             const dbType = (report.type || '').toString().toLowerCase().trim();
             return (
-              dbType.includes('medical') || 
-              dbType.includes('health') || 
+              dbType.includes('medical') ||
+              dbType.includes('health') ||
               dbType.includes('emergency') ||
               dbType.includes('injury') ||
               dbType.includes('accident') ||
+              dbType.includes('vehicular') ||
+              
               dbType.includes('heart') ||
               dbType.includes('stroke') ||
               dbType.includes('breathing') ||
@@ -1452,8 +1454,7 @@
               dbType.includes('illness') ||
               dbType.includes('unconscious') ||
               dbType.includes('bleeding') ||
-              dbType.includes('fracture') ||
-              dbType.includes('burn')
+              dbType.includes('fracture')
             );
           });
 
@@ -1507,8 +1508,10 @@
       const dbType = (report.type || '').toString().toLowerCase().trim();
       let incidentType = 'medical_emergency';
       let incidentTypeName = 'MEDICAL EMERGENCY';
-      
-      if (dbType.includes('accident') || dbType.includes('injury')) {
+
+      if (dbType.includes('vehicular') || dbType.includes('motor') || dbType.includes('car') || dbType.includes('traffic') || dbType.includes('collision') || dbType.includes('crash')) {
+        incidentTypeName = 'VEHICULAR ACCIDENT';
+      } else if (dbType.includes('accident') || dbType.includes('injury')) {
         incidentTypeName = 'ACCIDENT INJURY';
       } else if (dbType.includes('heart')) {
         incidentTypeName = 'HEART ATTACK';
