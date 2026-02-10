@@ -24,7 +24,19 @@
       "dest": "/server.cjs"
     },
     {
-      "src": "/ambulance", 
+      "src": "/ambulance",
+      "dest": "/server.cjs"
+    },
+    {
+      "src": "/police-notif",
+      "dest": "/server.cjs"
+    },
+    {
+      "src": "/fire-notif",
+      "dest": "/server.cjs"
+    },
+    {
+      "src": "/ambulance-notif",
       "dest": "/server.cjs"
     },
     {

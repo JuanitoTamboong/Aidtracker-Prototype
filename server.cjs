@@ -554,22 +554,30 @@ app.get('/ambulance-notif', (req, res) => {
 });
 
 // ------------------ CATCH-ALL ROUTE ------------------ //
-// This handles client-side routing
-app.get('*', (req, res) => {
-    // Don't interfere with API routes
-    if (req.path.startsWith('/api/')) {
-        return res.status(404).json({ error: 'API endpoint not found' });
-    }
+// Commented out for local development - Vercel handles client-side routing differently
+// app.get('*', (req, res) => {
+//     // Don't interfere with API routes
+//     if (req.path.startsWith('/api/')) {
+//         return res.status(404).json({ error: 'API endpoint not found' });
+//     }
 
-    // Don't interfere with static files that exist
-    const staticPath = path.join(__dirname, req.path);
-    if (fs.existsSync(staticPath) && !fs.lstatSync(staticPath).isDirectory()) {
-        return res.sendFile(staticPath);
-    }
+//     // Don't interfere with static files that exist
+//     const staticPath = path.join(__dirname, req.path);
+//     if (fs.existsSync(staticPath) && !fs.lstatSync(staticPath).isDirectory()) {
+//         return res.sendFile(staticPath);
+//     }
 
-    // For all other routes, serve the login page
-    res.sendFile(path.join(__dirname, 'index.html'));
-});
+//     // For all other routes, serve the login page
+//     res.sendFile(path.join(__dirname, 'index.html'));
+// });
 
 // ------------------ EXPORT FOR VERCEL ------------------ //
 module.exports = app;
+
+// ------------------ LOCAL DEVELOPMENT SERVER ------------------ //
+if (require.main === module) {
+    const port = process.env.PORT || 3000;
+    app.listen(port, () => {
+        console.log(`🚀 Server running locally on http://localhost:${port}`);
+    });
+}
