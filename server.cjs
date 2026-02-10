@@ -540,6 +540,19 @@ app.put("/api/reports/:id/status", verifyAuth, async (req, res) => {
     }
 });
 
+// Notification pages - serve directly as separate files
+app.get('/police-notif', (req, res) => {
+    res.sendFile(path.join(__dirname, 'police-notif.html'));
+});
+
+app.get('/fire-notif', (req, res) => {
+    res.sendFile(path.join(__dirname, 'fire-notif.html'));
+});
+
+app.get('/ambulance-notif', (req, res) => {
+    res.sendFile(path.join(__dirname, 'ambulance-notif.html'));
+});
+
 // ------------------ CATCH-ALL ROUTE ------------------ //
 // This handles client-side routing
 app.get('*', (req, res) => {
@@ -547,13 +560,13 @@ app.get('*', (req, res) => {
     if (req.path.startsWith('/api/')) {
         return res.status(404).json({ error: 'API endpoint not found' });
     }
-    
+
     // Don't interfere with static files that exist
     const staticPath = path.join(__dirname, req.path);
     if (fs.existsSync(staticPath) && !fs.lstatSync(staticPath).isDirectory()) {
         return res.sendFile(staticPath);
     }
-    
+
     // For all other routes, serve the login page
     res.sendFile(path.join(__dirname, 'index.html'));
 });

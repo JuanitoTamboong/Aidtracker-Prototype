@@ -2358,8 +2358,7 @@ function logout() {
 
     // ============ NOTIFICATION FUNCTION ============
     function goToNotifications() {
-      const token = localStorage.getItem('token');
-      window.location.href = token ? `/police-notif?token=${token}` : "/police-notif";
+      window.location.href = "/police-notif";
     }
 
     // ============ CLEANUP ============
