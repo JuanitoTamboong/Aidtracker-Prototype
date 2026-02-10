@@ -27,15 +27,15 @@
       "methods": ["GET"]
     },
     {
-      "src": "/",
-      "dest": "/index.html"
-    },
-    {
       "src": "/login",
       "dest": "/index.html"
     },
     {
       "src": "/dashboard",
+      "dest": "/index.html"
+    },
+    {
+      "src": "/",
       "dest": "/index.html"
     },
     {

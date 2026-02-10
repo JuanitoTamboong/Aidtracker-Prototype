@@ -61,20 +61,24 @@ async function verifyAuth(req, res, next) {
             return next();
         }
 
-        // Check token in multiple locations
+        // Check token in multiple locations - IMPORTANT: Check query params first!
         const token = req.query.token || 
                      req.headers.authorization?.split(' ')[1] ||
-                     req.body?.token;
+                     req.body?.token ||
+                     req.cookies?.token;
 
-        console.log('🔐 Verifying token for path:', req.path, 'Token exists:', !!token);
+        console.log('🔐 Verifying token for path:', req.path, 'Token exists:', !!token, 'Query token:', req.query.token);
 
         if (!token) {
-            // For API endpoints, return JSON error
-            if (req.path.startsWith('/api/')) {
-                return res.status(401).json({ error: 'No token provided' });
-            }
+            console.log('❌ No token found for protected route:', req.path);
+            
             // For HTML pages, redirect to login
-            return res.redirect('/login');
+            if (!req.path.startsWith('/api/')) {
+                return res.redirect('/login?redirect=' + encodeURIComponent(req.originalUrl));
+            }
+            
+            // For API endpoints, return JSON error
+            return res.status(401).json({ error: 'No token provided' });
         }
 
         // Check active sessions first
@@ -90,10 +94,14 @@ async function verifyAuth(req, res, next) {
 
         if (error || !user) {
             console.error('❌ Supabase token verification failed:', error?.message);
-            if (req.path.startsWith('/api/')) {
-                return res.status(401).json({ error: 'Invalid or expired token' });
+            
+            // For HTML pages, redirect to login
+            if (!req.path.startsWith('/api/')) {
+                return res.redirect('/login?session=expired&redirect=' + encodeURIComponent(req.originalUrl));
             }
-            return res.redirect('/login');
+            
+            // For API endpoints
+            return res.status(401).json({ error: 'Invalid or expired token' });
         }
 
         // Check if user is admin
@@ -117,10 +125,14 @@ async function verifyAuth(req, res, next) {
         next();
     } catch (error) {
         console.error('Auth error:', error);
-        if (req.path.startsWith('/api/')) {
-            return res.status(401).json({ error: 'Authentication failed' });
+        
+        // For HTML pages, redirect to login
+        if (!req.path.startsWith('/api/')) {
+            return res.redirect('/login?error=auth_failed&redirect=' + encodeURIComponent(req.originalUrl));
         }
-        return res.redirect('/login');
+        
+        // For API endpoints
+        return res.status(401).json({ error: 'Authentication failed' });
     }
 }
 
@@ -156,21 +168,47 @@ app.get("/dashboard", (req, res) => {
 // ------------------ STATION DASHBOARD ROUTES ------------------ //
 app.get("/police", verifyAuth, (req, res) => {
     if (req.user.role !== 'admin' || req.user.station !== 'police') {
-        return res.redirect('/login');
+        return res.redirect('/login?error=access_denied');
     }
-    res.sendFile(path.join(__dirname, "police.html"));
+    
+    // Pass the token to the HTML file (we'll embed it in a script tag)
+    const htmlPath = path.join(__dirname, "police.html");
+    fs.readFile(htmlPath, 'utf8', (err, html) => {
+        if (err) {
+            console.error('Error reading police.html:', err);
+            return res.sendFile(htmlPath);
+        }
+        
+        // Inject token into HTML for client-side use
+        const modifiedHtml = html.replace(
+            '</head>',
+            `<script>
+                // Store token from query parameters
+                const urlParams = new URLSearchParams(window.location.search);
+                const token = urlParams.get('token');
+                if (token) {
+                    localStorage.setItem('token', token);
+                    // Clean up URL (optional)
+                    window.history.replaceState({}, '', '/police');
+                }
+            </script>
+            </head>`
+        );
+        
+        res.send(modifiedHtml);
+    });
 });
 
 app.get("/fire", verifyAuth, (req, res) => {
     if (req.user.role !== 'admin' || req.user.station !== 'fire') {
-        return res.redirect('/login');
+        return res.redirect('/login?error=access_denied');
     }
     res.sendFile(path.join(__dirname, "fire.html"));
 });
 
 app.get("/ambulance", verifyAuth, (req, res) => {
     if (req.user.role !== 'admin' || req.user.station !== 'ambulance') {
-        return res.redirect('/login');
+        return res.redirect('/login?error=access_denied');
     }
     res.sendFile(path.join(__dirname, "ambulance.html"));
 });
@@ -204,11 +242,19 @@ app.post("/api/login", async (req, res) => {
         
         // Determine user role and station
         const station = ADMIN_STATIONS[user.email] || null;
+        
+        // Only allow admin accounts to login
+        if (!station) {
+            return res.status(403).json({ 
+                error: 'Access denied. Admin accounts only.' 
+            });
+        }
+        
         const userData = {
             id: user.id,
             email: user.email,
             station: station,
-            role: station ? 'admin' : 'user',
+            role: 'admin',
             token: session.access_token
         };
 
@@ -218,23 +264,14 @@ app.post("/api/login", async (req, res) => {
             expiresAt: Date.now() + 3600000 // 1 hour
         });
 
-        // Set redirect URL
-        let redirectUrl = '/dashboard';
-        if (station) {
-            redirectUrl = `/${station}?token=${session.access_token}`;
-        } else {
-            // Regular users - show error or redirect to login
-            return res.status(403).json({ 
-                error: 'Access denied. Admin accounts only.' 
-            });
-        }
+        // Set redirect URL with token
+        const redirectUrl = `/${station}?token=${session.access_token}`;
 
         console.log(`✅ Login successful for: ${email}, redirecting to: ${redirectUrl}`);
 
         res.json({
             success: true,
             token: session.access_token,
-            refresh_token: session.refresh_token,
             user: userData,
             redirectUrl: redirectUrl
         });
