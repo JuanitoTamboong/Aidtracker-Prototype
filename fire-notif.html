@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Fire Department - AidTracker Notifications</title>
+  <title>Fire Station - AidTracker Notifications</title>
 
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -35,6 +35,8 @@
       --danger-red: #e74c3c;
       --warning-orange: #f39c12;
       --success-green: #2ecc71;
+      --police-blue: #2c3e50;
+      --police-dark: #1a252f;
       --glass-bg: rgba(255, 255, 255, 0.1);
       --glass-border: rgba(255, 255, 255, 0.2);
       --shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
@@ -420,8 +422,8 @@
       transform: translateY(-2px);
     }
 
-    /* BFP specific styling */
-    .bfp-unit {
+    /* Fire specific styling */
+    .fire-unit {
       background: rgba(231, 76, 60, 0.2);
       color: #e74c3c;
       padding: 8px 12px;
@@ -548,7 +550,7 @@
       padding: 12px;
       border-radius: 8px;
       background: rgba(0,0,0,0.3);
-      border: 1px solid rgba(255,215,0,0.5);
+      border: 1px solid rgba(255, 215, 0, 0.5);
       color: white;
       font-size: 16px;
       outline: none;
@@ -864,12 +866,12 @@
         <i class="fas fa-fire"></i>
       </div>
       <div class="header-titles">
-        <div class="main-title">Fire<span>Department</span>
+        <div class="main-title">Fire<span>Station</span>
           <span class="live-badge">
             <i class="fas fa-broadcast-tower"></i> LIVE
           </span>
         </div>
-        <div class="subtitle">Emergency Fire Response Notifications</div>
+        <div class="subtitle">Fire & Rescue Emergency Notifications</div>
       </div>
     </div>
 
@@ -921,7 +923,7 @@
   <div id="respondersModal" class="modal-overlay">
     <div class="modal-content glass">
       <div class="modal-header">
-        <i class="fas fa-fire"></i> BFP Response Assignment
+        <i class="fas fa-fire"></i> Fire Response Assignment
       </div>
       
       <div class="modal-section">
@@ -940,19 +942,19 @@
       
       <div class="modal-section">
         <div class="modal-section-title">
-          <i class="fas fa-fire"></i> BFP Unit Assigned
+          <i class="fas fa-users"></i> Fire Unit Assigned
         </div>
-        <div class="bfp-unit">
-          <i class="fas fa-fire-extinguisher"></i> BFP (Bureau of Fire Protection)
+        <div class="fire-unit">
+          <i class="fas fa-fire"></i> FIRE STATION
         </div>
         <div style="color: var(--accent-gold); font-size: 12px; text-align: center; margin-bottom: 10px;">
-          This is a fire-related incident. BFP has been automatically assigned.
+          This is a fire-related incident. Fire unit has been automatically assigned.
         </div>
       </div>
       
       <div class="modal-section">
         <div class="modal-section-title">
-          <i class="fas fa-user-shield"></i> Responder Information
+          <i class="fas fa-user-shield"></i> Firefighter Information
         </div>
         <div style="background: rgba(0, 0, 0, 0.2); border: 1px solid rgba(255, 215, 0, 0.3); border-radius: 8px; padding: 15px; margin-bottom: 10px;">
           <label style="display: block; color: var(--accent-gold); font-size: 12px; margin-bottom: 5px; font-weight: 600;">
@@ -969,7 +971,7 @@
       
       <div class="modal-buttons">
         <button id="confirmRespondersBtn" class="modal-btn-primary">
-          <i class="fas fa-check"></i> Assign BFP Responder
+          <i class="fas fa-check"></i> Assign Firefighter
         </button>
         <button onclick="closeModal('respondersModal')" class="modal-btn-secondary">
           <i class="fas fa-times"></i> Cancel
@@ -982,12 +984,12 @@
   <div id="quickRouteModal" class="modal-overlay">
     <div class="modal-content glass">
       <div class="modal-header">
-        <i class="fas fa-route"></i> BFP Navigation to Fire Incident
+        <i class="fas fa-route"></i> Fire Department Navigation to Incident
       </div>
       
       <div class="modal-section">
         <div class="modal-section-title">
-          <i class="fas fa-map-marker-alt"></i> Fire Incident Location
+          <i class="fas fa-map-marker-alt"></i> Incident Location
         </div>
         <div id="routeDestination" style="background: rgba(0,0,0,0.3); padding: 12px; border-radius: 8px; color: white; font-size: 16px; margin-bottom: 15px;">
           Loading location...
@@ -1012,7 +1014,7 @@
         <div class="route-info">
           <div class="route-info-item">
             <span class="route-info-label">Responding Unit:</span>
-            <span id="assignedUnits" class="route-info-value">BFP</span>
+            <span id="assignedUnits" class="route-info-value">FIRE DEPARTMENT</span>
           </div>
           <div class="route-info-item">
             <span class="route-info-label">Route Status:</span>
@@ -1062,23 +1064,21 @@
       
       <div class="modal-section">
         <div class="modal-section-title">
-          <i class="fas fa-check-square"></i> Resolution Status
+          <i class="fas fa-check-square"></i> Resolution Details
         </div>
         <select id="resolutionStatus" class="modal-select">
-          <option value="fire_controlled">Fire Controlled - Situation Under Control</option>
-          <option value="extinguished">Fire Extinguished - Fully Put Out</option>
-          <option value="contained">Fire Contained - No Further Spread</option>
-          <option value="investigated">Investigated - No Fire Found</option>
-          <option value="handed_over">Handed Over - Transferred to Other Agency</option>
-          <option value="false_alarm">False Alarm - No Action Required</option>
+          <option value="fire_extinguished">Fire Extinguished - Incident Closed</option>
+          <option value="situation_resolved">Situation Resolved - All Clear</option>
+          <option value="false_alarm">False Alarm - No Action Needed</option>
+          <option value="handed_over">Handed Over - Other Agency</option>
         </select>
       </div>
       
       <div class="modal-section">
         <div class="modal-section-title">
-          <i class="fas fa-sticky-note"></i> Resolution Notes <span style="color: white;">(optional)</span>
+          <i class="fas fa-sticky-note"></i> Fire Report <span style="color: white;">(optional)</span>
         </div>
-        <textarea id="resolutionNotes" class="modal-textarea" placeholder="Describe firefighting actions taken, equipment used, casualties, and outcome..."></textarea>
+        <textarea id="resolutionNotes" class="modal-textarea" placeholder="Describe fire response actions taken, equipment used, persons rescued, damages assessed, and final outcome..."></textarea>
       </div>
       
       <div class="modal-buttons">
@@ -1114,7 +1114,53 @@
         timestamp: null,
         ttl: 5 * 60 * 1000 // 5 minutes cache TTL
     };
-    
+
+    // ============ INITIALIZATION ============
+    document.addEventListener('DOMContentLoaded', async () => {
+      console.log('🔥 Fire Department Notifications Initializing...');
+
+      // Initialize Supabase
+      supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+      // Check for token in URL parameters
+      const urlParams = new URLSearchParams(window.location.search);
+      const token = urlParams.get('token');
+
+      if (token) {
+        // Set the session with the token
+        try {
+          const { data, error } = await supabaseClient.auth.setSession({
+            access_token: token,
+            refresh_token: token
+          });
+          if (error) {
+            console.warn('Failed to set session with token:', error);
+          } else {
+            console.log('✅ Session set with token');
+          }
+        } catch (error) {
+          console.warn('Error setting session:', error);
+        }
+      }
+
+      // Get user location
+      await getUserLocation();
+
+      // Get table columns
+      await getTableColumns();
+
+      // Load initial reports
+      loadReports();
+
+      // Setup real-time subscription
+      setupRealtimeSubscription();
+
+      // Setup event listeners
+      setupEventListeners();
+
+      console.log('✅ Fire Department Notifications ready');
+    });
+
     // ============ HELPER FUNCTIONS ============
     async function getUserLocation() {
       return new Promise((resolve, reject) => {
@@ -1138,6 +1184,7 @@
           }
         );
       });
+    }
 
     function goBack() {
       window.location.href = "fire.html";
@@ -1201,8 +1248,8 @@
       
       // Initialize map with NO default zoom controls
       fullscreenMap = L.map('fullscreenMap', {
-        zoomControl: false, // Disable default zoom controls
-        attributionControl: false, // Disable attribution
+        zoomControl: false,
+        attributionControl: false,
         dragging: true,
         touchZoom: true,
         doubleClickZoom: true,
@@ -1231,14 +1278,14 @@
           <div style="margin-top: 8px; font-size: 14px;">
             <strong>Location:</strong> ${currentReportData.latitude.toFixed(6)}, ${currentReportData.longitude.toFixed(6)}<br>
             <strong>Status:</strong> INVESTIGATING<br>
-            <strong>Assigned:</strong> BFP
+            <strong>Assigned:</strong> FIRE DEPARTMENT
           </div>
         `)
         .openPopup();
       
       if (userCurrentLocation) {
         const userIcon = L.divIcon({
-          html: '<div style="background-color: #3498db; width: 36px; height: 36px; border-radius: 50%; border: 3px solid white; display: flex; align-items: center; justify-content: center; color: white; font-size: 14px;"><i class="fas fa-fire-extinguisher"></i></div>',
+          html: '<div style="background-color: #3498db; width: 36px; height: 36px; border-radius: 50%; border: 3px solid white; display: flex; align-items: center; justify-content: center; color: white; font-size: 14px;"><i class="fas fa-user-shield"></i></div>',
           iconSize: [42, 42],
           iconAnchor: [21, 21]
         });
@@ -1247,10 +1294,10 @@
           .addTo(fullscreenMap)
           .bindPopup(`
             <div style="color: #001f3f; font-weight: bold; font-size: 16px;">
-              <i class="fas fa-fire-extinguisher" style="color: #3498db;"></i> BFP LOCATION
+              <i class="fas fa-user-shield" style="color: #3498db;"></i> FIRE DEPARTMENT LOCATION
             </div>
             <div style="margin-top: 8px; font-size: 14px;">
-              <strong>Current BFP position</strong><br>
+              <strong>Current fire department position</strong><br>
               <strong>Coordinates:</strong> ${userCurrentLocation.lat.toFixed(6)}, ${userCurrentLocation.lng.toFixed(6)}
             </div>
           `);
@@ -1263,10 +1310,9 @@
       const centerLat = userCurrentLocation ? userCurrentLocation.lat : currentReportData.latitude;
       const centerLng = userCurrentLocation ? userCurrentLocation.lng : currentReportData.longitude;
       
-      // Initialize map with NO default zoom controls
       routeMap = L.map('routeMap', {
-        zoomControl: false, // Disable default zoom controls
-        attributionControl: false, // Disable attribution
+        zoomControl: false,
+        attributionControl: false,
         dragging: true,
         touchZoom: true,
         doubleClickZoom: true,
@@ -1288,21 +1334,21 @@
         .addTo(routeMap)
         .bindPopup(`
           <b>Fire Incident Location</b><br>
-          Fire site requiring BFP response<br>
-          Assigned: BFP
+          Fire emergency requiring response<br>
+          Assigned: FIRE DEPARTMENT
         `)
         .openPopup();
       
       if (userCurrentLocation) {
         const startIcon = L.divIcon({
-          html: '<div style="background-color: #3498db; width: 28px; height: 28px; border-radius: 50%; border: 3px solid white; display: flex; align-items: center; justify-content: center; color: white; font-size: 12px;"><i class="fas fa-fire-extinguisher"></i></div>',
+          html: '<div style="background-color: #3498db; width: 28px; height: 28px; border-radius: 50%; border: 3px solid white; display: flex; align-items: center; justify-content: center; color: white; font-size: 12px;"><i class="fas fa-user-shield"></i></div>',
           iconSize: [34, 34],
           iconAnchor: [17, 17]
         });
         
         L.marker([userCurrentLocation.lat, userCurrentLocation.lng], { icon: startIcon })
           .addTo(routeMap)
-          .bindPopup('<b>BFP Current Location</b><br>Firefighter position');
+          .bindPopup('<b>Fire Department Current Location</b><br>Responder position');
       }
     }
 
@@ -1372,7 +1418,6 @@
             .order('created_at', { ascending: false });
 
           if (error) {
-            // If error, try without the new columns
             const { data: simpleData, error: simpleError } = await supabaseClient
               .from('reports')
               .select('id, type, latitude, longitude, reporter, status, created_at, description')
@@ -1387,7 +1432,21 @@
           // Filter to show ONLY fire-related incidents
           data = data.filter(report => {
             const dbType = (report.type || '').toString().toLowerCase().trim();
-            return dbType.includes('fire') || dbType === 'fire_accident' || dbType === 'fire';
+            return (
+              dbType.includes('fire') || 
+              dbType.includes('burn') || 
+              dbType.includes('smoke') ||
+              dbType.includes('blaze') ||
+              dbType.includes('flame') ||
+              dbType.includes('explosion') ||
+              dbType.includes('gas leak') ||
+              dbType.includes('chemical') ||
+              dbType.includes('hazard') ||
+              dbType.includes('rescue') ||
+              dbType.includes('emergency') ||
+              dbType.includes('accident') ||
+              dbType.includes('disaster')
+            );
           });
 
           // Update cache
@@ -1399,7 +1458,7 @@
         if (!data || data.length === 0) {
           statusEl.innerHTML = `
             <div class="empty-state">
-              <i class="fas fa-fire-extinguisher"></i>
+              <i class="fas fa-fire"></i>
               <h3>No Fire Incidents</h3>
               <p>Fire-related reports will appear here once submitted.</p>
             </div>
@@ -1436,9 +1495,23 @@
     function renderNotificationCard(report) {
       const container = document.getElementById('notificationList');
       
-      // All reports shown here are fire incidents only
-      const incidentType = 'fire_accident';
-      const incidentTypeName = 'FIRE ACCIDENT';
+      // Determine incident type
+      const dbType = (report.type || '').toString().toLowerCase().trim();
+      let incidentTypeName = 'FIRE EMERGENCY';
+      
+      if (dbType.includes('smoke') || dbType.includes('burn')) {
+        incidentTypeName = 'SMOKE/FIRE';
+      } else if (dbType.includes('explosion') || dbType.includes('blast')) {
+        incidentTypeName = 'EXPLOSION';
+      } else if (dbType.includes('gas')) {
+        incidentTypeName = 'GAS LEAK';
+      } else if (dbType.includes('chemical') || dbType.includes('hazard')) {
+        incidentTypeName = 'HAZMAT';
+      } else if (dbType.includes('rescue')) {
+        incidentTypeName = 'RESCUE';
+      } else if (dbType.includes('accident')) {
+        incidentTypeName = 'ACCIDENT';
+      }
       
       const reporterName = report.reporter || report.reporter_name || report.name || 'Anonymous';
       const reporterInitials = reporterName.charAt(0).toUpperCase();
@@ -1493,7 +1566,7 @@
       if (status === 'pending') {
         actionButtonsHTML = `
           <button class="responders-btn" onclick="openRespondersModal('${report.id}', '${reporterName.replace(/'/g, "\\'")}')">
-            <i class="fas fa-fire-extinguisher"></i> BFP RESPOND
+            <i class="fas fa-fire-extinguisher"></i> FIRE RESPOND
           </button>
           <button class="view-btn" onclick="viewOnMap(${report.latitude}, ${report.longitude}, '${report.id}')">
             <i class="fas fa-map-marker-alt"></i> VIEW ON MAP
@@ -1502,7 +1575,7 @@
       } else if (status === 'investigating' || status === 'assigned') {
         actionButtonsHTML = `
           <button class="quick-route-btn" onclick="openQuickRouteModal('${report.id}', ${report.latitude}, ${report.longitude}, '${displayText.replace(/'/g, "\\'")}')">
-            <i class="fas fa-route"></i> NAVIGATE TO FIRE
+            <i class="fas fa-route"></i> NAVIGATE TO INCIDENT
           </button>
           <button class="resolve-btn" onclick="openResolveModal('${report.id}')">
             <i class="fas fa-check-circle"></i> RESOLVE
@@ -1565,10 +1638,10 @@
         <div style="margin-bottom: 15px; padding: 10px; background: rgba(255, 215, 0, 0.05); border-radius: 8px; border-left: 3px solid var(--accent-gold);">
           <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 5px;">
             <i class="fas fa-fire-extinguisher" style="color: #e74c3c; font-size: 14px;"></i>
-            <span style="color: var(--accent-gold); font-size: 12px; font-weight: bold;">ASSIGNED BFP RESPONDERS:</span>
+            <span style="color: var(--accent-gold); font-size: 12px; font-weight: bold;">ASSIGNED FIREFIGHTER:</span>
           </div>
           <div style="color: white; font-size: 14px; font-weight: 600;">
-            ${hasAssignedResponders ? displayText : 'No BFP responders assigned yet'}
+            ${hasAssignedResponders ? displayText : 'No firefighter assigned yet'}
           </div>
         </div>
         
@@ -1600,7 +1673,7 @@
       const responderContact = document.getElementById('responderContact').value.trim();
       
       if (!responderName) {
-        alert('Please enter BFP firefighter name.');
+        alert('Please enter firefighter name.');
         return;
       }
       
@@ -1628,11 +1701,11 @@
       }
       
       try {
-        // BFP is automatically assigned for fire incidents
-        const assignedUnit = 'BFP';
+        // Fire department is automatically assigned for fire incidents
+        const assignedUnit = 'FIRE STATION';
         const assignedRespondersText = responderName;
         
-        // Prepare update data
+        // Prepare update data - ONLY THREE STATUSES: pending, investigating, resolved
         const updateData = {
           status: 'investigating',
           updated_at: new Date().toISOString(),
@@ -1649,14 +1722,14 @@
         
         if (error) throw error;
         
-        // Format display text as "BFP - Name"
+        // Format display text as "FIRE STATION - Name"
         let displayText = `${assignedUnit} - ${responderName}`;
         if (responderContact) {
           displayText += ` - ${responderContact}`;
         }
         
         // Show success message
-        alert('✅ BFP responder assigned successfully!');
+        alert('✅ Firefighter assigned successfully!');
         
         // Close modal and reset
         closeModal('respondersModal');
@@ -1667,8 +1740,8 @@
         loadReports(true);
         
       } catch (error) {
-        console.error('Error assigning BFP responder:', error);
-        alert('❌ Error assigning BFP responder. Please try again.');
+        console.error('Error assigning firefighter:', error);
+        alert('❌ Error assigning firefighter. Please try again.');
       }
     }
 
@@ -1702,7 +1775,7 @@
         }
       }
       
-      document.getElementById('assignedUnits').textContent = 'BFP';
+      document.getElementById('assignedUnits').textContent = 'FIRE DEPARTMENT';
       document.getElementById('routeStatus').textContent = 'Ready for route calculation';
       
       openModal('quickRouteModal');
@@ -1724,7 +1797,7 @@
       
       try {
         const updateData = {
-          status: 'resolved',
+          status: 'resolved', // ALWAYS set to 'resolved' for resolution
           updated_at: new Date().toISOString()
         };
         
@@ -1732,9 +1805,9 @@
         let resolutionDescription = '';
         
         if (notes) {
-          resolutionDescription = `Resolution status: ${statusText} - Resolution Notes: ${notes}`;
+          resolutionDescription = `Resolution: ${statusText} - Fire Report: ${notes}`;
         } else {
-          resolutionDescription = `Resolution status: ${statusText}`;
+          resolutionDescription = `Resolution: ${statusText}`;
         }
         
         // Update description field based on available columns
@@ -1849,7 +1922,7 @@
       fullscreenMap.routeMarkers = [];
       
       const startIcon = L.divIcon({
-        html: '<div style="background-color: #3498db; width: 36px; height: 36px; border-radius: 50%; border: 3px solid white; display: flex; align-items: center; justify-content: center; color: white; font-size: 14px;"><i class="fas fa-fire-extinguisher"></i></div>',
+        html: '<div style="background-color: #3498db; width: 36px; height: 36px; border-radius: 50%; border: 3px solid white; display: flex; align-items: center; justify-content: center; color: white; font-size: 14px;"><i class="fas fa-user-shield"></i></div>',
         iconSize: [42, 42],
         iconAnchor: [21, 21]
       });
@@ -1858,11 +1931,11 @@
         .addTo(fullscreenMap)
         .bindPopup(`
           <div style="color: #001f3f; font-weight: bold;">
-            <i class="fas fa-fire-extinguisher" style="color: #3498db;"></i> BFP LOCATION
+            <i class="fas fa-user-shield" style="color: #3498db;"></i> FIRE DEPARTMENT LOCATION
           </div>
           <div style="margin-top: 5px; font-size: 14px;">
             <strong>Your current location</strong><br>
-            <strong>Distance to fire incident:</strong> ${distance} km<br>
+            <strong>Distance to incident:</strong> ${distance} km<br>
             <strong>Estimated response time:</strong> ${duration} minutes
           </div>
         `);
@@ -1882,9 +1955,9 @@
             <i class="fas fa-fire" style="color: #e74c3c;"></i> FIRE INCIDENT
           </div>
           <div style="margin-top: 5px; font-size: 14px;">
-            <strong>Distance from BFP:</strong> ${distance} km<br>
+            <strong>Distance from fire department:</strong> ${distance} km<br>
             <strong>Estimated response time:</strong> ${duration} minutes<br>
-            <strong>Responding unit:</strong> BFP
+            <strong>Responding unit:</strong> FIRE DEPARTMENT
           </div>
         `)
         .openPopup();
@@ -1969,8 +2042,8 @@
           <div style="margin-top: 8px; font-size: 14px;">
             <strong>Location:</strong> ${currentReportData.latitude.toFixed(6)}, ${currentReportData.longitude.toFixed(6)}<br>
             <strong>Report ID:</strong> ${currentReportId ? '#' + currentReportId.substring(0, 12) : 'N/A'}<br>
-            <strong>Assigned Responders:</strong> BFP<br>
-            <strong>Status:</strong> ACTIVE
+            <strong>Assigned Responders:</strong> FIRE DEPARTMENT<br>
+            <strong>Status:</strong> INVESTIGATING
           </div>
         `)
         .openOn(fullscreenMap);
@@ -2104,7 +2177,21 @@
           // Only refresh if it's a fire-related incident
           if (payload.new) {
             const dbType = (payload.new.type || '').toString().toLowerCase().trim();
-            if (dbType.includes('fire') || dbType === 'fire_accident' || dbType === 'fire') {
+            if (
+              dbType.includes('fire') || 
+              dbType.includes('burn') || 
+              dbType.includes('smoke') ||
+              dbType.includes('blaze') ||
+              dbType.includes('flame') ||
+              dbType.includes('explosion') ||
+              dbType.includes('gas leak') ||
+              dbType.includes('chemical') ||
+              dbType.includes('hazard') ||
+              dbType.includes('rescue') ||
+              dbType.includes('emergency') ||
+              dbType.includes('accident') ||
+              dbType.includes('disaster')
+            ) {
               // Force refresh reports
               loadReports(true);
             }

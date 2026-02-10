@@ -1123,8 +1123,29 @@
     document.addEventListener('DOMContentLoaded', async () => {
       console.log('👮 Police Department Notifications Initializing...');
 
-      // Initialize Supabase (no authentication required for notifications)
+      // Initialize Supabase
       supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+      // Check for token in URL parameters
+      const urlParams = new URLSearchParams(window.location.search);
+      const token = urlParams.get('token');
+
+      if (token) {
+        // Set the session with the token
+        try {
+          const { data, error } = await supabaseClient.auth.setSession({
+            access_token: token,
+            refresh_token: token
+          });
+          if (error) {
+            console.warn('Failed to set session with token:', error);
+          } else {
+            console.log('✅ Session set with token');
+          }
+        } catch (error) {
+          console.warn('Error setting session:', error);
+        }
+      }
 
       // Get user location
       await getUserLocation();
