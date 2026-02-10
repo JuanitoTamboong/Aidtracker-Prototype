@@ -9,7 +9,13 @@
   "routes": [
     {
       "src": "/(.*)",
-      "dest": "server.cjs"
+      "dest": "/server.cjs"
     }
-  ]
+  ],
+  "functions": {
+    "server.cjs": {
+      "memory": 1024,
+      "maxDuration": 10
+    }
+  }
 }

@@ -32,7 +32,7 @@ app.use(cors({
         // Allow localhost for development
         if (origin.includes('localhost') || origin.includes('127.0.0.1')) return callback(null, true);
 
-        // Allow all origins for production (you may want to restrict this)
+        // Allow all origins for production
         return callback(null, true);
     },
     credentials: true
@@ -81,16 +81,22 @@ const activeSessions = new Map();
 // ------------------ AUTH MIDDLEWARE ------------------ //
 async function verifyAuth(req, res, next) {
     try {
-        const token = req.query.token || req.headers.authorization?.split(' ')[1];
+        // Check token in multiple locations
+        const token = req.query.token || 
+                     req.headers.authorization?.split(' ')[1] ||
+                     req.body?.token;
 
         if (!token) {
             return res.status(401).json({ error: 'No token provided' });
         }
 
+        console.log('🔐 Verifying token:', token.substring(0, 20) + '...');
+
         // Check active sessions first
         const sessionData = activeSessions.get(token);
         if (sessionData) {
             req.user = sessionData.user;
+            console.log('✅ Token found in active sessions');
             return next();
         }
 
@@ -98,7 +104,8 @@ async function verifyAuth(req, res, next) {
         const { data: { user }, error } = await supabase.auth.getUser(token);
 
         if (error || !user) {
-            return res.status(401).json({ error: 'Invalid token' });
+            console.error('❌ Supabase token verification failed:', error?.message);
+            return res.status(401).json({ error: 'Invalid or expired token' });
         }
 
         // Check if user is admin
@@ -117,6 +124,7 @@ async function verifyAuth(req, res, next) {
             expiresAt: Date.now() + 3600000 // 1 hour
         });
 
+        console.log(`✅ User authenticated: ${user.email} (${station ? station + ' admin' : 'user'})`);
         req.user = userData;
         next();
     } catch (error) {
@@ -149,11 +157,12 @@ app.get("/login", (req, res) => {
     res.sendFile(path.join(__dirname, "index.html"));
 });
 
-// Station dashboard routes
+// Station dashboard routes - FIXED to pass token in query params
 app.get("/police", verifyAuth, (req, res) => {
     if (req.user.role !== 'admin' || req.user.station !== 'police') {
         return res.status(403).send('Access denied');
     }
+    // Pass token as query parameter to the HTML page
     res.sendFile(path.join(__dirname, "police.html"));
 });
 
@@ -181,6 +190,8 @@ app.post("/api/login", async (req, res) => {
     }
 
     try {
+        console.log(`🔑 Login attempt for: ${email}`);
+        
         // Sign in with Supabase
         const { data, error } = await supabase.auth.signInWithPassword({
             email: email,
@@ -215,13 +226,15 @@ app.post("/api/login", async (req, res) => {
         // Set redirect URL
         let redirectUrl = '/dashboard';
         if (station) {
-            redirectUrl = `/${station}`;
+            redirectUrl = `/${station}?token=${session.access_token}`;
         } else {
             // Regular users - show error or redirect to login
             return res.status(403).json({ 
                 error: 'Access denied. Admin accounts only.' 
             });
         }
+
+        console.log(`✅ Login successful for: ${email}, redirecting to: ${redirectUrl}`);
 
         res.json({
             success: true,
@@ -449,8 +462,6 @@ app.get("/api/station/:station/reports", verifyAuth, async (req, res) => {
         }
     }
 });
-
-
 
 // Update report status
 app.put("/api/reports/:id/status", verifyAuth, async (req, res) => {

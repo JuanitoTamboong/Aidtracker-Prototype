@@ -1320,26 +1320,31 @@
       exposeGlobalFunctions();
     });
 
-    // ============ AUTHENTICATION ============
-    function checkAuthentication() {
-      try {
-        // Check for token in URL parameters (from login redirect)
+   // ============ AUTHENTICATION ============
+function checkAuthentication() {
+    try {
+        // FIRST: Check for token in URL parameters (from login redirect)
         const urlParams = new URLSearchParams(window.location.search);
         const tokenFromUrl = urlParams.get('token');
 
         if (tokenFromUrl) {
-          // Store token from URL
-          localStorage.setItem('token', tokenFromUrl);
-          // Clean up URL
-          window.history.replaceState({}, document.title, window.location.pathname);
+            // Store token from URL to localStorage
+            localStorage.setItem('token', tokenFromUrl);
+            
+            // Clean up URL to remove token for security
+            window.history.replaceState({}, document.title, window.location.pathname);
+            
+            console.log('✅ Token retrieved from URL and stored in localStorage');
         }
 
+        // SECOND: Check localStorage
         const user = localStorage.getItem('user');
         const token = localStorage.getItem('token');
 
         if (!user || !token) {
-          window.location.href = 'index.html';
-          return false;
+            console.log('❌ No user or token found, redirecting to login');
+            window.location.href = 'index.html';
+            return false;
         }
 
         const userData = JSON.parse(user);
@@ -1348,21 +1353,31 @@
         if (userData.station === 'police' ||
             userData.email === 'policeadmin@gmail.com' ||
             userData.role === 'admin') {
-          console.log('✅ User authenticated for police dashboard');
-          return true;
+            console.log('✅ User authenticated for police dashboard');
+            return true;
         }
 
         alert('⚠️ Access denied. Police dashboard only.');
         window.location.href = 'index.html';
         return false;
 
-      } catch (error) {
+    } catch (error) {
         console.error('Auth error:', error);
         window.location.href = 'index.html';
         return false;
-      }
     }
+}
 
+function logout() {
+    if (confirm('Are you sure you want to logout?')) {
+        localStorage.removeItem('user');
+        localStorage.removeItem('token');
+        if (realtimeSubscription) {
+            supabaseClient.removeChannel(realtimeSubscription);
+        }
+        window.location.href = 'index.html';
+    }
+}
     function logout() {
       if (confirm('Are you sure you want to logout?')) {
         localStorage.removeItem('user');

@@ -617,7 +617,7 @@
           modalMessage.textContent = `Welcome back, ${email}. Redirecting to dashboard...`;
         }
 
-        // Store user data
+        // Store user data in localStorage BEFORE redirecting
         localStorage.setItem('user', JSON.stringify(data.user));
         localStorage.setItem('token', data.token);
 
@@ -628,6 +628,11 @@
         document.getElementById('modalContinueBtn').onclick = function() {
           window.location.href = redirectUrl;
         };
+
+        // Auto-redirect after 2 seconds
+        setTimeout(() => {
+          window.location.href = redirectUrl;
+        }, 2000);
 
       } catch (error) {
         console.error('Login error:', error);
@@ -667,7 +672,7 @@
           if (data.authenticated && data.user) {
             // Redirect based on user role
             if (data.user.role === 'admin' && data.user.station) {
-              window.location.href = `/${data.user.station}`;
+              window.location.href = `/${data.user.station}?token=${token}`;
             } else {
               window.location.href = '/dashboard';
             }
