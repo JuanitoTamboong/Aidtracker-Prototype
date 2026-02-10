@@ -17,11 +17,23 @@
     },
     {
       "src": "/police",
-      "dest": "/police.html"
+      "dest": "/server.cjs"
+    },
+    {
+      "src": "/fire",
+      "dest": "/server.cjs"
     },
     {
       "src": "/ambulance", 
-      "dest": "/ambulance.html"
+      "dest": "/server.cjs"
+    },
+    {
+      "src": "/dashboard",
+      "dest": "/server.cjs"
+    },
+    {
+      "src": "/",
+      "dest": "/server.cjs"
     },
     {
       "src": "/(.*)",

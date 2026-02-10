@@ -13,9 +13,6 @@ const supabaseUrl = process.env.SUPABASE_URL || 'https://gwvepxupoxyyydnisulb.su
 const supabaseKey = process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd3dmVweHVwb3h5eXlkbmlzdWxiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ4MDE4ODcsImV4cCI6MjA4MDM3Nzg4N30.Ku9SXTAKNMvHilgEpxj5HcVA-0TPt4ziuEq0Irao5Qc';
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-// Check if we're in production (Vercel)
-const isProduction = process.env.VERCEL === '1' || process.env.NODE_ENV === 'production';
-
 // Admin accounts mapping
 const ADMIN_STATIONS = {
     'policeadmin@gmail.com': 'police',
@@ -28,16 +25,24 @@ app.use(cors({
     origin: function (origin, callback) {
         // Allow requests with no origin (mobile apps, curl, etc.)
         if (!origin) return callback(null, true);
-
-        // Allow all origins for now
         return callback(null, true);
     },
     credentials: true
 }));
 app.use(express.json({ limit: "100mb" }));
 
-// IMPORTANT: In Vercel, we need to handle static files differently
-// Serve static files from the current directory
+// Cache control middleware for mobile browsers
+app.use((req, res, next) => {
+    // Disable caching for auth-related pages
+    if (req.path === '/' || req.path === '/login' || req.path.startsWith('/api/')) {
+        res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+        res.setHeader('Pragma', 'no-cache');
+        res.setHeader('Expires', '0');
+    }
+    next();
+});
+
+// Serve static files
 app.use(express.static(__dirname));
 
 // Serve uploads if directory exists
@@ -46,9 +51,17 @@ if (fs.existsSync(uploadsPath)) {
     app.use("/uploads", express.static(uploadsPath));
 }
 
-// ------------------ FILE PATHS / STORAGE ------------------ //
-let reportsData = [];
-let notificationsData = [];
+// ------------------ FILE PATHS ------------------ //
+const REPORTS_FILE = path.join(__dirname, "reports.json");
+const NOTIFICATIONS_FILE = path.join(__dirname, "notifications.json");
+
+// Ensure files exist
+if (!fs.existsSync(REPORTS_FILE)) {
+    fs.writeFileSync(REPORTS_FILE, JSON.stringify([]));
+}
+if (!fs.existsSync(NOTIFICATIONS_FILE)) {
+    fs.writeFileSync(NOTIFICATIONS_FILE, JSON.stringify([]));
+}
 
 // Store active sessions
 const activeSessions = new Map();
@@ -56,25 +69,34 @@ const activeSessions = new Map();
 // ------------------ AUTH MIDDLEWARE ------------------ //
 async function verifyAuth(req, res, next) {
     try {
-        // Skip auth for login page and root
-        if (req.path === '/' || req.path === '/login' || req.path === '/index.html') {
+        // Skip auth for login page, root, and static files
+        if (req.path === '/' || 
+            req.path === '/login' || 
+            req.path === '/index.html' ||
+            req.path.includes('.css') ||
+            req.path.includes('.js') ||
+            req.path.includes('.ico') ||
+            req.path.startsWith('/uploads/')) {
             return next();
         }
 
-        // Check token in multiple locations - IMPORTANT: Check query params first!
+        // Check token in multiple locations
         const token = req.query.token || 
                      req.headers.authorization?.split(' ')[1] ||
                      req.body?.token ||
                      req.cookies?.token;
 
-        console.log('🔐 Verifying token for path:', req.path, 'Token exists:', !!token, 'Query token:', req.query.token);
+        console.log('🔐 Verifying token for path:', req.path, 'Token exists:', !!token);
 
         if (!token) {
             console.log('❌ No token found for protected route:', req.path);
             
-            // For HTML pages, redirect to login
-            if (!req.path.startsWith('/api/')) {
-                return res.redirect('/login?redirect=' + encodeURIComponent(req.originalUrl));
+            // For dashboard/station pages, redirect to login
+            if (req.path === '/dashboard' || 
+                req.path === '/police' || 
+                req.path === '/fire' || 
+                req.path === '/ambulance') {
+                return res.redirect('/?redirect=' + encodeURIComponent(req.originalUrl));
             }
             
             // For API endpoints, return JSON error
@@ -95,9 +117,12 @@ async function verifyAuth(req, res, next) {
         if (error || !user) {
             console.error('❌ Supabase token verification failed:', error?.message);
             
-            // For HTML pages, redirect to login
-            if (!req.path.startsWith('/api/')) {
-                return res.redirect('/login?session=expired&redirect=' + encodeURIComponent(req.originalUrl));
+            // For dashboard/station pages, redirect to login
+            if (req.path === '/dashboard' || 
+                req.path === '/police' || 
+                req.path === '/fire' || 
+                req.path === '/ambulance') {
+                return res.redirect('/?session=expired&redirect=' + encodeURIComponent(req.originalUrl));
             }
             
             // For API endpoints
@@ -126,9 +151,12 @@ async function verifyAuth(req, res, next) {
     } catch (error) {
         console.error('Auth error:', error);
         
-        // For HTML pages, redirect to login
-        if (!req.path.startsWith('/api/')) {
-            return res.redirect('/login?error=auth_failed&redirect=' + encodeURIComponent(req.originalUrl));
+        // For dashboard/station pages, redirect to login
+        if (req.path === '/dashboard' || 
+            req.path === '/police' || 
+            req.path === '/fire' || 
+            req.path === '/ambulance') {
+            return res.redirect('/?error=auth_failed');
         }
         
         // For API endpoints
@@ -151,27 +179,24 @@ app.get("/health", (req, res) => {
     res.json({ status: "OK", timestamp: new Date().toISOString() });
 });
 
-// ------------------ STATIC FILE ROUTES (FOR VERCEL) ------------------ //
-// Serve HTML files directly
+// ------------------ STATIC FILE ROUTES ------------------ //
+// Serve login page (root)
 app.get("/", (req, res) => {
     res.sendFile(path.join(__dirname, "index.html"));
 });
 
-app.get("/login", (req, res) => {
-    res.sendFile(path.join(__dirname, "index.html"));
-});
-
-app.get("/dashboard", (req, res) => {
+// Serve dashboard with auth
+app.get("/dashboard", verifyAuth, (req, res) => {
     res.sendFile(path.join(__dirname, "index.html"));
 });
 
 // ------------------ STATION DASHBOARD ROUTES ------------------ //
 app.get("/police", verifyAuth, (req, res) => {
     if (req.user.role !== 'admin' || req.user.station !== 'police') {
-        return res.redirect('/login?error=access_denied');
+        return res.redirect('/?error=access_denied');
     }
     
-    // Pass the token to the HTML file (we'll embed it in a script tag)
+    // Pass the token to the HTML file
     const htmlPath = path.join(__dirname, "police.html");
     fs.readFile(htmlPath, 'utf8', (err, html) => {
         if (err) {
@@ -188,8 +213,7 @@ app.get("/police", verifyAuth, (req, res) => {
                 const token = urlParams.get('token');
                 if (token) {
                     localStorage.setItem('token', token);
-                    // Clean up URL (optional)
-                    window.history.replaceState({}, '', '/police');
+                    localStorage.setItem('lastLogin', Date.now());
                 }
             </script>
             </head>`
@@ -201,16 +225,60 @@ app.get("/police", verifyAuth, (req, res) => {
 
 app.get("/fire", verifyAuth, (req, res) => {
     if (req.user.role !== 'admin' || req.user.station !== 'fire') {
-        return res.redirect('/login?error=access_denied');
+        return res.redirect('/?error=access_denied');
     }
-    res.sendFile(path.join(__dirname, "fire.html"));
+    
+    const htmlPath = path.join(__dirname, "fire.html");
+    fs.readFile(htmlPath, 'utf8', (err, html) => {
+        if (err) {
+            console.error('Error reading fire.html:', err);
+            return res.sendFile(htmlPath);
+        }
+        
+        const modifiedHtml = html.replace(
+            '</head>',
+            `<script>
+                const urlParams = new URLSearchParams(window.location.search);
+                const token = urlParams.get('token');
+                if (token) {
+                    localStorage.setItem('token', token);
+                    localStorage.setItem('lastLogin', Date.now());
+                }
+            </script>
+            </head>`
+        );
+        
+        res.send(modifiedHtml);
+    });
 });
 
 app.get("/ambulance", verifyAuth, (req, res) => {
     if (req.user.role !== 'admin' || req.user.station !== 'ambulance') {
-        return res.redirect('/login?error=access_denied');
+        return res.redirect('/?error=access_denied');
     }
-    res.sendFile(path.join(__dirname, "ambulance.html"));
+    
+    const htmlPath = path.join(__dirname, "ambulance.html");
+    fs.readFile(htmlPath, 'utf8', (err, html) => {
+        if (err) {
+            console.error('Error reading ambulance.html:', err);
+            return res.sendFile(htmlPath);
+        }
+        
+        const modifiedHtml = html.replace(
+            '</head>',
+            `<script>
+                const urlParams = new URLSearchParams(window.location.search);
+                const token = urlParams.get('token');
+                if (token) {
+                    localStorage.setItem('token', token);
+                    localStorage.setItem('lastLogin', Date.now());
+                }
+            </script>
+            </head>`
+        );
+        
+        res.send(modifiedHtml);
+    });
 });
 
 // ------------------ AUTH API ROUTES ------------------ //
@@ -264,16 +332,12 @@ app.post("/api/login", async (req, res) => {
             expiresAt: Date.now() + 3600000 // 1 hour
         });
 
-        // Set redirect URL with token
-        const redirectUrl = `/${station}?token=${session.access_token}`;
-
-        console.log(`✅ Login successful for: ${email}, redirecting to: ${redirectUrl}`);
+        console.log(`✅ Login successful for: ${email}`);
 
         res.json({
             success: true,
             token: session.access_token,
-            user: userData,
-            redirectUrl: redirectUrl
+            user: userData
         });
 
     } catch (error) {
@@ -291,7 +355,7 @@ app.post("/api/verify-token", async (req, res) => {
     }
     
     try {
-        // Check active sessions
+        // Check active sessions first
         const sessionData = activeSessions.get(token);
         if (sessionData) {
             return res.json({
@@ -339,18 +403,6 @@ app.post("/api/logout", async (req, res) => {
 });
 
 // ------------------ REPORT ROUTES ------------------ //
-// Initialize data file for Vercel
-const REPORTS_FILE = path.join(__dirname, "reports.json");
-const NOTIFICATIONS_FILE = path.join(__dirname, "notifications.json");
-
-// Ensure files exist
-if (!fs.existsSync(REPORTS_FILE)) {
-    fs.writeFileSync(REPORTS_FILE, JSON.stringify([]));
-}
-if (!fs.existsSync(NOTIFICATIONS_FILE)) {
-    fs.writeFileSync(NOTIFICATIONS_FILE, JSON.stringify([]));
-}
-
 app.get("/api/reports", (req, res) => {
     let data = [];
     try {
@@ -488,8 +540,8 @@ app.put("/api/reports/:id/status", verifyAuth, async (req, res) => {
     }
 });
 
-// ------------------ CATCH-ALL ROUTE FOR SPA ------------------ //
-// This handles client-side routing for React/Vue/Angular apps
+// ------------------ CATCH-ALL ROUTE ------------------ //
+// This handles client-side routing
 app.get('*', (req, res) => {
     // Don't interfere with API routes
     if (req.path.startsWith('/api/')) {
@@ -502,7 +554,7 @@ app.get('*', (req, res) => {
         return res.sendFile(staticPath);
     }
     
-    // For all other routes, serve the main app (index.html)
+    // For all other routes, serve the login page
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 

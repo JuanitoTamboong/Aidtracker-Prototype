@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>Login | AidTracker Emergency Response</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -34,12 +34,14 @@
       margin: 0;
       padding: 0;
       box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
     }
 
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', Roboto, Oxygen, Ubuntu, sans-serif;
       background: linear-gradient(135deg, #0a2540 0%, #1e3a8a 100%);
       min-height: 100vh;
+      min-height: -webkit-fill-available;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -48,6 +50,7 @@
       line-height: 1.6;
       position: relative;
       overflow-x: hidden;
+      touch-action: manipulation;
     }
 
     body::before {
@@ -200,6 +203,8 @@
       background: white;
       transition: all 0.2s ease;
       font-family: 'Inter', sans-serif;
+      -webkit-appearance: none;
+      appearance: none;
     }
 
     .form-input:focus {
@@ -236,6 +241,8 @@
       transition: color 0.2s;
       padding: 4px;
       z-index: 2;
+      -webkit-appearance: none;
+      appearance: none;
     }
 
     .password-toggle:hover {
@@ -260,6 +267,9 @@
       gap: 10px;
       font-family: 'Inter', sans-serif;
       letter-spacing: 0.3px;
+      -webkit-appearance: none;
+      appearance: none;
+      touch-action: manipulation;
     }
 
     .login-btn:hover {
@@ -390,6 +400,9 @@
       display: inline-flex;
       align-items: center;
       gap: 10px;
+      -webkit-appearance: none;
+      appearance: none;
+      touch-action: manipulation;
     }
 
     .modal-continue-btn:hover {
@@ -424,7 +437,7 @@
       letter-spacing: 0.5px;
     }
 
-    /* Responsive Design */
+    /* Mobile-specific fixes */
     @media (max-width: 768px) {
       .login-card {
         padding: 40px 30px;
@@ -436,6 +449,11 @@
       
       .form-title {
         font-size: 22px;
+      }
+      
+      .form-input, .login-btn {
+        padding: 14px 16px;
+        font-size: 16px; /* Prevents iOS zoom on focus */
       }
     }
 
@@ -451,7 +469,35 @@
       .security-badge {
         top: 16px;
         right: 16px;
+        font-size: 10px;
+        padding: 4px 8px;
       }
+      
+      body {
+        padding: 16px;
+        align-items: flex-start;
+        padding-top: 40px;
+      }
+    }
+
+    /* Prevent double-tap zoom on mobile */
+    @media (max-width: 768px) {
+      button, input, .login-btn, .modal-continue-btn {
+        touch-action: manipulation;
+      }
+    }
+
+    /* Fix for iOS form elements */
+    input, button, textarea, select {
+      -webkit-appearance: none;
+      -moz-appearance: none;
+      appearance: none;
+      border-radius: var(--radius-md);
+    }
+
+    /* Prevent text size adjustment on orientation change */
+    html {
+      -webkit-text-size-adjust: 100%;
     }
   </style>
 </head>
@@ -493,7 +539,10 @@
               placeholder="Enter your email address"
               required
               autocomplete="email"
-              autofocus
+              autocapitalize="none"
+              autocorrect="off"
+              spellcheck="false"
+              inputmode="email"
             />
             <div class="input-icon">
               <i class="fas fa-envelope"></i>
@@ -514,6 +563,9 @@
               placeholder="Enter your password"
               required
               autocomplete="current-password"
+              autocapitalize="none"
+              autocorrect="off"
+              spellcheck="false"
             />
             <button type="button" class="password-toggle" id="passwordToggle">
               <i class="far fa-eye"></i>
@@ -546,6 +598,7 @@
         </button>
       </div>
     </div>
+  </div>
 
   <script>
     // Admin email to station mapping
@@ -571,9 +624,15 @@
       }
     });
 
+    // Prevent form submission spam
+    let isSubmitting = false;
+
     // Handle login form submission
     document.getElementById('loginForm').addEventListener('submit', async function(e) {
       e.preventDefault();
+
+      if (isSubmitting) return;
+      isSubmitting = true;
 
       const email = document.getElementById('email').value.trim();
       const password = document.getElementById('password').value;
@@ -586,16 +645,13 @@
       errorMessage.style.display = 'none';
       errorMessage.textContent = '';
 
-      // Disable button
+      // Disable button and show loading
       loginBtn.disabled = true;
       loginBtn.innerHTML = '<i class="fas fa-spinner spinner"></i> Authenticating...';
 
       try {
-        let response;
-        let redirectUrl = '/dashboard';
-        
         // Login for all users (admin and regular)
-        response = await fetch('/api/login', {
+        const response = await fetch('/api/login', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -609,17 +665,20 @@
           throw new Error(data.error || 'Invalid credentials');
         }
 
-        // Set redirect URL based on user role
-        if (data.user.role === 'admin' && data.user.station) {
-          redirectUrl = `/${data.user.station}?token=${data.token}`;
-          modalMessage.textContent = `Welcome, ${data.user.station.charAt(0).toUpperCase() + data.user.station.slice(1)} Administrator. Redirecting to dashboard...`;
-        } else {
-          modalMessage.textContent = `Welcome back, ${email}. Redirecting to dashboard...`;
-        }
-
-        // Store user data in localStorage BEFORE redirecting
+        // Store user data
         localStorage.setItem('user', JSON.stringify(data.user));
         localStorage.setItem('token', data.token);
+        localStorage.setItem('lastLogin', Date.now());
+
+        // Set redirect URL based on user role
+        let redirectUrl = '/dashboard';
+        if (data.user.role === 'admin' && data.user.station) {
+          redirectUrl = `/${data.user.station}?token=${encodeURIComponent(data.token)}`;
+          modalMessage.textContent = `Welcome, ${data.user.station.charAt(0).toUpperCase() + data.user.station.slice(1)} Administrator. Redirecting to dashboard...`;
+        } else {
+          redirectUrl = '/dashboard';
+          modalMessage.textContent = `Welcome back, ${email}. Redirecting to dashboard...`;
+        }
 
         // Show success modal
         successModal.classList.add('active');
@@ -629,10 +688,10 @@
           window.location.href = redirectUrl;
         };
 
-        // Auto-redirect after 2 seconds
+        // Auto-redirect after 1.5 seconds
         setTimeout(() => {
           window.location.href = redirectUrl;
-        }, 2000);
+        }, 1500);
 
       } catch (error) {
         console.error('Login error:', error);
@@ -644,18 +703,45 @@
         setTimeout(() => {
           loginBtn.style.animation = '';
         }, 500);
+        
+        // Reset form focus
+        document.getElementById('email').focus();
       } finally {
         // Re-enable button
         loginBtn.disabled = false;
         loginBtn.innerHTML = '<i class="fas fa-lock"></i> Sign In';
+        isSubmitting = false;
       }
     });
 
     // Check if already logged in on page load
     document.addEventListener('DOMContentLoaded', async () => {
       try {
+        // Clear any problematic URL parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        const hasError = urlParams.has('error') || urlParams.has('session') || urlParams.has('redirect');
+        
+        if (hasError) {
+          // Clean URL without page reload
+          window.history.replaceState({}, '', '/');
+        }
+
+        // Clear localStorage if there's an error in URL
+        if (urlParams.get('error') === 'access_denied' || 
+            urlParams.get('session') === 'expired') {
+          localStorage.clear();
+          return;
+        }
+
         const token = localStorage.getItem('token');
         const userData = localStorage.getItem('user');
+        const lastLogin = localStorage.getItem('lastLogin');
+        
+        // Check if session is old (more than 1 hour)
+        if (lastLogin && Date.now() - parseInt(lastLogin) > 3600000) {
+          localStorage.clear();
+          return;
+        }
         
         if (token && userData) {
           // Verify token with server
@@ -670,22 +756,37 @@
           const data = await response.json();
           
           if (data.authenticated && data.user) {
-            // Redirect based on user role
-            if (data.user.role === 'admin' && data.user.station) {
-              window.location.href = `/${data.user.station}?token=${token}`;
-            } else {
-              window.location.href = '/dashboard';
-            }
+            // Small delay to prevent redirect loops
+            setTimeout(() => {
+              // Redirect based on user role
+              if (data.user.role === 'admin' && data.user.station) {
+                window.location.href = `/${data.user.station}?token=${encodeURIComponent(token)}`;
+              } else {
+                window.location.href = '/dashboard';
+              }
+            }, 300);
             return;
           } else {
             // Clear invalid tokens
-            localStorage.removeItem('token');
-            localStorage.removeItem('user');
+            localStorage.clear();
           }
         }
       } catch (error) {
         console.log('Session check failed:', error);
+        localStorage.clear();
       }
+      
+      // Focus email input after everything is loaded
+      setTimeout(() => {
+        const emailInput = document.getElementById('email');
+        if (emailInput) {
+          emailInput.focus();
+          // Scroll to top on mobile to ensure form is visible
+          if (window.innerWidth < 768) {
+            window.scrollTo(0, 0);
+          }
+        }
+      }, 100);
     });
 
     // Add shake animation for errors
@@ -699,8 +800,50 @@
     `;
     document.head.appendChild(style);
 
-    // Auto-focus email input on page load
-    document.getElementById('email').focus();
+    // Handle page visibility changes (prevents redirect loops when tab is switched)
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') {
+        // Check if we're on login page but should be redirected
+        const token = localStorage.getItem('token');
+        if (token && window.location.pathname === '/') {
+          setTimeout(() => {
+            window.location.reload();
+          }, 100);
+        }
+      }
+    });
+
+    // Prevent iOS zoom on input focus
+    document.addEventListener('touchstart', function(event) {
+      if (event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA') {
+        event.target.style.fontSize = '16px';
+      }
+    });
+
+    // Handle back button on mobile
+    window.addEventListener('pageshow', function(event) {
+      // If page is loaded from cache, check authentication
+      if (event.persisted) {
+        const token = localStorage.getItem('token');
+        if (!token && window.location.pathname !== '/') {
+          window.location.href = '/';
+        }
+      }
+    });
+
+    // Fix for iOS keyboard covering input
+    window.addEventListener('resize', function() {
+      if (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA') {
+        setTimeout(() => {
+          document.activeElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 300);
+      }
+    });
+
+    // Prevent form resubmission on refresh
+    if (window.history.replaceState) {
+      window.history.replaceState(null, null, window.location.href);
+    }
   </script>
 </body>
 </html>
