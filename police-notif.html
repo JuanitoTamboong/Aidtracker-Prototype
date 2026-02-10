@@ -1190,9 +1190,16 @@
       });
     }
 
-    function goBack() {
-      window.location.href = "police.html";
+    async function goBack() {
+         window.location.href = "police.html";
     }
+
+        // User not authenticated or not police admin, redirect to login
+        window.location.href = "index.html";
+      } catch (error) {
+        console.error('Error checking authentication:', error);
+        // On error, redirect to login
+        window.location.href = "index.html";
 
     function openModal(modalId) {
       document.getElementById(modalId).style.display = 'flex';
