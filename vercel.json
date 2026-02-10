@@ -2,6 +2,10 @@
   "version": 2,
   "builds": [
     {
+      "src": "*.html",
+      "use": "@vercel/static"
+    },
+    {
       "src": "server.cjs",
       "use": "@vercel/node"
     }
@@ -13,40 +17,15 @@
     },
     {
       "src": "/police",
-      "dest": "/server.cjs",
-      "methods": ["GET"]
+      "dest": "/police.html"
     },
     {
-      "src": "/fire",
-      "dest": "/server.cjs",
-      "methods": ["GET"]
-    },
-    {
-      "src": "/ambulance",
-      "dest": "/server.cjs",
-      "methods": ["GET"]
-    },
-    {
-      "src": "/login",
-      "dest": "/index.html"
-    },
-    {
-      "src": "/dashboard",
-      "dest": "/index.html"
-    },
-    {
-      "src": "/",
-      "dest": "/index.html"
+      "src": "/ambulance", 
+      "dest": "/ambulance.html"
     },
     {
       "src": "/(.*)",
       "dest": "/index.html"
     }
-  ],
-  "functions": {
-    "server.cjs": {
-      "memory": 1024,
-      "maxDuration": 10
-    }
-  }
+  ]
 }
