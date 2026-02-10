@@ -628,111 +628,25 @@ app.get('/ambulance-notif', verifyAuth, (req, res) => {
     });
 });
 
-// FALLBACK ROUTES FOR DIRECT HTML FILE ACCESS
-app.get('/police-notif.html', verifyAuth, (req, res) => {
-    if (req.user.role !== 'admin' || req.user.station !== 'police') {
-        return res.redirect('/?error=access_denied');
-    }
-    
-    const htmlPath = path.join(__dirname, 'police-notif.html');
-    fs.readFile(htmlPath, 'utf8', (err, html) => {
-        if (err) {
-            console.error('Error reading police-notif.html:', err);
-            return res.sendFile(htmlPath);
-        }
-
-        const modifiedHtml = html.replace(
-            '</head>',
-            `<script>
-                const urlParams = new URLSearchParams(window.location.search);
-                const token = urlParams.get('token');
-                if (token) {
-                    localStorage.setItem('token', token);
-                    localStorage.setItem('lastLogin', Date.now());
-                }
-            </script>
-            </head>`
-        );
-
-        res.send(modifiedHtml);
-    });
-});
-
-app.get('/fire-notif.html', verifyAuth, (req, res) => {
-    if (req.user.role !== 'admin' || req.user.station !== 'fire') {
-        return res.redirect('/?error=access_denied');
-    }
-    
-    const htmlPath = path.join(__dirname, 'fire-notif.html');
-    fs.readFile(htmlPath, 'utf8', (err, html) => {
-        if (err) {
-            console.error('Error reading fire-notif.html:', err);
-            return res.sendFile(htmlPath);
-        }
-
-        const modifiedHtml = html.replace(
-            '</head>',
-            `<script>
-                const urlParams = new URLSearchParams(window.location.search);
-                const token = urlParams.get('token');
-                if (token) {
-                    localStorage.setItem('token', token);
-                    localStorage.setItem('lastLogin', Date.now());
-                }
-            </script>
-            </head>`
-        );
-
-        res.send(modifiedHtml);
-    });
-});
-
-app.get('/ambulance-notif.html', verifyAuth, (req, res) => {
-    if (req.user.role !== 'admin' || req.user.station !== 'ambulance') {
-        return res.redirect('/?error=access_denied');
-    }
-    
-    const htmlPath = path.join(__dirname, 'ambulance-notif.html');
-    fs.readFile(htmlPath, 'utf8', (err, html) => {
-        if (err) {
-            console.error('Error reading ambulance-notif.html:', err);
-            return res.sendFile(htmlPath);
-        }
-
-        const modifiedHtml = html.replace(
-            '</head>',
-            `<script>
-                const urlParams = new URLSearchParams(window.location.search);
-                const token = urlParams.get('token');
-                if (token) {
-                    localStorage.setItem('token', token);
-                    localStorage.setItem('lastLogin', Date.now());
-                }
-            </script>
-            </head>`
-        );
-
-        res.send(modifiedHtml);
-    });
-});
-
 // ------------------ CATCH-ALL ROUTE ------------------ //
-// Commented out for local development - Vercel handles client-side routing differently
-// app.get('*', (req, res) => {
-//     // Don't interfere with API routes
-//     if (req.path.startsWith('/api/')) {
-//         return res.status(404).json({ error: 'API endpoint not found' });
-//     }
+app.use((req, res, next) => {
+    // Skip if already handled by previous routes
+    if (res.headersSent) return next();
 
-//     // Don't interfere with static files that exist
-//     const staticPath = path.join(__dirname, req.path);
-//     if (fs.existsSync(staticPath) && !fs.lstatSync(staticPath).isDirectory()) {
-//         return res.sendFile(staticPath);
-//     }
+    // Don't interfere with API routes
+    if (req.path.startsWith('/api/')) {
+        return res.status(404).json({ error: 'API endpoint not found' });
+    }
 
-//     // For all other routes, serve the login page
-//     res.sendFile(path.join(__dirname, 'index.html'));
-// });
+    // Don't interfere with static files that exist
+    const staticPath = path.join(__dirname, req.path);
+    if (fs.existsSync(staticPath) && !fs.lstatSync(staticPath).isDirectory()) {
+        return res.sendFile(staticPath);
+    }
+
+    // For all other routes, serve the login page
+    res.sendFile(path.join(__dirname, 'index.html'));
+});
 
 // ------------------ EXPORT FOR VERCEL ------------------ //
 module.exports = app;
