@@ -1188,6 +1188,12 @@
 
     function goBack() {
        window.location.href = "/fire";
+         const token = localStorage.getItem('token');
+        if (token) {
+            window.location.href = "/fire?token=" + encodeURIComponent(token);
+        } else {
+            window.location.href = "/fire";
+        }
     }
 
     function openModal(modalId) {
