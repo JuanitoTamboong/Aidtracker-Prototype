@@ -688,11 +688,6 @@
           window.location.href = redirectUrl;
         };
 
-        // Auto-redirect after 1.5 seconds
-        setTimeout(() => {
-          window.location.href = redirectUrl;
-        }, 1500);
-
       } catch (error) {
         console.error('Login error:', error);
         errorMessage.textContent = error.message;
