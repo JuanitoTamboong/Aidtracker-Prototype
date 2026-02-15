@@ -2161,7 +2161,13 @@
         if (reportId) {
           sessionStorage.setItem('viewReportId', reportId);
         }
-        
+           // Store the return URL so back button works correctly
+        const token = localStorage.getItem('token');
+        if (token) {
+          sessionStorage.setItem('returnUrl', "/fire-notif.html?token=" + encodeURIComponent(token));
+        } else {
+          sessionStorage.setItem('returnUrl', "fire-notif.html");
+        }
         // Redirect to the view-report page
         window.location.href = "view-report.html";
       } else {

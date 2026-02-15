@@ -1,34 +1,51 @@
-# TODO: Fix Notification Bell Navigation
+# TODO: Fix View Report for Every Station
 
-## Steps to Complete
-- [x] Update package.json: Remove "type": "module" to switch from ES modules to CommonJS
-- [x] Update server.js: Convert import statements to require(), and change export default to module.exports
-- [x] Uncomment catch-all route for local SPA routing
-- [x] Fix notification bell URLs to use absolute paths (/police-notif, /fire-notif, /ambulance-notif)
-- [x] Update Vercel config to serve all HTML files
-- [x] Test locally and ensure it works both locally and on Vercel
+## Task
+Add "View Location" button to each station dashboard (fire, police, ambulance) to allow viewing detailed accident location on map.
 
-## Progress
-- Fixed notification bell navigation URLs in all dashboard HTML files
-- Updated Vercel config to serve all HTML files statically
-- Local server running on http://localhost:3000
-- Next: Test notification bell clicks and deploy to Vercel
+## Status: IN PROGRESS
 
-## Local Setup Instructions
-1. Navigate to Aidtracker-Prototype directory
-2. Run `npm install` to install dependencies
-3. Run `npm start` to start the server
-4. Open http://localhost:3000 in browser
-5. Test login and navigation - should work same as Vercel
-6. Click notification bell in police/fire/ambulance dashboards - should navigate correctly
+### 1. Fire Station (fire.html)
+- [x] Add CSS style for `location-btn` button
+- [x] Modify `createReportCard` function to include "View Location" button
+- [x] Add `viewLocation` function to save location to sessionStorage and navigate to view-report.html
+- [x] Expose `viewLocation` function globally
 
-## Fixed Issues
-- Notification bell URLs now use absolute paths (/police-notif, /fire-notif, /ambulance-notif)
-- Vercel config updated to serve all HTML files
-- Local development routing fixed with catch-all route
-- Server running locally on http://localhost:3000
+### 2. Police Station (police.html)
+- [x] Add CSS style for `location-btn` button
+- [x] Modify `createReportCard` function to include "View Location" button
+- [x] Add `viewLocation` function to save location to sessionStorage and navigate to view-report.html
+- [x] Expose `viewLocation` function globally
+- [x] Fix duplicate logout() function definition
 
-## Testing Results
-- ✅ Server starts successfully
-- ⏳ Testing notification bell navigation locally
-- ⏳ Need to test on Vercel deployment
+### 3. Ambulance Station (ambulance.html)
+- [x] Add CSS style for `location-btn` button
+- [x] Modify `createReportCard` function to include "View Location" button
+- [x] Add `viewLocation` function to save location to sessionStorage and navigate to view-report.html
+- [x] Expose `viewLocation` function globally
+
+## Implementation Details
+
+The viewLocation function:
+1. Saves the report's location data to sessionStorage:
+   - viewLocation: JSON with lat, lng
+   - viewReportId: report ID
+2. Navigates to view-report.html
+
+Example implementation:
+```
+javascript
+function viewLocation(report) {
+  sessionStorage.setItem('viewLocation', JSON.stringify({
+    lat: report.latitude,
+    lng: report.longitude
+  }));
+  sessionStorage.setItem('viewReportId', report.id);
+  window.location.href = 'view-report.html';
+}
+```
+
+## Files Modified
+1. Aidtracker-Prototype/fire.html
+2. Aidtracker-Prototype/police.html
+3. Aidtracker-Prototype/ambulance.html

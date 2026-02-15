@@ -544,7 +544,15 @@ body {
   let bottomSheetOpen = false;
 
   function goBack() {
-    window.location.href = "notification.html";
+    // Try to get the return URL from sessionStorage or use default
+    const returnUrl = sessionStorage.getItem('returnUrl');
+    if (returnUrl) {
+      sessionStorage.removeItem('returnUrl');
+      window.location.href = returnUrl;
+    } else {
+      // Default to index page
+      window.location.href = "index.html";
+    }
   }
 
   function toggleBottomSheet() {
