@@ -2168,8 +2168,8 @@
         } else {
           sessionStorage.setItem('returnUrl', "/fire-notif.html");
         }
-        // Redirect to the view-report page
-        window.location.href = "view-report.html";
+        // Redirect to the view-report page - use absolute path for deployment
+        window.location.href = "/view-report.html";
       } else {
         alert('Location coordinates not available or invalid.');
       }
