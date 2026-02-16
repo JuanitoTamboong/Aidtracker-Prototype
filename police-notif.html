@@ -2204,14 +2204,15 @@
         
         // Store the return URL so back button works correctly
         const token = localStorage.getItem('token');
+        let returnUrl = "/police-notif.html";
         if (token) {
-          sessionStorage.setItem('returnUrl', "/police-notif.html?token=" + encodeURIComponent(token));
+          returnUrl = "/police-notif.html?token=" + encodeURIComponent(token);
+          sessionStorage.setItem('returnUrl', returnUrl);
         } else {
-          sessionStorage.setItem('returnUrl', "/police-notif.html");
+          sessionStorage.setItem('returnUrl', returnUrl);
         }
-        
         // Redirect to the view-report page - use absolute path for deployment
-        window.location.href = "/view-report.html";
+        window.location.href = "/view-report.html?returnUrl=" + encodeURIComponent(returnUrl);
       } else {
         alert('Location coordinates not available or invalid.');
       }

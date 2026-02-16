@@ -544,7 +544,17 @@ body {
   let bottomSheetOpen = false;
 
   function goBack() {
-    // Try to get the return URL from sessionStorage or use default
+    // First, try to get return URL from URL parameter (more reliable for deployment)
+    const urlParams = new URLSearchParams(window.location.search);
+    const returnUrlParam = urlParams.get('returnUrl');
+    
+    if (returnUrlParam) {
+      // Use the return URL from the parameter
+      window.location.href = returnUrlParam;
+      return;
+    }
+    
+    // Fallback to sessionStorage
     const returnUrl = sessionStorage.getItem('returnUrl');
     if (returnUrl) {
       sessionStorage.removeItem('returnUrl');
