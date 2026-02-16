@@ -550,8 +550,8 @@ body {
       sessionStorage.removeItem('returnUrl');
       window.location.href = returnUrl;
     } else {
-      // Default to index page
-      window.location.href = "index.html";
+      // Default to index page - use absolute path for Vercel deployment
+      window.location.href = "/index.html";
     }
   }
 
