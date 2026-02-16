@@ -546,23 +546,41 @@ body {
   function goBack() {
     // First, try to get return URL from URL parameter (more reliable for deployment)
     const urlParams = new URLSearchParams(window.location.search);
-    const returnUrlParam = urlParams.get('returnUrl');
+    let returnUrlParam = urlParams.get('returnUrl');
     
     if (returnUrlParam) {
-      // Use the return URL from the parameter
+      // Decode the URL parameter in case it's encoded
+      try {
+        returnUrlParam = decodeURIComponent(returnUrlParam);
+      } catch (e) {
+        console.log('Could not decode returnUrlParam:', returnUrlParam);
+      }
+      console.log('Using returnUrl from URL parameter:', returnUrlParam);
       window.location.href = returnUrlParam;
       return;
     }
     
     // Fallback to sessionStorage
     const returnUrl = sessionStorage.getItem('returnUrl');
+    console.log('returnUrl from sessionStorage:', returnUrl);
+    
     if (returnUrl) {
       sessionStorage.removeItem('returnUrl');
       window.location.href = returnUrl;
-    } else {
-      // Default to index page - use absolute path for Vercel deployment
-      window.location.href = "/index.html";
+      return;
     }
+    
+    // Last fallback: check if there's a token in localStorage to determine where to go
+    const token = localStorage.getItem('token');
+    if (token) {
+      // Try to infer the station from the current page or use a default
+      // For now, go to the dashboard
+      window.location.href = "/dashboard";
+      return;
+    }
+    
+    // Default to index page
+    window.location.href = "/index.html";
   }
 
   function toggleBottomSheet() {

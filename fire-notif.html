@@ -2163,15 +2163,15 @@
         }
         // Store the return URL so back button works correctly
         const token = localStorage.getItem('token');
-        let returnUrl = "/fire-notif.html";
+        let returnUrl = "/fire-notif";
         if (token) {
-          returnUrl = "/fire-notif.html?token=" + encodeURIComponent(token);
+          returnUrl = "/fire-notif?token=" + encodeURIComponent(token);
           sessionStorage.setItem('returnUrl', returnUrl);
         } else {
           sessionStorage.setItem('returnUrl', returnUrl);
         }
         // Redirect to the view-report page - use absolute path for deployment
-        window.location.href = "/view-report.html?returnUrl=" + encodeURIComponent(returnUrl);
+        window.location.href = "/view-report?returnUrl=" + encodeURIComponent(returnUrl);
       } else {
         alert('Location coordinates not available or invalid.');
       }
