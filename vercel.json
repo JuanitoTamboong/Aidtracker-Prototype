@@ -44,6 +44,14 @@
       "dest": "/server.cjs"
     },
     {
+      "src": "/view-report",
+      "dest": "/server.cjs"
+    },
+    {
+      "src": "/view-report.html",
+      "dest": "/server.cjs"
+    },
+    {
       "src": "/",
       "dest": "/server.cjs"
     },

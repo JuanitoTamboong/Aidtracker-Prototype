@@ -190,6 +190,19 @@ app.get("/dashboard", verifyAuth, (req, res) => {
     res.sendFile(path.join(__dirname, "index.html"));
 });
 
+// ------------------ VIEW REPORT ROUTE ------------------ //
+// Serve view-report.html (no auth required - it reads from sessionStorage)
+app.get("/view-report", (req, res) => {
+    const htmlPath = path.join(__dirname, "view-report.html");
+    res.sendFile(htmlPath);
+});
+
+// Also handle .html extension for direct access
+app.get("/view-report.html", (req, res) => {
+    const htmlPath = path.join(__dirname, "view-report.html");
+    res.sendFile(htmlPath);
+});
+
 // ------------------ STATION DASHBOARD ROUTES ------------------ //
 app.get("/police", verifyAuth, (req, res) => {
     if (req.user.role !== 'admin' || req.user.station !== 'police') {
