@@ -1236,8 +1236,7 @@
     </section>
   </main>
 
-  <script>
-  
+<script>
     // ============ CONFIGURATION ============
     const SUPABASE_URL = 'https://gwvepxupoxyyydnisulb.supabase.co';
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd3dmVweHVwb3h5eXlkbmlzdWxiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ4MDE4ODcsImV4cCI6MjA4MDM3Nzg4N30.Ku9SXTAKNMvHilgEpxj5HcVA-0TPt4ziuEq0Irao5Qc';
@@ -1258,17 +1257,16 @@
     let touchEndX = 0;
     let currentTab = 'overview';
 
-    // Incident Type Configuration (AMBULANCE RELATED)
     const typeConfig = {
       motor_accident: {
         name: 'Vehicular Accident',
         icon: 'car-crash',
-        color: '#ffd700'  // Using gold for all types
+        color: '#ffd700'
       },
       medical_emergency: {
         name: 'Medical Emergency',
         icon: 'ambulance',
-        color: '#ffd700'  // Using gold for all types
+        color: '#ffd700'
       },
       default: {
         name: 'Medical Incident',
@@ -1279,27 +1277,14 @@
 
     // ============ INITIALIZATION ============
     document.addEventListener('DOMContentLoaded', async () => {
-      console.log('🚑 Ambulance Dashboard Initializing...');
-      
-      // Initialize Supabase
       supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
       
-      // Check authentication
       if (!checkAuthentication()) return;
       
-      // Initialize maps
       initializeMaps();
-      
-      // Setup event listeners
       setupEventListeners();
-      
-      // Load initial data
       await loadInitialData();
-      
-      // Setup realtime subscription
       setupRealtimeSubscription();
-      
-      // Make functions globally available
       exposeGlobalFunctions();
     });
 
@@ -1314,11 +1299,9 @@
 
         const userData = JSON.parse(user);
         
-        // Check for ambulance access
         if (userData.station === 'ambulance' || 
             userData.email === 'medicaladmin@gmail.com' || 
             userData.role === 'admin') {
-          console.log('✅ User authenticated for ambulance dashboard');
           return true;
         }
         
@@ -1327,7 +1310,6 @@
         return false;
         
       } catch (error) {
-        console.error('Auth error:', error);
         window.location.href = 'index.html';
         return false;
       }
@@ -1345,27 +1327,22 @@
 
     // ============ MAP FUNCTIONS ============
     function initializeMaps() {
-      // Main overview map
       map = L.map("map").setView([12.4048, 121.9829], 15);
       L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
         maxZoom: 19,
         attribution: "© OpenStreetMap"
       }).addTo(map);
 
-      // Full screen map
       fullMap = L.map("fullMap").setView([12.4048, 121.9829], 15);
       L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
         maxZoom: 19,
         attribution: "© OpenStreetMap"
       }).addTo(fullMap);
-
-      console.log('🗺️ Maps initialized');
     }
 
     function createCustomIcon(type, status = 'pending') {
       const config = typeConfig[type] || typeConfig.default;
       
-      // Adjust color based on status
       let statusColor = config.color;
       if (status === 'pending') statusColor = '#f39c12';
       if (status === 'resolved') statusColor = '#2ecc71';
@@ -1397,20 +1374,15 @@
     }
 
     function clearMarkers() {
-      console.log('🗑️ Clearing markers...');
       markers.forEach(marker => {
         if (map) map.removeLayer(marker);
         if (fullMap) fullMap.removeLayer(marker);
       });
       markers = [];
-      console.log('✅ Markers cleared');
     }
 
     function addReportMarker(report, targetMap = null) {
-      if (!report.latitude || !report.longitude) {
-        console.warn('⚠️ No coordinates for report:', report.id);
-        return null;
-      }
+      if (!report.latitude || !report.longitude) return null;
 
       try {
         const icon = createCustomIcon(report.type, report.status);
@@ -1438,7 +1410,6 @@
         markers.push(marker);
         return marker;
       } catch (error) {
-        console.error('Error adding marker:', error, report);
         return null;
       }
     }
@@ -1573,7 +1544,6 @@
         }
         return `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
       } catch (error) {
-        console.error('Geocoding error:', error);
         return `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
       }
     }
@@ -1610,7 +1580,6 @@
         let incidentType = '';
         const dbType = (rawReport.type || '').toString().toLowerCase().trim();
 
-        // Process medical-related incidents only
         if (dbType.includes('motor') || dbType.includes('accident') || dbType.includes('vehicular') ||
             dbType.includes('car') || dbType.includes('traffic') || dbType.includes('road') ||
             dbType.includes('collision') || dbType.includes('crash')) {
@@ -1620,7 +1589,6 @@
                   dbType.includes('heart') || dbType.includes('stroke') || dbType.includes('attack')) {
           incidentType = 'medical_emergency';
         } else {
-          console.log('Skipping non-medical incident:', dbType);
           return null;
         }
 
@@ -1666,7 +1634,6 @@
           original_data: rawReport
         };
       } catch (error) {
-        console.error('Error processing report:', error, rawReport);
         return null;
       }
     }
@@ -1704,7 +1671,6 @@
         }
 
       } catch (error) {
-        console.error('Error loading reports:', error);
         showToast(`Error loading data: ${error.message}`, 'error');
         
         document.getElementById('recentReportsList').innerHTML = `
@@ -1975,7 +1941,7 @@
               
               updateConnectionStatus(true);
             } catch (error) {
-              console.error('Error processing realtime update:', error);
+              // Silent fail
             }
           }
         )
@@ -2061,7 +2027,6 @@
         showToast(`Refreshed ${allReports.length} medical cases`, 'success');
         
       } catch (error) {
-        console.error('Refresh error:', error);
         showToast('Refresh failed: ' + error.message, 'error');
         
       } finally {
@@ -2237,11 +2202,11 @@
       window.logout = logout;
     }
 
- // ============ NOTIFICATION FUNCTION ============
-function goToNotifications() {
-    const token = localStorage.getItem('token');
-    window.location.href = token ? `/ambulance-notif?token=${token}` : "/ambulance-notif";
-}
+    // ============ NOTIFICATION FUNCTION ============
+    function goToNotifications() {
+      const token = localStorage.getItem('token');
+      window.location.href = token ? `/ambulance-notif?token=${token}` : "/ambulance-notif";
+    }
 
     // ============ CLEANUP ============
     window.addEventListener('beforeunload', () => {
@@ -2249,8 +2214,6 @@ function goToNotifications() {
         supabaseClient.removeChannel(realtimeSubscription);
       }
     });
-
-    console.log('✅ Ambulance Dashboard ready');
   </script>
 </body>
 </html>

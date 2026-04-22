@@ -184,7 +184,7 @@
 
     /* === Desktop Navigation === */
     .desktop-nav {
-      display: none; /* Hidden on mobile by default */
+      display: none;
       position: fixed;
       left: 0;
       top: var(--header-height);
@@ -1236,7 +1236,7 @@
     </section>
   </main>
 
-  <script>
+<script>
 
     // ============ CONFIGURATION ============
     const SUPABASE_URL = 'https://gwvepxupoxyyydnisulb.supabase.co';
@@ -1256,45 +1256,31 @@
     let isInitialLoad = true;
     let touchStartX = 0;
     let touchEndX = 0;
-    let currentTab = 'overview'; // Track current tab
+    let currentTab = 'overview';
 
-    // Incident Type Configuration
     const typeConfig = {
       fire_accident: {
         name: 'Fire Accident',
         icon: 'fire',
-        color: '#ffd700'  // Using the same gold color as police theme
+        color: '#ffd700'
       },
       default: {
         name: 'Incident',
         icon: 'fire',
-        color: '#ffd700'  // Using the same gold color as police theme
+        color: '#ffd700'
       }
     };
 
     // ============ INITIALIZATION ============
     document.addEventListener('DOMContentLoaded', async () => {
-      console.log('🔥 Fire Department Dashboard Initializing...');
-      
-      // Initialize Supabase
       supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
       
-      // Check authentication
       if (!checkAuthentication()) return;
       
-      // Initialize maps
       initializeMaps();
-      
-      // Setup event listeners
       setupEventListeners();
-      
-      // Load initial data
       await loadInitialData();
-      
-      // Setup realtime subscription
       setupRealtimeSubscription();
-      
-      // Make functions globally available
       exposeGlobalFunctions();
     });
 
@@ -1309,11 +1295,9 @@
 
         const userData = JSON.parse(user);
         
-        // Check for fire department access
         if (userData.station === 'fire' || 
             userData.email === 'fireadmin@gmail.com' || 
             userData.role === 'admin') {
-          console.log('✅ User authenticated for fire department dashboard');
           return true;
         }
         
@@ -1322,7 +1306,6 @@
         return false;
         
       } catch (error) {
-        console.error('Auth error:', error);
         window.location.href = 'index.html';
         return false;
       }
@@ -1340,27 +1323,22 @@
 
     // ============ MAP FUNCTIONS ============
     function initializeMaps() {
-      // Main overview map
       map = L.map("map").setView([12.4048, 121.9829], 15);
       L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
         maxZoom: 19,
         attribution: "© OpenStreetMap"
       }).addTo(map);
 
-      // Full screen map
       fullMap = L.map("fullMap").setView([12.4048, 121.9829], 15);
       L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
         maxZoom: 19,
         attribution: "© OpenStreetMap"
       }).addTo(fullMap);
-
-      console.log('🗺️ Maps initialized');
     }
 
     function createCustomIcon(type, status = 'pending') {
       const config = typeConfig[type] || typeConfig.default;
       
-      // Adjust color based on status
       let statusColor = config.color;
       if (status === 'pending') statusColor = '#f39c12';
       if (status === 'resolved') statusColor = '#2ecc71';
@@ -1392,27 +1370,20 @@
     }
 
     function clearMarkers() {
-      console.log('🗑️ Clearing markers...');
       markers.forEach(marker => {
-        // Remove from both maps to be safe
         if (map) map.removeLayer(marker);
         if (fullMap) fullMap.removeLayer(marker);
       });
       markers = [];
-      console.log('✅ Markers cleared');
     }
 
     function addReportMarker(report, targetMap = null) {
-      if (!report.latitude || !report.longitude) {
-        console.warn('⚠️ No coordinates for report:', report.id);
-        return null;
-      }
+      if (!report.latitude || !report.longitude) return null;
 
       try {
         const icon = createCustomIcon(report.type, report.status);
         const marker = L.marker([report.latitude, report.longitude], { icon });
         
-        // Determine which map to add to based on current tab
         let target = targetMap;
         if (!target) {
           if (currentTab === 'overview') {
@@ -1423,26 +1394,18 @@
         }
         
         if (target === 'overview' || target === 'both') {
-          if (map) {
-            marker.addTo(map);
-            console.log(`📍 Added marker to overview map for report #${report.id}`);
-          }
+          if (map) marker.addTo(map);
         }
         if (target === 'full' || target === 'both') {
-          if (fullMap) {
-            marker.addTo(fullMap);
-            console.log(`📍 Added marker to full map for report #${report.id}`);
-          }
+          if (fullMap) marker.addTo(fullMap);
         }
 
-        // Create popup content
         const popupContent = createPopupContent(report);
         marker.bindPopup(popupContent);
         
         markers.push(marker);
         return marker;
       } catch (error) {
-        console.error('Error adding marker:', error, report);
         return null;
       }
     }
@@ -1521,40 +1484,31 @@
     }
 
     function fitAllMarkers() {
-      console.log('🔍 Fitting all markers to view...');
-      
-      // Determine which map is currently active based on currentTab
       let currentMap;
       if (currentTab === 'overview') {
         currentMap = map;
       } else if (currentTab === 'map') {
         currentMap = fullMap;
       } else {
-        console.error('❌ No active tab found for map');
         showToast('Map not available', 'error');
         return;
       }
       
       if (!currentMap) {
-        console.error('❌ Map not initialized');
         showToast('Map not available', 'error');
         return;
       }
       
-      // Get markers that are on the current map
       const validMarkers = markers.filter(m => {
         const latLng = m.getLatLng();
         return latLng && m._map === currentMap;
       });
-      
-      console.log(`📍 Found ${validMarkers.length} valid markers on current map`);
       
       if (validMarkers.length > 0) {
         const group = L.featureGroup(validMarkers);
         currentMap.fitBounds(group.getBounds().pad(0.1));
         showToast(`Showing ${validMarkers.length} fire incidents on map`, 'success');
       } else {
-        console.warn('⚠️ No markers to display');
         showToast('No fire incidents to display on map', 'warning');
       }
     }
@@ -1580,25 +1534,20 @@
         }
         return `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
       } catch (error) {
-        console.error('Geocoding error:', error);
         return `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
       }
     }
 
     function getPhotoUrl(report) {
-      // Check photo_url field first
       if (report.photo_url && report.photo_url.trim() && report.photo_url !== 'null') {
         return report.photo_url.trim();
       }
       
-      // Check photo field (could be base64 or path)
       if (report.photo && report.photo.trim() && report.photo !== 'null') {
-        // If it's a base64 image
         if (report.photo.startsWith('data:image')) {
           return report.photo;
         }
         
-        // If it's a Supabase storage path
         if (report.photo.startsWith('incident_photos/')) {
           const { data } = supabaseClient.storage
             .from('incident_photos')
@@ -1606,11 +1555,9 @@
           return data?.publicUrl || null;
         }
         
-        // Assume it's a direct URL
         return report.photo;
       }
       
-      // Check image_url field
       if (report.image_url && report.image_url.trim() && report.image_url !== 'null') {
         return report.image_url.trim();
       }
@@ -1620,21 +1567,16 @@
 
     async function processReport(rawReport) {
       try {
-        // Determine incident type - process only fire-related incidents
         let incidentType = '';
         const dbType = (rawReport.type || '').toString().toLowerCase().trim();
 
-        // Process only fire emergencies
         if (dbType.includes('fire') || dbType.includes('blaze') || dbType.includes('flame') ||
             dbType.includes('burn') || dbType.includes('inferno') || dbType.includes('combust')) {
           incidentType = 'fire_accident';
         } else {
-          // Skip non-fire incidents
-          console.log('Skipping non-fire incident:', dbType);
           return null;
         }
 
-        // Get location coordinates
         const lat = parseFloat(rawReport.latitude);
         const lng = parseFloat(rawReport.longitude);
         let location = 'Location not specified';
@@ -1647,23 +1589,19 @@
           location = rawReport.location.trim();
         }
 
-        // Get reporter name
         const reporterName = rawReport.reporter ||
                            rawReport.reporter_name ||
                            rawReport.name ||
                            rawReport.reporter_email ||
                            'Anonymous';
 
-        // Get photo URL
         const photoUrl = getPhotoUrl(rawReport);
 
-        // Parse timestamp
         const createdAt = rawReport.created_at ||
                          rawReport.reported_at ||
                          rawReport.timestamp ||
                          new Date().toISOString();
 
-        // Determine status
         const status = (rawReport.status || 'pending').toLowerCase();
 
         return {
@@ -1681,7 +1619,6 @@
           original_data: rawReport
         };
       } catch (error) {
-        console.error('Error processing report:', error, rawReport);
         return null;
       }
     }
@@ -1694,31 +1631,19 @@
       refreshBtn.disabled = true;
 
       try {
-        console.log('📥 Loading initial data...');
-        
         const { data, error } = await supabaseClient
           .from('reports')
           .select('*')
           .order('created_at', { ascending: false })
           .limit(100);
 
-        if (error) {
-          console.error('Supabase error:', error);
-          throw error;
-        }
+        if (error) throw error;
 
-        console.log(`📊 Retrieved ${data?.length || 0} raw reports`);
-
-        // Process all reports
         const reportPromises = (data || []).map(processReport);
         const processedReports = await Promise.all(reportPromises);
         
-        // Filter out null reports (non-fire incidents)
         allReports = processedReports.filter(report => report !== null);
-        
-        console.log(`🔥 Filtered to ${allReports.length} fire cases`);
 
-        // Apply filters and update UI
         applyFilters();
         updateStatistics();
         updateRecentReports();
@@ -1731,10 +1656,8 @@
         }
 
       } catch (error) {
-        console.error('Error loading reports:', error);
         showToast(`Error loading data: ${error.message}`, 'error');
         
-        // Show empty state
         document.getElementById('recentReportsList').innerHTML = `
           <div class="empty-state">
             <i class="fas fa-exclamation-triangle"></i>
@@ -1763,38 +1686,27 @@
 
     // ============ FILTER FUNCTIONS ============
     function applyFilters() {
-      console.log('🔍 Applying filters:', currentFilter, 'on tab:', currentTab);
-      
-      // Clear existing markers
       clearMarkers();
       
-      // Filter reports based on current filter
       filteredReports = allReports.filter(report => {
-        // Type filter
         if (currentFilter.type !== 'all' && report.type !== currentFilter.type) {
           return false;
         }
-        // Status filter
         if (currentFilter.status !== 'all' && report.status !== currentFilter.status) {
           return false;
         }
         return true;
       });
       
-      console.log(`📋 Filtered to ${filteredReports.length} reports`);
-      
-      // Add markers for filtered reports based on current tab
       filteredReports.forEach(report => {
         addReportMarker(report);
       });
       
-      // Update UI components
       updateRecentReports();
       updateAllReports();
       updateStatistics();
       updateFilterInfo();
       
-      // Auto-fit map if we have markers and it's not initial load
       if (filteredReports.length > 0 && !isInitialLoad && (currentTab === 'overview' || currentTab === 'map')) {
         setTimeout(() => {
           fitAllMarkers();
@@ -1804,13 +1716,12 @@
 
     function filterByType(type, buttonElement) {
       if (buttonElement) {
-        // Update button states
         document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
         buttonElement.classList.add('active');
       }
       
       currentFilter.type = type;
-      currentFilter.status = 'all'; // Reset status filter when type changes
+      currentFilter.status = 'all';
       
       applyFilters();
       
@@ -1821,13 +1732,12 @@
 
     function filterByStatus(status, buttonElement) {
       if (buttonElement) {
-        // Update button states
         document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
         buttonElement.classList.add('active');
       }
       
       currentFilter.status = status;
-      currentFilter.type = 'all'; // Reset type filter when status changes
+      currentFilter.type = 'all';
       
       applyFilters();
       
@@ -1839,7 +1749,6 @@
     function clearFilters() {
       currentFilter = { type: 'all', status: 'all' };
       
-      // Reset filter buttons
       document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
       document.querySelector('.filter-btn[onclick*="filterByType(\'all\'"]').classList.add('active');
       
@@ -1859,7 +1768,6 @@
       document.getElementById('assignedIncidents').textContent = assigned;
       document.getElementById('resolvedIncidents').textContent = resolved;
 
-      // Update notification dot
       const notifDot = document.getElementById('notifDot');
       if (pending > 0) {
         notifDot.style.display = 'block';
@@ -1870,7 +1778,7 @@
 
     function updateRecentReports() {
       const container = document.getElementById('recentReportsList');
-      const recentReports = filteredReports.slice(0, 5); // Show only 5 most recent
+      const recentReports = filteredReports.slice(0, 5);
       
       if (recentReports.length === 0) {
         container.innerHTML = createEmptyState(
@@ -1975,8 +1883,6 @@
 
     // ============ REALTIME FUNCTIONS ============
     function setupRealtimeSubscription() {
-      console.log('📡 Setting up realtime subscription...');
-      
       if (realtimeSubscription) {
         supabaseClient.removeChannel(realtimeSubscription);
       }
@@ -1990,8 +1896,6 @@
             table: 'reports' 
           }, 
           async (payload) => {
-            console.log('📨 Realtime update:', payload.eventType, payload.new?.id);
-            
             try {
               if (payload.eventType === 'INSERT') {
                 const processed = await processReport(payload.new);
@@ -2008,7 +1912,7 @@
                   if (index >= 0) {
                     allReports[index] = processed;
                   } else {
-                    allReports.unshift(processed); // Add if not found
+                    allReports.unshift(processed);
                   }
                   applyFilters();
                 }
@@ -2022,18 +1926,15 @@
               
               updateConnectionStatus(true);
             } catch (error) {
-              console.error('Error processing realtime update:', error);
+              // Silent fail
             }
           }
         )
         .subscribe((status) => {
-          console.log('📡 Realtime subscription status:', status);
-          
           if (status === 'SUBSCRIBED') {
             updateConnectionStatus(true);
           } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
             updateConnectionStatus(false);
-            // Attempt to reconnect after 5 seconds
             setTimeout(() => {
               if (realtimeSubscription) {
                 realtimeSubscription.unsubscribe();
@@ -2056,29 +1957,21 @@
 
     // ============ UTILITY FUNCTIONS ============
     function switchTab(tabName) {
-      console.log('🔄 Switching to tab:', tabName);
-      
-      // Update currentTab variable
       currentTab = tabName;
       
-      // Update mobile tab buttons
       document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
       document.querySelectorAll(`.tab-btn[onclick*="${tabName}"]`).forEach(btn => btn.classList.add('active'));
       
-      // Update desktop nav buttons
       document.querySelectorAll('.desktop-nav-btn').forEach(btn => btn.classList.remove('active'));
       document.querySelectorAll(`.desktop-nav-btn[data-tab="${tabName}"]`).forEach(btn => btn.classList.add('active'));
       
-      // Show selected tab content
       document.querySelectorAll('.content-section').forEach(section => {
         section.classList.remove('active');
       });
       document.getElementById(`${tabName}Tab`).classList.add('active');
       
-      // Clear and re-add markers for the current tab
       applyFilters();
       
-      // Refresh map if needed
       setTimeout(() => {
         if (tabName === 'map' && fullMap) {
           fullMap.invalidateSize();
@@ -2095,14 +1988,12 @@
     }
 
     async function manualRefresh() {
-      console.log('🔄 Manual refresh triggered');
       const btn = document.getElementById('refreshBtn');
       const originalHTML = btn.innerHTML;
       btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
       btn.disabled = true;
       
       try {
-        // Reload data from database
         const { data, error } = await supabaseClient
           .from('reports')
           .select('*')
@@ -2111,20 +2002,16 @@
 
         if (error) throw error;
 
-        // Process all reports
         const reportPromises = (data || []).map(processReport);
         const processedReports = await Promise.all(reportPromises);
         
-        // Filter out null reports
         allReports = processedReports.filter(report => report !== null);
         
-        // Re-apply filters
         applyFilters();
         
         showToast(`Refreshed ${allReports.length} fire cases`, 'success');
         
       } catch (error) {
-        console.error('Refresh error:', error);
         showToast('Refresh failed: ' + error.message, 'error');
         
       } finally {
@@ -2150,7 +2037,6 @@
     function closePhotoModal() {
       document.getElementById('photoModal').style.display = 'none';
       document.body.style.overflow = 'auto';
-      // Clear the image source
       document.getElementById('modalImage').src = '';
     }
 
@@ -2171,7 +2057,6 @@
     }
 
     function showToast(message, type = 'info') {
-      // Remove existing toasts
       document.querySelectorAll('.toast').forEach(toast => toast.remove());
       
       const colors = {
@@ -2228,9 +2113,6 @@
 
     // ============ EVENT LISTENERS ============
     function setupEventListeners() {
-      console.log('🎯 Setting up event listeners...');
-      
-      // Keyboard shortcuts
       document.addEventListener('keydown', (e) => {
         if (e.key === 'r' && (e.ctrlKey || e.metaKey)) {
           e.preventDefault();
@@ -2239,7 +2121,6 @@
         if (e.key === 'Escape') {
           closePhotoModal();
         }
-        // Tab switching with arrow keys
         if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
           const tabs = ['overview', 'map', 'reports'];
           const currentIndex = tabs.indexOf(currentTab);
@@ -2251,15 +2132,12 @@
         }
       });
       
-      // Page visibility
       document.addEventListener('visibilitychange', () => {
         if (!document.hidden && !realtimeSubscription) {
-          console.log('🔁 Page visible, reconnecting...');
           setupRealtimeSubscription();
         }
       });
       
-      // Swipe gestures for mobile tabs
       document.addEventListener('touchstart', e => {
         touchStartX = e.changedTouches[0].screenX;
       });
@@ -2278,23 +2156,19 @@
           const currentIndex = tabs.indexOf(currentTab);
           
           if (swipeDistance > 0 && currentIndex > 0) {
-            // Swipe right - go to previous tab
             switchTab(tabs[currentIndex - 1]);
           } else if (swipeDistance < 0 && currentIndex < tabs.length - 1) {
-            // Swipe left - go to next tab
             switchTab(tabs[currentIndex + 1]);
           }
         }
       }
       
-      // Handle window resize
       let resizeTimeout;
       window.addEventListener('resize', () => {
         clearTimeout(resizeTimeout);
         resizeTimeout = setTimeout(() => {
           if (map) map.invalidateSize();
           if (fullMap) fullMap.invalidateSize();
-          // Re-apply filters to ensure markers are on correct map
           applyFilters();
         }, 250);
       });
@@ -2312,7 +2186,8 @@
       window.switchTab = switchTab;
       window.logout = logout;
     }
- // ============ NOTIFICATION FUNCTION ============
+
+    // ============ NOTIFICATION FUNCTION ============
     function goToNotifications() {
       const token = localStorage.getItem('token');
       window.location.href = token ? `/fire-notif?token=${token}` : "/fire-notif";
@@ -2320,14 +2195,10 @@
 
     // ============ CLEANUP ============
     window.addEventListener('beforeunload', () => {
-      console.log('🧹 Cleaning up...');
       if (realtimeSubscription) {
         supabaseClient.removeChannel(realtimeSubscription);
       }
     });
-
-    // Initialize on load
-    console.log('✅ Fire Department Dashboard ready');
   </script>
 </body>
 </html>

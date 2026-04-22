@@ -1239,8 +1239,7 @@ star<!DOCTYPE html>
       </div>
     </section>
   </main>
-
-  <script>
+<script>
     // ============ CONFIGURATION ============
     const SUPABASE_URL = 'https://gwvepxupoxyyydnisulb.supabase.co';
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd3dmVweHVwb3h5eXlkbmlzdWxiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ4MDE4ODcsImV4cCI6MjA4MDM3Nzg4N30.Ku9SXTAKNMvHilgEpxj5HcVA-0TPt4ziuEq0Irao5Qc';
@@ -1259,9 +1258,8 @@ star<!DOCTYPE html>
     let isInitialLoad = true;
     let touchStartX = 0;
     let touchEndX = 0;
-    let currentTab = 'overview'; // Track current tab
+    let currentTab = 'overview';
 
-    // Incident Type Configuration
     const typeConfig = {
       motor_accident: {
         name: 'Vehicular Accident',
@@ -1297,27 +1295,14 @@ star<!DOCTYPE html>
 
     // ============ INITIALIZATION ============
     document.addEventListener('DOMContentLoaded', async () => {
-      console.log('🚔 Mobile Police Dashboard Initializing...');
-      
-      // Initialize Supabase
       supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
       
-      // Check authentication
       if (!checkAuthentication()) return;
       
-      // Initialize maps
       initializeMaps();
-      
-      // Setup event listeners
       setupEventListeners();
-      
-      // Load initial data
       await loadInitialData();
-      
-      // Setup realtime subscription
       setupRealtimeSubscription();
-      
-      // Make functions globally available
       exposeGlobalFunctions();
     });
 
@@ -1332,11 +1317,9 @@ star<!DOCTYPE html>
 
         const userData = JSON.parse(user);
         
-        // Check for police access
         if (userData.station === 'police' || 
             userData.email === 'policeadmin@gmail.com' || 
             userData.role === 'admin') {
-          console.log('✅ User authenticated for police dashboard');
           return true;
         }
         
@@ -1345,25 +1328,15 @@ star<!DOCTYPE html>
         return false;
         
       } catch (error) {
-        console.error('Auth error:', error);
         window.location.href = 'index.html';
         return false;
       }
     }
 
-function logout() {
-    if (confirm('Are you sure you want to logout?')) {
-        localStorage.removeItem('user');
-        localStorage.removeItem('token');
-        if (realtimeSubscription) {
-            supabaseClient.removeChannel(realtimeSubscription);
-        }
-        window.location.href = 'index.html';
-    }
-}
     function logout() {
       if (confirm('Are you sure you want to logout?')) {
         localStorage.removeItem('user');
+        localStorage.removeItem('token');
         if (realtimeSubscription) {
           supabaseClient.removeChannel(realtimeSubscription);
         }
@@ -1373,21 +1346,17 @@ function logout() {
 
     // ============ MAP FUNCTIONS ============
     function initializeMaps() {
-      // Main overview map
       map = L.map("map").setView([12.4048, 121.9829], 15);
       L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
         maxZoom: 19,
         attribution: "© OpenStreetMap"
       }).addTo(map);
 
-      // Full screen map
       fullMap = L.map("fullMap").setView([12.4048, 121.9829], 15);
       L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
         maxZoom: 19,
         attribution: "© OpenStreetMap"
       }).addTo(fullMap);
-
-      console.log('🗺️ Maps initialized');
     }
 
     function createCustomIcon(type, status = 'pending') {
@@ -1397,7 +1366,6 @@ function logout() {
         color: '#3498db' 
       };
       
-      // Adjust color based on status
       let statusColor = config.color;
       if (status === 'pending') statusColor = '#f39c12';
       if (status === 'resolved') statusColor = '#2ecc71';
@@ -1429,27 +1397,20 @@ function logout() {
     }
 
     function clearMarkers() {
-      console.log('🗑️ Clearing markers...');
       markers.forEach(marker => {
-        // Remove from both maps to be safe
         if (map) map.removeLayer(marker);
         if (fullMap) fullMap.removeLayer(marker);
       });
       markers = [];
-      console.log('✅ Markers cleared');
     }
 
     function addReportMarker(report, targetMap = null) {
-      if (!report.latitude || !report.longitude) {
-        console.warn('⚠️ No coordinates for report:', report.id);
-        return null;
-      }
+      if (!report.latitude || !report.longitude) return null;
 
       try {
         const icon = createCustomIcon(report.type, report.status);
         const marker = L.marker([report.latitude, report.longitude], { icon });
         
-        // Determine which map to add to based on current tab
         let target = targetMap;
         if (!target) {
           if (currentTab === 'overview') {
@@ -1460,26 +1421,18 @@ function logout() {
         }
         
         if (target === 'overview' || target === 'both') {
-          if (map) {
-            marker.addTo(map);
-            console.log(`📍 Added marker to overview map for report #${report.id}`);
-          }
+          if (map) marker.addTo(map);
         }
         if (target === 'full' || target === 'both') {
-          if (fullMap) {
-            marker.addTo(fullMap);
-            console.log(`📍 Added marker to full map for report #${report.id}`);
-          }
+          if (fullMap) marker.addTo(fullMap);
         }
 
-        // Create popup content
         const popupContent = createPopupContent(report);
         marker.bindPopup(popupContent);
         
         markers.push(marker);
         return marker;
       } catch (error) {
-        console.error('Error adding marker:', error, report);
         return null;
       }
     }
@@ -1558,40 +1511,31 @@ function logout() {
     }
 
     function fitAllMarkers() {
-      console.log('🔍 Fitting all markers to view...');
-      
-      // Determine which map is currently active based on currentTab
       let currentMap;
       if (currentTab === 'overview') {
         currentMap = map;
       } else if (currentTab === 'map') {
         currentMap = fullMap;
       } else {
-        console.error('❌ No active tab found for map');
         showToast('Map not available', 'error');
         return;
       }
       
       if (!currentMap) {
-        console.error('❌ Map not initialized');
         showToast('Map not available', 'error');
         return;
       }
       
-      // Get markers that are on the current map
       const validMarkers = markers.filter(m => {
         const latLng = m.getLatLng();
         return latLng && m._map === currentMap;
       });
-      
-      console.log(`📍 Found ${validMarkers.length} valid markers on current map`);
       
       if (validMarkers.length > 0) {
         const group = L.featureGroup(validMarkers);
         currentMap.fitBounds(group.getBounds().pad(0.1));
         showToast(`Showing ${validMarkers.length} incidents on map`, 'success');
       } else {
-        console.warn('⚠️ No markers to display');
         showToast('No incidents to display on map', 'warning');
       }
     }
@@ -1617,25 +1561,20 @@ function logout() {
         }
         return `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
       } catch (error) {
-        console.error('Geocoding error:', error);
         return `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
       }
     }
 
     function getPhotoUrl(report) {
-      // Check photo_url field first
       if (report.photo_url && report.photo_url.trim() && report.photo_url !== 'null') {
         return report.photo_url.trim();
       }
       
-      // Check photo field (could be base64 or path)
       if (report.photo && report.photo.trim() && report.photo !== 'null') {
-        // If it's a base64 image
         if (report.photo.startsWith('data:image')) {
           return report.photo;
         }
         
-        // If it's a Supabase storage path
         if (report.photo.startsWith('incident_photos/')) {
           const { data } = supabaseClient.storage
             .from('incident_photos')
@@ -1643,11 +1582,9 @@ function logout() {
           return data?.publicUrl || null;
         }
         
-        // Assume it's a direct URL
         return report.photo;
       }
       
-      // Check image_url field
       if (report.image_url && report.image_url.trim() && report.image_url !== 'null') {
         return report.image_url.trim();
       }
@@ -1657,11 +1594,9 @@ function logout() {
 
     async function processReport(rawReport) {
       try {
-        // Determine incident type - process designated police incidents
         let incidentType = '';
         const dbType = (rawReport.type || '').toString().toLowerCase().trim();
 
-        // Process motor accidents and assault crimes (designated police incidents)
         if (dbType.includes('motor') || dbType.includes('accident') || dbType.includes('vehicle') || dbType.includes('car') ||
             dbType.includes('traffic') || dbType.includes('road') || dbType.includes('collision') || dbType.includes('crash') ||
             dbType.includes('vehicular') || dbType.includes('automobile') || dbType.includes('truck') || dbType.includes('bus')) {
@@ -1672,12 +1607,9 @@ function logout() {
                   dbType.includes('battery') || dbType.includes('murder') || dbType.includes('rape')) {
           incidentType = 'assault_crime';
         } else {
-          // Skip non-police incidents
-          console.log('Skipping non-police incident:', dbType);
           return null;
         }
 
-        // Get location coordinates
         const lat = parseFloat(rawReport.latitude);
         const lng = parseFloat(rawReport.longitude);
         let location = 'Location not specified';
@@ -1690,23 +1622,19 @@ function logout() {
           location = rawReport.location.trim();
         }
 
-        // Get reporter name
         const reporterName = rawReport.reporter ||
                            rawReport.reporter_name ||
                            rawReport.name ||
                            rawReport.reporter_email ||
                            'Anonymous';
 
-        // Get photo URL
         const photoUrl = getPhotoUrl(rawReport);
 
-        // Parse timestamp
         const createdAt = rawReport.created_at ||
                          rawReport.reported_at ||
                          rawReport.timestamp ||
                          new Date().toISOString();
 
-        // Determine status
         const status = (rawReport.status || 'pending').toLowerCase();
 
         return {
@@ -1724,7 +1652,6 @@ function logout() {
           original_data: rawReport
         };
       } catch (error) {
-        console.error('Error processing report:', error, rawReport);
         return null;
       }
     }
@@ -1737,31 +1664,19 @@ function logout() {
       refreshBtn.disabled = true;
 
       try {
-        console.log('📥 Loading initial data...');
-        
         const { data, error } = await supabaseClient
           .from('reports')
           .select('*')
           .order('created_at', { ascending: false })
           .limit(100);
 
-        if (error) {
-          console.error('Supabase error:', error);
-          throw error;
-        }
+        if (error) throw error;
 
-        console.log(`📊 Retrieved ${data?.length || 0} raw reports`);
-
-        // Process all reports
         const reportPromises = (data || []).map(processReport);
         const processedReports = await Promise.all(reportPromises);
         
-        // Filter out null reports (non-police incidents)
         allReports = processedReports.filter(report => report !== null);
-        
-        console.log(`🚔 Filtered to ${allReports.length} police cases`);
 
-        // Apply filters and update UI
         applyFilters();
         updateStatistics();
         updateRecentReports();
@@ -1774,10 +1689,8 @@ function logout() {
         }
 
       } catch (error) {
-        console.error('Error loading reports:', error);
         showToast(`Error loading data: ${error.message}`, 'error');
         
-        // Show empty state
         document.getElementById('recentReportsList').innerHTML = `
           <div class="empty-state">
             <i class="fas fa-exclamation-triangle"></i>
@@ -1806,38 +1719,27 @@ function logout() {
 
     // ============ FILTER FUNCTIONS ============
     function applyFilters() {
-      console.log('🔍 Applying filters:', currentFilter, 'on tab:', currentTab);
-      
-      // Clear existing markers
       clearMarkers();
       
-      // Filter reports based on current filter
       filteredReports = allReports.filter(report => {
-        // Type filter
         if (currentFilter.type !== 'all' && report.type !== currentFilter.type) {
           return false;
         }
-        // Status filter
         if (currentFilter.status !== 'all' && report.status !== currentFilter.status) {
           return false;
         }
         return true;
       });
       
-      console.log(`📋 Filtered to ${filteredReports.length} reports`);
-      
-      // Add markers for filtered reports based on current tab
       filteredReports.forEach(report => {
         addReportMarker(report);
       });
       
-      // Update UI components
       updateRecentReports();
       updateAllReports();
       updateStatistics();
       updateFilterInfo();
       
-      // Auto-fit map if we have markers and it's not initial load
       if (filteredReports.length > 0 && !isInitialLoad && (currentTab === 'overview' || currentTab === 'map')) {
         setTimeout(() => {
           fitAllMarkers();
@@ -1847,13 +1749,12 @@ function logout() {
 
     function filterByType(type, buttonElement) {
       if (buttonElement) {
-        // Update button states
         document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
         buttonElement.classList.add('active');
       }
       
       currentFilter.type = type;
-      currentFilter.status = 'all'; // Reset status filter when type changes
+      currentFilter.status = 'all';
       
       applyFilters();
       
@@ -1864,13 +1765,12 @@ function logout() {
 
     function filterByStatus(status, buttonElement) {
       if (buttonElement) {
-        // Update button states
         document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
         buttonElement.classList.add('active');
       }
       
       currentFilter.status = status;
-      currentFilter.type = 'all'; // Reset type filter when status changes
+      currentFilter.type = 'all';
       
       applyFilters();
       
@@ -1882,7 +1782,6 @@ function logout() {
     function clearFilters() {
       currentFilter = { type: 'all', status: 'all' };
       
-      // Reset filter buttons
       document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
       document.querySelector('.filter-btn[onclick*="filterByType(\'all\'"]').classList.add('active');
       
@@ -1902,7 +1801,6 @@ function logout() {
       document.getElementById('assignedIncidents').textContent = assigned;
       document.getElementById('resolvedIncidents').textContent = resolved;
 
-      // Update notification dot
       const notifDot = document.getElementById('notifDot');
       if (pending > 0) {
         notifDot.style.display = 'block';
@@ -1913,7 +1811,7 @@ function logout() {
 
     function updateRecentReports() {
       const container = document.getElementById('recentReportsList');
-      const recentReports = filteredReports.slice(0, 5); // Show only 5 most recent
+      const recentReports = filteredReports.slice(0, 5);
       
       if (recentReports.length === 0) {
         container.innerHTML = createEmptyState(
@@ -2018,8 +1916,6 @@ function logout() {
 
     // ============ REALTIME FUNCTIONS ============
     function setupRealtimeSubscription() {
-      console.log('📡 Setting up realtime subscription...');
-      
       if (realtimeSubscription) {
         supabaseClient.removeChannel(realtimeSubscription);
       }
@@ -2033,8 +1929,6 @@ function logout() {
             table: 'reports' 
           }, 
           async (payload) => {
-            console.log('📨 Realtime update:', payload.eventType, payload.new?.id);
-            
             try {
               if (payload.eventType === 'INSERT') {
                 const processed = await processReport(payload.new);
@@ -2051,7 +1945,7 @@ function logout() {
                   if (index >= 0) {
                     allReports[index] = processed;
                   } else {
-                    allReports.unshift(processed); // Add if not found
+                    allReports.unshift(processed);
                   }
                   applyFilters();
                 }
@@ -2065,18 +1959,15 @@ function logout() {
               
               updateConnectionStatus(true);
             } catch (error) {
-              console.error('Error processing realtime update:', error);
+              // Silent fail
             }
           }
         )
         .subscribe((status) => {
-          console.log('📡 Realtime subscription status:', status);
-          
           if (status === 'SUBSCRIBED') {
             updateConnectionStatus(true);
           } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
             updateConnectionStatus(false);
-            // Attempt to reconnect after 5 seconds
             setTimeout(() => {
               if (realtimeSubscription) {
                 realtimeSubscription.unsubscribe();
@@ -2099,29 +1990,21 @@ function logout() {
 
     // ============ UTILITY FUNCTIONS ============
     function switchTab(tabName) {
-      console.log('🔄 Switching to tab:', tabName);
-      
-      // Update currentTab variable
       currentTab = tabName;
       
-      // Update mobile tab buttons
       document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
       document.querySelectorAll(`.tab-btn[onclick*="${tabName}"]`).forEach(btn => btn.classList.add('active'));
       
-      // Update desktop nav buttons
       document.querySelectorAll('.desktop-nav-btn').forEach(btn => btn.classList.remove('active'));
       document.querySelectorAll(`.desktop-nav-btn[data-tab="${tabName}"]`).forEach(btn => btn.classList.add('active'));
       
-      // Show selected tab content
       document.querySelectorAll('.content-section').forEach(section => {
         section.classList.remove('active');
       });
       document.getElementById(`${tabName}Tab`).classList.add('active');
       
-      // Clear and re-add markers for the current tab
       applyFilters();
       
-      // Refresh map if needed
       setTimeout(() => {
         if (tabName === 'map' && fullMap) {
           fullMap.invalidateSize();
@@ -2138,14 +2021,12 @@ function logout() {
     }
 
     async function manualRefresh() {
-      console.log('🔄 Manual refresh triggered');
       const btn = document.getElementById('refreshBtn');
       const originalHTML = btn.innerHTML;
       btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
       btn.disabled = true;
       
       try {
-        // Reload data from database
         const { data, error } = await supabaseClient
           .from('reports')
           .select('*')
@@ -2154,20 +2035,16 @@ function logout() {
 
         if (error) throw error;
 
-        // Process all reports
         const reportPromises = (data || []).map(processReport);
         const processedReports = await Promise.all(reportPromises);
         
-        // Filter out null reports
         allReports = processedReports.filter(report => report !== null);
         
-        // Re-apply filters
         applyFilters();
         
         showToast(`Refreshed ${allReports.length} cases`, 'success');
         
       } catch (error) {
-        console.error('Refresh error:', error);
         showToast('Refresh failed: ' + error.message, 'error');
         
       } finally {
@@ -2193,7 +2070,6 @@ function logout() {
     function closePhotoModal() {
       document.getElementById('photoModal').style.display = 'none';
       document.body.style.overflow = 'auto';
-      // Clear the image source
       document.getElementById('modalImage').src = '';
     }
 
@@ -2214,7 +2090,6 @@ function logout() {
     }
 
     function showToast(message, type = 'info') {
-      // Remove existing toasts
       document.querySelectorAll('.toast').forEach(toast => toast.remove());
       
       const colors = {
@@ -2271,9 +2146,6 @@ function logout() {
 
     // ============ EVENT LISTENERS ============
     function setupEventListeners() {
-      console.log('🎯 Setting up event listeners...');
-      
-      // Keyboard shortcuts
       document.addEventListener('keydown', (e) => {
         if (e.key === 'r' && (e.ctrlKey || e.metaKey)) {
           e.preventDefault();
@@ -2282,7 +2154,6 @@ function logout() {
         if (e.key === 'Escape') {
           closePhotoModal();
         }
-        // Tab switching with arrow keys
         if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
           const tabs = ['overview', 'map', 'reports'];
           const currentIndex = tabs.indexOf(currentTab);
@@ -2294,15 +2165,12 @@ function logout() {
         }
       });
       
-      // Page visibility
       document.addEventListener('visibilitychange', () => {
         if (!document.hidden && !realtimeSubscription) {
-          console.log('🔁 Page visible, reconnecting...');
           setupRealtimeSubscription();
         }
       });
       
-      // Swipe gestures for mobile tabs
       document.addEventListener('touchstart', e => {
         touchStartX = e.changedTouches[0].screenX;
       });
@@ -2321,23 +2189,19 @@ function logout() {
           const currentIndex = tabs.indexOf(currentTab);
           
           if (swipeDistance > 0 && currentIndex > 0) {
-            // Swipe right - go to previous tab
             switchTab(tabs[currentIndex - 1]);
           } else if (swipeDistance < 0 && currentIndex < tabs.length - 1) {
-            // Swipe left - go to next tab
             switchTab(tabs[currentIndex + 1]);
           }
         }
       }
       
-      // Handle window resize
       let resizeTimeout;
       window.addEventListener('resize', () => {
         clearTimeout(resizeTimeout);
         resizeTimeout = setTimeout(() => {
           if (map) map.invalidateSize();
           if (fullMap) fullMap.invalidateSize();
-          // Re-apply filters to ensure markers are on correct map
           applyFilters();
         }, 250);
       });
@@ -2356,22 +2220,18 @@ function logout() {
       window.logout = logout;
     }
 
- // ============ NOTIFICATION FUNCTION ============
-function goToNotifications() {
-    const token = localStorage.getItem('token');
-    window.location.href = token ? `/police-notif?token=${token}` : "/police-notif";
-}
+    // ============ NOTIFICATION FUNCTION ============
+    function goToNotifications() {
+      const token = localStorage.getItem('token');
+      window.location.href = token ? `/police-notif?token=${token}` : "/police-notif";
+    }
 
     // ============ CLEANUP ============
     window.addEventListener('beforeunload', () => {
-      console.log('🧹 Cleaning up...');
       if (realtimeSubscription) {
         supabaseClient.removeChannel(realtimeSubscription);
       }
     });
-
-    // Initialize on load
-    console.log('✅ Police Dashboard ready');
   </script>
 </body>
 </html>

@@ -1092,7 +1092,7 @@
     </div>
   </div>
 
-  <script>
+ <script>
     // ============ CONFIGURATION ============
     const SUPABASE_URL = 'https://gwvepxupoxyyydnisulb.supabase.co';
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd3dmVweHVwb3h5eXlkbmlzdWxiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ4MDE4ODcsImV4cCI6MjA4MDM3Nzg4N30.Ku9SXTAKNMvHilgEpxj5HcVA-0TPt4ziuEq0Irao5Qc';
@@ -1106,64 +1106,42 @@
     let routeMap = null;
     let fullscreenMap = null;
     let routeLine = null;
-    let assignedRespondersList = [];
     let userCurrentLocation = null;
     let isLoading = false;
     let reportsCache = {
         data: null,
         timestamp: null,
-        ttl: 5 * 60 * 1000 // 5 minutes cache TTL
+        ttl: 5 * 60 * 1000
     };
 
     // ============ INITIALIZATION ============
     document.addEventListener('DOMContentLoaded', async () => {
-      console.log('🔥 Fire Department Notifications Initializing...');
-
-      // Initialize Supabase
       supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-      // Check for token in URL parameters
       const urlParams = new URLSearchParams(window.location.search);
       const token = urlParams.get('token');
 
       if (token) {
-        // Set the session with the token
         try {
-          const { data, error } = await supabaseClient.auth.setSession({
+          await supabaseClient.auth.setSession({
             access_token: token,
             refresh_token: token
           });
-          if (error) {
-            console.warn('Failed to set session with token:', error);
-          } else {
-            console.log('✅ Session set with token');
-          }
         } catch (error) {
-          console.warn('Error setting session:', error);
+          // Silently fail
         }
       }
 
-      // Get user location
       await getUserLocation();
-
-      // Get table columns
       await getTableColumns();
-
-      // Load initial reports
       loadReports();
-
-      // Setup real-time subscription
       setupRealtimeSubscription();
-
-      // Setup event listeners
       setupEventListeners();
-
-      console.log('✅ Fire Department Notifications ready');
     });
 
     // ============ HELPER FUNCTIONS ============
     async function getUserLocation() {
-      return new Promise((resolve, reject) => {
+      return new Promise((resolve) => {
         if (!navigator.geolocation) {
           userCurrentLocation = { lat: 12.4048, lng: 121.9829 };
           resolve(userCurrentLocation);
@@ -1187,13 +1165,12 @@
     }
 
     function goBack() {
-       window.location.href = "/fire";
-         const token = localStorage.getItem('token');
-        if (token) {
-            window.location.href = "/fire?token=" + encodeURIComponent(token);
-        } else {
-            window.location.href = "/fire";
-        }
+      const token = localStorage.getItem('token');
+      if (token) {
+        window.location.href = "/fire?token=" + encodeURIComponent(token);
+      } else {
+        window.location.href = "/fire";
+      }
     }
 
     function openModal(modalId) {
@@ -1252,7 +1229,6 @@
       const centerLat = userCurrentLocation ? userCurrentLocation.lat : currentReportData.latitude;
       const centerLng = userCurrentLocation ? userCurrentLocation.lng : currentReportData.longitude;
       
-      // Initialize map with NO default zoom controls
       fullscreenMap = L.map('fullscreenMap', {
         zoomControl: false,
         attributionControl: false,
@@ -1358,7 +1334,6 @@
       }
     }
 
-    // Custom map control functions
     function zoomInRouteMap() {
       if (routeMap) routeMap.zoomIn();
     }
@@ -1404,18 +1379,13 @@
       try {
         await getTableColumns();
 
-        // Check cache first (unless force refresh)
         const now = Date.now();
         let data = null;
-        let fromCache = false;
 
         if (!forceRefresh && reportsCache.data && reportsCache.timestamp &&
             (now - reportsCache.timestamp) < reportsCache.ttl) {
           data = reportsCache.data;
-          fromCache = true;
-          console.log('Loading reports from cache');
         } else {
-          // Fetch fresh data from Supabase - ONLY FIRE-RELATED INCIDENTS
           const selectQuery = 'id, type, latitude, longitude, reporter, status, created_at, assigned_responders, assigned_unit, contact, description';
 
           const { data: allData, error } = await supabaseClient
@@ -1435,7 +1405,6 @@
             data = allData;
           }
 
-          // Filter to show ONLY fire-related incidents
           data = data.filter(report => {
             const dbType = (report.type || '').toString().toLowerCase().trim();
             return (
@@ -1455,10 +1424,8 @@
             );
           });
 
-          // Update cache
           reportsCache.data = data;
           reportsCache.timestamp = now;
-          console.log('Fetched fresh fire reports from Supabase');
         }
 
         if (!data || data.length === 0) {
@@ -1474,15 +1441,12 @@
         }
 
         statusEl.style.display = 'none';
-
-        // Process and display reports
         container.innerHTML = '';
         data.forEach(report => {
           renderNotificationCard(report);
         });
 
       } catch (error) {
-        console.error('Error loading reports:', error);
         statusEl.innerHTML = `
           <div class="empty-state">
             <i class="fas fa-exclamation-triangle"></i>
@@ -1501,7 +1465,6 @@
     function renderNotificationCard(report) {
       const container = document.getElementById('notificationList');
       
-      // Determine incident type
       const dbType = (report.type || '').toString().toLowerCase().trim();
       let incidentTypeName = 'FIRE EMERGENCY';
       
@@ -1543,7 +1506,6 @@
         statusText = 'Resolved';
       }
       
-      // Get assigned responders
       const assignedResponders = report.assigned_responders || '';
       const assignedUnit = report.assigned_unit || '';
       const contact = report.contact || '';
@@ -1688,7 +1650,6 @@
         return;
       }
       
-      // Validate that name contains only letters and spaces
       const lettersOnly = /^[A-Za-z\s]+$/;
       if (!lettersOnly.test(responderName)) {
         alert('Firefighter name can only contain letters (A-Z, a-z) and spaces.');
@@ -1700,18 +1661,15 @@
         return;
       }
       
-      // Validate contact number contains only digits
       if (responderContact && !/^\d+$/.test(responderContact)) {
         alert('Contact number can only contain digits (0-9).');
         return;
       }
       
       try {
-        // Fire department is automatically assigned for fire incidents
         const assignedUnit = 'FIRE STATION';
         const assignedRespondersText = responderName;
         
-        // Prepare update data - ONLY THREE STATUSES: pending, investigating, resolved
         const updateData = {
           status: 'investigating',
           updated_at: new Date().toISOString(),
@@ -1720,7 +1678,6 @@
           contact: responderContact || ''
         };
         
-        // Update the report in Supabase
         const { error } = await supabaseClient
           .from('reports')
           .update(updateData)
@@ -1728,25 +1685,15 @@
         
         if (error) throw error;
         
-        // Format display text as "FIRE STATION - Name"
-        let displayText = `${assignedUnit} - ${responderName}`;
-        if (responderContact) {
-          displayText += ` - ${responderContact}`;
-        }
-        
-        // Show success message
         alert('✅ Firefighter assigned successfully!');
         
-        // Close modal and reset
         closeModal('respondersModal');
         document.getElementById('responderName').value = '';
         document.getElementById('responderContact').value = '';
         
-        // Reload reports to show updated data
         loadReports(true);
         
       } catch (error) {
-        console.error('Error assigning firefighter:', error);
         alert('❌ Error assigning firefighter. Please try again.');
       }
     }
@@ -1754,14 +1701,13 @@
     function openQuickRouteModal(reportId, latitude, longitude, assignedResponders = '') {
       currentReportId = reportId;
       
-      // If coordinates aren't provided, we'll get them from the database
       if (!latitude || !longitude) {
         supabaseClient
           .from('reports')
           .select('latitude, longitude')
           .eq('id', reportId)
           .single()
-          .then(({ data, error }) => {
+          .then(({ data }) => {
             if (data) {
               currentReportData = data;
               document.getElementById('routeDestination').textContent = `Coordinates: ${data.latitude.toFixed(4)}, ${data.longitude.toFixed(4)}`;
@@ -1770,15 +1716,6 @@
       } else {
         currentReportData = { latitude, longitude };
         document.getElementById('routeDestination').textContent = `Coordinates: ${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
-      }
-      
-      if (assignedResponders) {
-        assignedRespondersList = [assignedResponders];
-      } else {
-        const card = document.querySelector(`[data-report-id="${reportId}"]`);
-        if (card && card.dataset.assignedResponders) {
-          assignedRespondersList = [card.dataset.assignedResponders];
-        }
       }
       
       document.getElementById('assignedUnits').textContent = 'FIRE DEPARTMENT';
@@ -1803,11 +1740,10 @@
       
       try {
         const updateData = {
-          status: 'resolved', // ALWAYS set to 'resolved' for resolution
+          status: 'resolved',
           updated_at: new Date().toISOString()
         };
         
-        // Construct resolution description
         let resolutionDescription = '';
         
         if (notes) {
@@ -1816,14 +1752,12 @@
           resolutionDescription = `Resolution: ${statusText}`;
         }
         
-        // Update description field based on available columns
         if (tableColumns.includes('description')) {
           updateData.description = resolutionDescription;
         } else if (tableColumns.includes('notes')) {
           updateData.notes = resolutionDescription;
         }
         
-        // Set resolution_status if column exists
         if (tableColumns.includes('resolution_status')) {
           updateData.resolution_status = statusValue;
         }
@@ -1835,23 +1769,18 @@
         
         if (error) throw error;
         
-        // Success - close modal and refresh
         closeModal('resolveModal');
         
-        // Reset form
         document.getElementById('resolutionStatus').selectedIndex = 0;
         document.getElementById('resolutionNotes').value = '';
         
-        // Show success message
         alert('✅ Fire incident marked as resolved!');
         
-        // Reload reports
         setTimeout(() => {
           loadReports(true);
         }, 500);
         
       } catch (error) {
-        console.error('Error resolving incident:', error);
         alert('❌ Error marking fire incident as resolved. Please try again.');
       }
     }
@@ -2151,17 +2080,15 @@
       const lng = parseFloat(longitude);
       
       if (!isNaN(lat) && !isNaN(lng) && lat !== 0 && lng !== 0) {
-        // Store the location data and report ID
         sessionStorage.setItem('viewLocation', JSON.stringify({ 
           lat: lat, 
           lng: lng 
         }));
         
-        // Store the report ID
         if (reportId) {
           sessionStorage.setItem('viewReportId', reportId);
         }
-        // Store the return URL so back button works correctly
+        
         const token = localStorage.getItem('token');
         let returnUrl = "/fire-notif";
         if (token) {
@@ -2170,7 +2097,7 @@
         } else {
           sessionStorage.setItem('returnUrl', returnUrl);
         }
-        // Redirect to the view-report page - use absolute path for deployment
+        
         window.location.href = "/view-report?returnUrl=" + encodeURIComponent(returnUrl);
       } else {
         alert('Location coordinates not available or invalid.');
@@ -2179,16 +2106,13 @@
 
     // ============ REALTIME SUBSCRIPTION ============
     function setupRealtimeSubscription() {
-      const channel = supabaseClient
+      supabaseClient
         .channel('reports_changes')
         .on('postgres_changes', {
           event: '*',
           schema: 'public',
           table: 'reports'
         }, (payload) => {
-          console.log('Real-time update received:', payload.eventType, payload.new || payload.old);
-
-          // Only refresh if it's a fire-related incident
           if (payload.new) {
             const dbType = (payload.new.type || '').toString().toLowerCase().trim();
             if (
@@ -2206,23 +2130,18 @@
               dbType.includes('accident') ||
               dbType.includes('disaster')
             ) {
-              // Force refresh reports
               loadReports(true);
             }
           }
         })
-        .subscribe((status) => {
-          console.log('Realtime subscription status:', status);
-        });
+        .subscribe();
     }
 
     // ============ EVENT LISTENERS ============
     function setupEventListeners() {
-      // Setup modal button event listeners
       document.getElementById('confirmRespondersBtn').onclick = assignResponders;
       document.getElementById('confirmResolveBtn').onclick = resolveIncident;
       
-      // Add input validation for contact number - only digits
       const contactInput = document.getElementById('responderContact');
       if (contactInput) {
         contactInput.addEventListener('input', function(e) {
@@ -2233,11 +2152,9 @@
         });
       }
       
-      // Add input validation for name - only letters and spaces
       const nameInput = document.getElementById('responderName');
       if (nameInput) {
         nameInput.addEventListener('input', function(e) {
-          // Remove any non-letter characters (allow only letters and spaces)
           this.value = this.value.replace(/[^A-Za-z\s]/g, '');
           if (this.value.length > 20) {
             this.value = this.value.substring(0, 20);
@@ -2258,9 +2175,7 @@
     window.centerOnRoute = centerOnRoute;
 
     // ============ CLEANUP ============
-    window.addEventListener('beforeunload', () => {
-      console.log('🧹 Cleaning up...');
-    });
+    window.addEventListener('beforeunload', () => {});
   </script>
 </body>
 </html>
